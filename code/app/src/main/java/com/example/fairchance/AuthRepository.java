@@ -15,9 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A repository class that abstracts all authentication and user-related
- * data logic from the UI. It handles communication with Firebase Authentication
- * and Cloud Firestore for user profile data.
+ * (No change to this section)
  */
 public class AuthRepository {
 
@@ -25,17 +23,11 @@ public class AuthRepository {
     private final FirebaseAuth auth;
     private final FirebaseFirestore db;
 
-    /**
-     * Callback for asynchronous authentication actions.
-     */
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
         void onError(String message);
     }
 
-    /**
-     * Callback for fetching a user's role from Firestore.
-     */
     public interface RoleCallback {
         void onRoleFetched(String role);
         void onError(String message);
@@ -46,19 +38,10 @@ public class AuthRepository {
         this.db = FirebaseFirestore.getInstance();
     }
 
-    /**
-     * Gets the currently signed-in FirebaseUser.
-     * @return The current FirebaseUser, or null if no one is signed in.
-     */
     public FirebaseUser getCurrentUser() {
         return auth.getCurrentUser();
     }
 
-    /**
-     * Fetches the user's role ("entrant", "organizer", "admin") from their
-     * profile document in Firestore.
-     * @param callback The callback to return the role string or an error.
-     */
     public void getUserRole(RoleCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
@@ -86,15 +69,6 @@ public class AuthRepository {
                 });
     }
 
-    /**
-     * Logs in an Organizer or Admin. This performs a 2-step check:
-     * 1. Authenticates with Email/Password.
-     * 2. Authorizes by checking their role in Firestore against the expectedRole.
-     * @param email The user's email.
-     * @param password The user's password.
-     * @param expectedRole The role ("organizer" or "admin") required to log in.
-     * @param callback The callback to notify the UI.
-     */
     public void loginEmailPasswordUser(String email, String password, String expectedRole, AuthCallback callback) {
         auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
@@ -142,14 +116,16 @@ public class AuthRepository {
     /**
      * Registers a new Organizer or Admin.
      */
+    // *** UPDATED METHOD SIGNATURE ***
     public void registerEmailPasswordUser(String email, String password, String role,
-                                          String firstName, String lastName, AuthCallback callback) {
+                                          String firstName, String lastName, String phone, AuthCallback callback) {
         auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Email/Password registration successful.");
                         FirebaseUser user = task.getResult().getUser();
-                        createUserDocument(user, email, role, firstName, lastName, callback);
+                        // *** UPDATED METHOD CALL ***
+                        createUserDocument(user, email, role, firstName, lastName, phone, callback);
                     } else {
                         Log.w(TAG, "Email/Password registration failed.", task.getException());
                         callback.onError(task.getException().getMessage());
@@ -160,13 +136,15 @@ public class AuthRepository {
     /**
      * Registers and logs in a new Entrant using Anonymous Authentication.
      */
-    public void registerAndLoginEntrant(String email, String firstName, String lastName, AuthCallback callback) {
+    // *** UPDATED METHOD SIGNATURE ***
+    public void registerAndLoginEntrant(String email, String firstName, String lastName, String phone, AuthCallback callback) {
         auth.signInAnonymously()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Anonymous sign-in successful.");
                         FirebaseUser user = task.getResult().getUser();
-                        createUserDocument(user, email, "entrant", firstName, lastName, callback);
+                        // *** UPDATED METHOD CALL ***
+                        createUserDocument(user, email, "entrant", firstName, lastName, phone, callback);
                     } else {
                         Log.w(TAG, "Anonymous sign-in failed.", task.getException());
                         callback.onError(task.getException().getMessage());
@@ -177,18 +155,31 @@ public class AuthRepository {
     /**
      * Private helper to create the user's profile in the 'users' collection.
      */
+    // *** UPDATED METHOD SIGNATURE ***
     private void createUserDocument(FirebaseUser user, String email, String role,
-                                    String firstName, String lastName, AuthCallback callback) {
+                                    String firstName, String lastName, String phone, AuthCallback callback) {
         if (user == null) {
             callback.onError("User is null, cannot create profile.");
             return;
         }
 
+        // 1. Create the default notification preferences map
+        Map<String, Object> notificationPrefs = new HashMap<>();
+        notificationPrefs.put("lotteryResults", true);
+        notificationPrefs.put("organizerUpdates", true);
+
+        // 2. Create the main user data map
         Map<String, Object> userData = new HashMap<>();
         userData.put("email", email);
         userData.put("role", role);
-        userData.put("firstName", firstName);
-        userData.put("lastName", lastName);
+
+        // Combine firstName and lastName into a single 'name' field
+        userData.put("name", firstName + " " + lastName);
+
+        // Add the new fields
+        userData.put("phone", phone); // <-- USE THE VARIABLE, NOT ""
+        userData.put("notificationPreferences", notificationPrefs);
+
 
         db.collection("users").document(user.getUid())
                 .set(userData)

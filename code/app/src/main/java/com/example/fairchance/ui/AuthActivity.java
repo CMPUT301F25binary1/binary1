@@ -30,8 +30,8 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
 
     // UI Components
     private TextView authTitle;
-    private TextInputLayout passwordLayout, firstNameLayout, lastNameLayout;
-    private TextInputEditText emailEditText, passwordEditText, firstNameEditText, lastNameEditText;
+    private TextInputLayout passwordLayout, firstNameLayout, lastNameLayout, phoneLayout;
+    private TextInputEditText emailEditText, passwordEditText, firstNameEditText, lastNameEditText, phoneEditText;
     private MaterialButton actionButton, toggleButton;
     private ProgressBar progressBar;
 
@@ -58,6 +58,9 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
         lastNameLayout = findViewById(R.id.lastName_layout);
         firstNameEditText = findViewById(R.id.edit_text_firstName);
         lastNameEditText = findViewById(R.id.edit_text_lastName);
+        phoneLayout = findViewById(R.id.phone_layout);
+        phoneEditText = findViewById(R.id.edit_text_phone);
+
 
         setupUIForRole();
 
@@ -116,6 +119,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
     private void updateRegistrationFieldsVisibility(boolean show) {
         firstNameLayout.setVisibility(show ? View.VISIBLE : View.GONE);
         lastNameLayout.setVisibility(show ? View.VISIBLE : View.GONE);
+        phoneLayout.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     /**
@@ -126,6 +130,8 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
         String password = passwordEditText.getText().toString().trim();
         String firstName = firstNameEditText.getText().toString().trim();
         String lastName = lastNameEditText.getText().toString().trim();
+        String phone = phoneEditText.getText().toString().trim();
+
 
         if (email.isEmpty()) {
             emailEditText.setError("Email is required");
@@ -152,9 +158,9 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
 
         if (isRegisterMode) {
             if (currentRole.equals("entrant")) {
-                authRepository.registerAndLoginEntrant(email, firstName, lastName, this);
+                authRepository.registerAndLoginEntrant(email, firstName, lastName, phone, this);
             } else {
-                authRepository.registerEmailPasswordUser(email, password, currentRole, firstName, lastName, this);
+                authRepository.registerEmailPasswordUser(email, password, currentRole, firstName, lastName, phone, this);
             }
         } else {
             // LOGIN (Only for Organizer/Admin)

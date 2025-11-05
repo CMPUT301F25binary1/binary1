@@ -7,10 +7,16 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.example.fairchance.AuthRepository;
 import com.example.fairchance.ui.RoleSelectionActivity;
 import com.google.android.material.button.MaterialButton;
+
+import com.example.fairchance.ui.fragments.AdminDashboardFragment;
+import com.example.fairchance.ui.fragments.EntrantDashboardFragment;
+import com.example.fairchance.ui.fragments.OrganizerDashboardFragment;
 
 /**
  * The main screen of the application, shown after a user is logged in.
@@ -52,6 +58,23 @@ public class MainActivity extends AppCompatActivity {
                     logoutButton.setVisibility(View.VISIBLE);
                 }
                 // If the role is "entrant", the button remains GONE
+
+                switch (role) {
+                    case "entrant":
+                        loadDashboardFragment(new EntrantDashboardFragment());
+                        break;
+                    case "organizer":
+                        loadDashboardFragment(new OrganizerDashboardFragment());
+                        break;
+                    case "admin":
+                        loadDashboardFragment(new AdminDashboardFragment());
+                        break;
+                    default:
+                        Log.e("MainActivity", "Unknown role, defaulting to entrant.");
+                        loadDashboardFragment(new EntrantDashboardFragment());
+                        break;
+
+                }
             }
 
             @Override
@@ -60,5 +83,11 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("MainActivity", "Error fetching role: " + message);
             }
         });
+    }
+
+    private void loadDashboardFragment(Fragment fragment) {
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.dashboard_container, fragment);
+        transaction.commit();
     }
 }

@@ -23,6 +23,11 @@ import com.example.fairchance.ui.adapters.InvitationAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This fragment displays a list of pending event invitations for the entrant.
+ * It shows events where the user's status is "Selected" (i.e., they won the lottery)
+ * and allows them to "Accept" or "Decline" the invitation (US 01.05.02, 01.05.03).
+ */
 public class InvitationsFragment extends Fragment {
 
     private static final String TAG = "InvitationsFragment";
@@ -38,7 +43,6 @@ public class InvitationsFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_invitations, container, false);
     }
 
@@ -58,10 +62,13 @@ public class InvitationsFragment extends Fragment {
         invitationAdapter = new InvitationAdapter(getContext(), invitationList, eventRepository);
         invitationsRecyclerView.setAdapter(invitationAdapter);
 
-        // Load data from Firestore
         loadInvitations();
     }
 
+    /**
+     * Fetches the list of pending invitations from the EventRepository
+     * (where status == "Selected") and populates the RecyclerView.
+     */
     private void loadInvitations() {
         showLoading(true);
         eventRepository.getPendingInvitations(new EventRepository.InvitationListCallback() {
@@ -87,6 +94,10 @@ public class InvitationsFragment extends Fragment {
         });
     }
 
+    /**
+     * Helper method to show/hide the main progress bar.
+     * @param isLoading True to show loading state, false otherwise.
+     */
     private void showLoading(boolean isLoading) {
         if (isLoading) {
             progressBar.setVisibility(View.VISIBLE);
@@ -97,6 +108,10 @@ public class InvitationsFragment extends Fragment {
         }
     }
 
+    /**
+     * Helper method to show/hide the "No pending invitations" text.
+     * @param show True to show the empty view, false to show the RecyclerView.
+     */
     private void showEmptyView(boolean show) {
         if (show) {
             emptyView.setVisibility(View.VISIBLE);

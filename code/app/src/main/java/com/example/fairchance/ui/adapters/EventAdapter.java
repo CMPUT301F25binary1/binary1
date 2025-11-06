@@ -13,7 +13,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide; // <-- ADD THIS IMPORT
+import com.bumptech.glide.Glide;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
 import com.example.fairchance.ui.EventDetailsActivity;
@@ -23,11 +23,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * A RecyclerView.Adapter for displaying a filterable list of Event objects.
+ * This adapter is used in the EntrantHomeFragment to show all available events.
+ * It implements Filterable to allow for real-time searching.
+ */
 public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> implements Filterable {
 
     private List<Event> eventList;
-    private List<Event> eventListFull;
+    private List<Event> eventListFull; // A copy of the full list for filtering
 
+    /**
+     * Constructs a new EventAdapter.
+     *
+     * @param eventList The initial list of events to display.
+     */
     public EventAdapter(List<Event> eventList) {
         this.eventList = eventList;
         this.eventListFull = new ArrayList<>(eventList);
@@ -51,12 +61,22 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         return eventList.size();
     }
 
+    /**
+     * Updates the adapter's data source and refreshes the full list for filtering.
+     *
+     * @param events The new list of events.
+     */
     public void setEvents(List<Event> events) {
         this.eventList = events;
         this.eventListFull = new ArrayList<>(events);
         notifyDataSetChanged();
     }
 
+    /**
+     * Returns the Filter object that can be used to filter the list.
+     *
+     * @return A Filter for performing searches.
+     */
     @Override
     public Filter getFilter() {
         return eventFilter;
@@ -92,13 +112,20 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     };
 
 
-    // ViewHolder class
+    /**
+     * ViewHolder class for an individual event card.
+     */
     class EventViewHolder extends RecyclerView.ViewHolder {
         private ImageView eventImage;
         private TextView eventTitle, eventDate;
         private Button buttonJoin;
         private TextView buttonDetails;
 
+        /**
+         * Constructs a new ViewHolder.
+         *
+         * @param itemView The root view of the item_event_card layout.
+         */
         EventViewHolder(View itemView) {
             super(itemView);
             eventImage = itemView.findViewById(R.id.event_image);
@@ -108,10 +135,14 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             buttonDetails = itemView.findViewById(R.id.button_details);
         }
 
+        /**
+         * Binds an Event object to the views in the ViewHolder.
+         *
+         * @param event The Event object to display.
+         */
         void bind(Event event) {
             eventTitle.setText(event.getName());
 
-            // Format the date
             if (event.getEventDate() != null) {
                 SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyY 'at' hh:mm a", Locale.getDefault());
                 eventDate.setText(sdf.format(event.getEventDate()));
@@ -119,14 +150,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                 eventDate.setText("Date not set");
             }
 
-            // --- START: MODIFIED CODE ---
             // Load image with Glide
             Glide.with(itemView.getContext())
                     .load(event.getPosterImageUrl())
-                    .placeholder(R.drawable.fairchance_logo_with_words___transparent) // Optional: show logo while loading
-                    .error(R.drawable.fairchance_logo_with_words___transparent) // Optional: show logo if it fails
+                    .placeholder(R.drawable.fairchance_logo_with_words___transparent)
+                    .error(R.drawable.fairchance_logo_with_words___transparent)
                     .into(eventImage);
-            // --- END: MODIFIED CODE ---
 
             // Create the click listener to navigate to details
             View.OnClickListener detailsClickListener = v -> {

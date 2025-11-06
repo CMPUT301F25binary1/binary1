@@ -11,29 +11,24 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.fairchance.ui.RoleSelectionActivity;
-// We no longer need the MaterialButton
-// import com.google.android.material.button.MaterialButton;
-
-// --- ADD THESE IMPORTS ---
 import com.example.fairchance.ui.fragments.HistoryFragment;
-import com.example.fairchance.ui.fragments.InvitationsFragment; // <-- ADD THIS IMPORT
+import com.example.fairchance.ui.fragments.InvitationsFragment;
 import com.example.fairchance.ui.fragments.ProfileFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-// --- END of new imports ---
-
 import com.example.fairchance.ui.fragments.AdminDashboardFragment;
-// Rename this import
 import com.example.fairchance.ui.fragments.EntrantHomeFragment;
 import com.example.fairchance.ui.fragments.OrganizerDashboardFragment;
 
-
+/**
+ * The main container activity for the app after a user is logged in.
+ * It's responsible for checking the user's role (Entrant, Organizer, or Admin)
+ * and loading the appropriate dashboard fragment.
+ * For Entrants, it also manages the BottomNavigationView.
+ */
 public class MainActivity extends AppCompatActivity {
 
     private AuthRepository authRepository;
-    private BottomNavigationView bottomNav; // <-- ADD this
-
-    // The logoutButton is no longer here
-    // private MaterialButton logoutButton;
+    private BottomNavigationView bottomNav;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,16 +36,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         authRepository = new AuthRepository();
-        bottomNav = findViewById(R.id.bottom_navigation); // <-- FIND the new view
-
-        // --- All the old logoutButton logic is REMOVED ---
+        bottomNav = findViewById(R.id.bottom_navigation);
 
         // Fetch the user's role to determine which UI to show
         authRepository.getUserRole(new AuthRepository.RoleCallback() {
             @Override
             public void onRoleFetched(String role) {
-
-                // --- THIS IS THE NEW LOGIC ---
                 switch (role) {
                     case "entrant":
                         // If entrant, show the nav bar and set it up
@@ -85,7 +76,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Sets up the BottomNavigationView for the Entrant role.
+     * Sets up the BottomNavigationView for the Entrant role,
+     * inflates its menu, and handles navigation item clicks.
      */
     private void setupEntrantNavigation() {
         bottomNav.inflateMenu(R.menu.entrant_nav_menu);
@@ -93,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         // Load the default "Home" fragment
         loadDashboardFragment(new EntrantHomeFragment());
         // Set "Home" as selected in the menu
-        bottomNav.setSelectedItemId(R.id.nav_home); // <-- ADD THIS
+        bottomNav.setSelectedItemId(R.id.nav_home);
 
         // Set the listener for navigation
         bottomNav.setOnItemSelectedListener(item -> {
@@ -102,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (itemId == R.id.nav_home) {
                 selectedFragment = new EntrantHomeFragment();
-            } else if (itemId == R.id.nav_invitations) { // <-- ADD THIS BLOCK
+            } else if (itemId == R.id.nav_invitations) {
                 selectedFragment = new InvitationsFragment();
             } else if (itemId == R.id.nav_history) {
                 selectedFragment = new HistoryFragment();
@@ -119,7 +111,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Helper method to load a Fragment into the 'dashboard_container'
+     * Helper method to replace the content of the 'dashboard_container' FrameLayout
+     * with a given Fragment.
+     *
+     * @param fragment The Fragment to display.
      */
     private void loadDashboardFragment(Fragment fragment) {
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
@@ -128,7 +123,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Helper method to log out the user and return to role selection
+     * Helper method to log out the current user, clear the activity stack,
+     * and redirect to the RoleSelectionActivity.
      */
     private void logout() {
         authRepository.signOut();

@@ -3,39 +3,44 @@ package com.example.fairchance.ui.fragments;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.Editable; // <-- ADD THIS
-import android.text.TextWatcher; // <-- ADD THIS
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText; // <-- ADD THIS
-import android.widget.ImageButton; // <-- ADD THIS
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher; // <-- ADD THIS
-import androidx.activity.result.contract.ActivityResultContracts; // <-- ADD THIS
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.fairchance.AuthRepository; // <-- ADD THIS
+import com.example.fairchance.AuthRepository;
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
-import com.example.fairchance.models.User; // <-- ADD THIS
-import com.example.fairchance.ui.EventDetailsActivity; // <-- ADD THIS
+import com.example.fairchance.models.User;
+import com.example.fairchance.ui.EventDetailsActivity;
 import com.example.fairchance.ui.adapters.EventAdapter;
-import com.google.zxing.integration.android.IntentIntegrator; // <-- ADD THIS
-import com.google.zxing.integration.android.IntentResult; // <-- ADD THIS
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The main home screen for the 'Entrant' role.
+ * This fragment displays a welcome message, a QR code scanner button, a search bar,
+ * and a list of all upcoming events that the entrant can join.
+ */
 public class EntrantHomeFragment extends Fragment {
 
     private static final String TAG = "EntrantHomeFragment";
@@ -44,16 +49,18 @@ public class EntrantHomeFragment extends Fragment {
     private EventAdapter eventAdapter;
     private List<Event> eventList = new ArrayList<>();
     private EventRepository eventRepository;
-    private AuthRepository authRepository; // <-- ADD THIS
+    private AuthRepository authRepository;
 
-    // Add ProgressBar and EmptyText
     private ProgressBar progressBar;
     private TextView emptyView;
-    private TextView tvWelcomeName; // <-- ADD THIS
-    private EditText searchEditText; // <-- ADD THIS
-    private ImageButton scanButton; // <-- ADD THIS
+    private TextView tvWelcomeName;
+    private EditText searchEditText;
+    private ImageButton scanButton;
 
-    // --- ADD THIS LAUNCHER FOR QR CODE SCANNING ---
+    /**
+     * ActivityResultLauncher for the QR code scanning intent.
+     * Handles the result from the scanner.
+     */
     private final ActivityResultLauncher<Intent> qrCodeLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -74,12 +81,10 @@ public class EntrantHomeFragment extends Fragment {
                 }
             }
     );
-    // --- END OF LAUNCHER ---
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Inflate the new dashboard layout
         return inflater.inflate(R.layout.entrant_main_dashboard, container, false);
     }
 
@@ -88,27 +93,25 @@ public class EntrantHomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         eventRepository = new EventRepository();
-        authRepository = new AuthRepository(); // <-- INITIALIZE
+        authRepository = new AuthRepository();
 
-        // Find the RecyclerView and new views
+        // Find views
         eventsRecyclerView = view.findViewById(R.id.events_recycler_view);
         progressBar = view.findViewById(R.id.progress_bar);
         emptyView = view.findViewById(R.id.empty_view);
-        tvWelcomeName = view.findViewById(R.id.textView3); // <-- FIND WELCOME TEXT
-        searchEditText = view.findViewById(R.id.editText); // <-- FIND SEARCH BAR
-        scanButton = view.findViewById(R.id.imageButton); // <-- FIND SCAN BUTTON
+        tvWelcomeName = view.findViewById(R.id.textView3);
+        searchEditText = view.findViewById(R.id.editText);
+        scanButton = view.findViewById(R.id.imageButton);
 
         // Setup RecyclerView
         eventsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         eventAdapter = new EventAdapter(eventList);
         eventsRecyclerView.setAdapter(eventAdapter);
 
-        // --- START OF NEW/MODIFIED CODE ---
-
-        // 1. Load User's Name for Welcome Message
+        // Load User's Name for Welcome Message
         loadUserProfile();
 
-        // 2. Setup Search Bar
+        // Setup Search Bar
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -122,11 +125,8 @@ public class EntrantHomeFragment extends Fragment {
             public void afterTextChanged(Editable s) {}
         });
 
-        // 3. Setup Scan Button
+        // Setup Scan Button
         scanButton.setOnClickListener(v -> {
-            // We need to request permission at runtime, but for simplicity
-            // we will just launch. The manifest permission is required.
-            // For a production app, add runtime permission checks here.
             IntentIntegrator integrator = new IntentIntegrator(requireActivity());
             integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE);
             integrator.setPrompt("Scan Event QR Code");
@@ -134,16 +134,16 @@ public class EntrantHomeFragment extends Fragment {
             integrator.setBeepEnabled(true);
             integrator.setBarcodeImageEnabled(true);
 
-            // Use our launcher to start the activity
             qrCodeLauncher.launch(integrator.createScanIntent());
         });
 
-        // 4. Fetch events from Firestore
+        // Fetch events from Firestore
         loadEvents();
-
-        // --- END OF NEW/MODIFIED CODE ---
     }
 
+    /**
+     * Loads the current user's profile to display their name in the welcome message.
+     */
     private void loadUserProfile() {
         authRepository.getUserProfile(new AuthRepository.UserProfileCallback() {
             @Override
@@ -162,6 +162,10 @@ public class EntrantHomeFragment extends Fragment {
         });
     }
 
+    /**
+     * Fetches the list of all available events from the EventRepository
+     * and populates the RecyclerView.
+     */
     private void loadEvents() {
         showLoading(true);
         eventRepository.getAllEvents(new EventRepository.EventListCallback() {
@@ -172,7 +176,6 @@ public class EntrantHomeFragment extends Fragment {
                     showEmptyView(true);
                 } else {
                     showEmptyView(false);
-                    // Use the new method in the adapter to set both lists
                     eventAdapter.setEvents(events);
                 }
             }
@@ -186,7 +189,10 @@ public class EntrantHomeFragment extends Fragment {
         });
     }
 
-    // Helper methods for loading/empty
+    /**
+     * Helper method to show/hide the main progress bar.
+     * @param isLoading True to show loading state, false otherwise.
+     */
     private void showLoading(boolean isLoading) {
         if (isLoading) {
             progressBar.setVisibility(View.VISIBLE);
@@ -197,6 +203,10 @@ public class EntrantHomeFragment extends Fragment {
         }
     }
 
+    /**
+     * Helper method to show/hide the "No events found" text.
+     * @param show True to show the empty view, false to show the RecyclerView.
+     */
     private void showEmptyView(boolean show) {
         if (show) {
             emptyView.setVisibility(View.VISIBLE);

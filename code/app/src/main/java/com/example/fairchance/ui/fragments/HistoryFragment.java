@@ -23,6 +23,12 @@ import com.example.fairchance.ui.adapters.EventHistoryAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This fragment displays the entrant's full event history.
+ * It shows a list of all events the user has joined, been invited to, or confirmed,
+ * along with their final status (e.g., "Confirmed", "Declined", "Not selected").
+ * Fulfills US 01.02.03.
+ */
 public class HistoryFragment extends Fragment {
 
     private static final String TAG = "HistoryFragment";
@@ -38,7 +44,6 @@ public class HistoryFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.entrant_history, container, false);
     }
 
@@ -58,10 +63,13 @@ public class HistoryFragment extends Fragment {
         historyAdapter = new EventHistoryAdapter(getContext(), historyList);
         historyRecyclerView.setAdapter(historyAdapter);
 
-        // Load data from Firestore
         loadHistory();
     }
 
+    /**
+     * Fetches the user's complete event history from the EventRepository
+     * and populates the RecyclerView.
+     */
     private void loadHistory() {
         showLoading(true);
         eventRepository.getEventHistory(new EventRepository.EventHistoryListCallback() {
@@ -87,6 +95,10 @@ public class HistoryFragment extends Fragment {
         });
     }
 
+    /**
+     * Helper method to show/hide the main progress bar.
+     * @param isLoading True to show loading state, false otherwise.
+     */
     private void showLoading(boolean isLoading) {
         if (isLoading) {
             progressBar.setVisibility(View.VISIBLE);
@@ -97,6 +109,10 @@ public class HistoryFragment extends Fragment {
         }
     }
 
+    /**
+     * Helper method to show/hide the "You have no event history" text.
+     * @param show True to show the empty view, false to show the RecyclerView.
+     */
     private void showEmptyView(boolean show) {
         if (show) {
             emptyView.setVisibility(View.VISIBLE);

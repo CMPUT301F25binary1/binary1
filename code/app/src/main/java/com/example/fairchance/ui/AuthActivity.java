@@ -20,7 +20,9 @@ import com.google.firebase.auth.FirebaseUser;
 
 /**
  * A dynamic activity that handles both Registration and Login for all user roles.
- * The UI adapts based on the "ROLE" extra passed in the Intent.
+ * The UI adapts based on the "ROLE" extra passed in the Intent from RoleSelectionActivity.
+ * - "entrant": Anonymous sign-in (registration only).
+ * - "organizer" / "admin": Email/password login and registration.
  */
 public class AuthActivity extends AppCompatActivity implements AuthRepository.AuthCallback {
 
@@ -43,7 +45,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
         authRepository = new AuthRepository();
         currentRole = getIntent().getStringExtra("ROLE");
         if (currentRole == null) {
-            currentRole = "entrant"; // Default
+            currentRole = "entrant";
         }
 
         // Find all UI views
@@ -70,10 +72,10 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
 
     /**
      * Configures the initial UI state based on the user's role.
+     * Entrants have a register-only flow, while Organizers/Admins can toggle.
      */
     private void setupUIForRole() {
         if (currentRole.equals("entrant")) {
-            // Entrant Flow: Register-only, no password, no toggle
             authTitle.setText("Entrant Registration");
             passwordLayout.setVisibility(View.GONE);
             toggleButton.setVisibility(View.GONE);
@@ -81,7 +83,6 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
             isRegisterMode = true; // Entrant is always in register mode
             updateRegistrationFieldsVisibility(true);
         } else {
-            // Organizer/Admin Flow: Login/Register toggle
             String roleCapitalized = currentRole.substring(0, 1).toUpperCase() + currentRole.substring(1);
             authTitle.setText(roleCapitalized + " Login");
             passwordLayout.setVisibility(View.VISIBLE);
@@ -94,7 +95,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
     }
 
     /**
-     * Toggles the UI between Login and Registration modes for Organizers/Admins.
+     * Toggles the UI between Login and Registration modes (for Organizers/Admins only).
      */
     private void toggleMode() {
         isRegisterMode = !isRegisterMode;
@@ -114,7 +115,9 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
     }
 
     /**
-     * Helper method to show or hide the First/Last Name fields.
+     * Helper method to show or hide registration-specific fields.
+     *
+     * @param show True to show fields, false to hide.
      */
     private void updateRegistrationFieldsVisibility(boolean show) {
         firstNameLayout.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -123,7 +126,8 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
     }
 
     /**
-     * Validates user input and calls the appropriate AuthRepository method.
+     * Validates user input and calls the appropriate AuthRepository method
+     * based on the current mode (register/login) and role.
      */
     private void performAuthAction() {
         String email = emailEditText.getText().toString().trim();
@@ -132,7 +136,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
         String lastName = lastNameEditText.getText().toString().trim();
         String phone = phoneEditText.getText().toString().trim();
 
-
+        // Validation
         if (email.isEmpty()) {
             emailEditText.setError("Email is required");
             return;
@@ -156,6 +160,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
 
         setLoading(true);
 
+        // Call appropriate repository method
         if (isRegisterMode) {
             if (currentRole.equals("entrant")) {
                 authRepository.registerAndLoginEntrant(email, firstName, lastName, phone, this);
@@ -163,29 +168,44 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
                 authRepository.registerEmailPasswordUser(email, password, currentRole, firstName, lastName, phone, this);
             }
         } else {
-            // LOGIN (Only for Organizer/Admin)
             authRepository.loginEmailPasswordUser(email, password, currentRole, this);
         }
     }
 
+    /**
+     * Shows/hides the progress bar and enables/disables buttons.
+     *
+     * @param isLoading True to show loading state, false otherwise.
+     */
     private void setLoading(boolean isLoading) {
         progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
         actionButton.setEnabled(!isLoading);
         toggleButton.setEnabled(!isLoading);
     }
 
+    /**
+     * Callback for a successful authentication from AuthRepository.
+     * Navigates to the MainActivity.
+     *
+     * @param user The newly logged-in FirebaseUser.
+     */
     @Override
     public void onSuccess(FirebaseUser user) {
         setLoading(false);
         Toast.makeText(this, "Success! Welcome.", Toast.LENGTH_SHORT).show();
 
-        // Go directly to the main app
         Intent intent = new Intent(AuthActivity.this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
 
+    /**
+     * Callback for a failed authentication from AuthRepository.
+     * Shows an error dialog.
+     *
+     * @param message The error message to display.
+     */
     @Override
     public void onError(String message) {
         setLoading(false);

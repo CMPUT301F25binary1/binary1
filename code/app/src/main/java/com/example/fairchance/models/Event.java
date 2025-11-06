@@ -23,6 +23,7 @@ public class Event {
     private boolean geolocationRequired;
     private long waitingListLimit;
     private String guidelines;
+    private String category;
 
     @Exclude
     private String eventId;
@@ -134,6 +135,14 @@ public class Event {
 
     public void setGuidelines(String guidelines) {
         this.guidelines = guidelines;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     /**

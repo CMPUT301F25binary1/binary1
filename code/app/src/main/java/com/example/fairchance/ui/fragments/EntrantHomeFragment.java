@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -20,6 +21,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -56,6 +58,8 @@ public class EntrantHomeFragment extends Fragment {
     private TextView tvWelcomeName;
     private EditText searchEditText;
     private ImageButton scanButton;
+    private Button btnAll, btnMusic, btnDance, btnArt, btnTech;
+    private Button btnHowItWorks;
 
     /**
      * ActivityResultLauncher for the QR code scanning intent.
@@ -102,6 +106,13 @@ public class EntrantHomeFragment extends Fragment {
         tvWelcomeName = view.findViewById(R.id.textView3);
         searchEditText = view.findViewById(R.id.editText);
         scanButton = view.findViewById(R.id.imageButton);
+        btnHowItWorks = view.findViewById(R.id.btn_how_it_works);
+
+        btnAll = view.findViewById(R.id.button);
+        btnMusic = view.findViewById(R.id.button2);
+        btnDance = view.findViewById(R.id.button3);
+        btnArt = view.findViewById(R.id.button4);
+        btnTech = view.findViewById(R.id.button5);
 
         // Setup RecyclerView
         eventsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -125,6 +136,30 @@ public class EntrantHomeFragment extends Fragment {
             public void afterTextChanged(Editable s) {}
         });
 
+        View.OnClickListener categoryClickListener = v -> {
+            String category = "All"; // Default to "All"
+            int id = v.getId();
+
+            if (id == R.id.button2) {
+                category = "Music";
+            } else if (id == R.id.button3) {
+                category = "Dance";
+            } else if (id == R.id.button4) {
+                category = "Art";
+            } else if (id == R.id.button5) {
+                category = "Tech";
+            }
+
+            eventAdapter.setCategory(category);
+        };
+        btnAll.setOnClickListener(categoryClickListener);
+        btnMusic.setOnClickListener(categoryClickListener);
+        btnDance.setOnClickListener(categoryClickListener);
+        btnArt.setOnClickListener(categoryClickListener);
+        btnTech.setOnClickListener(categoryClickListener);
+
+        btnHowItWorks.setOnClickListener(v -> navigateToGuidelines());
+
         // Setup Scan Button
         scanButton.setOnClickListener(v -> {
             IntentIntegrator integrator = new IntentIntegrator(requireActivity());
@@ -139,6 +174,21 @@ public class EntrantHomeFragment extends Fragment {
 
         // Fetch events from Firestore
         loadEvents();
+
+    }
+
+    /**
+     * Navigates to the GuidelinesFragment when the "How it Works" button is clicked.
+     */
+    private void navigateToGuidelines() {
+        if (getFragmentManager() != null) {
+            FragmentTransaction transaction = getFragmentManager().beginTransaction();
+            // Replace the main dashboard container with the guidelines fragment
+            transaction.replace(R.id.dashboard_container, new GuidelinesFragment());
+            // Add to back stack so the user can press 'Back' to return to EntrantHomeFragment
+            transaction.addToBackStack(null);
+            transaction.commit();
+        }
     }
 
     /**

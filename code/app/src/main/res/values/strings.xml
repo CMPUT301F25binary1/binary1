@@ -1,14 +1,14 @@
 <resources>
-    <string name="step_3_lottery_selection_response">[Describe what happens after the lottery selection step]</string>
+    <string name="step_3_lottery_selection_response">Once the registration period ends, the system performs a random selection process (the lottery) to choose the required number of participants from the Waiting List. All participants who are selected receive an invitation notification.</string>
     <string name="step_4_confirmation_and_replacements">Step 4: Confirmation and Replacements</string>
-    <string name="step_4_confirmation_and_replacements_response">[Describe confirmation and replacement process]</string>
+    <string name="step_4_confirmation_and_replacements_response">Selected entrants have a limited time to accept the invitation (Sign Up). If a selected spot is declined or expires, the system automatically draws a replacement from the remaining Waiting List entrants to maintain fairness and fill the event capacity.</string>
     <string name="why_a_lottery_system">Why a Lottery System?</string>
-    <string name="why_a_lottery_system_response">[Explain the benefits of a lottery system]</string>
+    <string name="why_a_lottery_system_response">The lottery system ensures fair access for all users, eliminating the need to rush or repeatedly refresh a webpage to secure a spot. This is particularly beneficial for users with scheduling limitations or disabilities, as it provides an equal chance to register as long as they join the Waiting List before the deadline.</string>
     <string name="for_event_organizers">For Event Organizers</string>
-    <string name="for_event_organizers_response">[Organizer-specific details about the lottery system]</string>
-    <string name="for_event_organizers_response_2">[More info for organizers]</string>
+    <string name="for_event_organizers_response">FairChance provides organizers with tools to set capacity limits, define registration windows, and automatically manage the attendee selection and replacement process. This streamlines event management and ensures full attendance.</string>
+    <string name="for_event_organizers_response_2">Organizers can monitor the waiting list, view attendance data, and send targeted notifications to all entrants, selected participants, or those who were not chosen, providing full communication control.</string>
     <string name="with_fairchance_you_can">With FairChance, you can:</string>
-    <string name="fairchance_capabilities">[List FairChance’s capabilities]</string>
+    <string name="fairchance_capabilities">Browse and filter events based on category.\nJoin the Waiting List for events you are interested in.\nReceive instant, fair invitations when selected in the lottery.\nManage your profile and opt-in/out of notifications.</string>
     <string name="login">Login</string>
     <string name="welcome_back">Welcome Back!</string>
     <string name="email">Email</string>

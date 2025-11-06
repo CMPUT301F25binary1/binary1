@@ -1,5 +1,7 @@
 package com.example.fairchance.ui.adapters;
 
+import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +12,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
+import com.example.fairchance.ui.EventDetailsActivity; // <-- ADDED THIS IMPORT
+
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
@@ -70,9 +74,23 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             // TODO: Load image with Glide or Picasso
             // Example: Glide.with(itemView.getContext()).load(event.getPosterImageUrl()).into(eventImage);
 
-            // TODO: Set click listeners for Join and Details
-            // buttonJoin.setOnClickListener(v -> ... );
-            // buttonDetails.setOnClickListener(v -> ... );
+
+            // --- START OF MODIFIED CODE ---
+
+            // Create the click listener to navigate to details
+            View.OnClickListener detailsClickListener = v -> {
+                Context context = itemView.getContext();
+                Intent intent = new Intent(context, EventDetailsActivity.class);
+                intent.putExtra("EVENT_ID", event.getEventId());
+                context.startActivity(intent);
+            };
+
+            // Set click listeners for Join, Details, and the whole card
+            buttonJoin.setOnClickListener(detailsClickListener);
+            buttonDetails.setOnClickListener(detailsClickListener);
+            itemView.setOnClickListener(detailsClickListener);
+
+            // --- END OF MODIFIED CODE ---
         }
     }
 }

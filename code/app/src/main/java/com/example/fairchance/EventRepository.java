@@ -15,7 +15,7 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query; // <-- NEW IMPORT
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
@@ -52,12 +52,25 @@ public class EventRepository {
         void onError(String message);
     }
 
-    // --- NEW INTERFACE for History ---
+    public interface WaitlistCountCallback {
+        void onSuccess(int count);
+        void onError(String message);
+    }
+
+    // --- ADDED NEW INTERFACE ---
+    public interface EventHistoryCheckCallback {
+        /**
+         * @param status The user's status ("Waiting", "Confirmed", etc.), or null if no record exists.
+         */
+        void onSuccess(String status);
+        void onError(String message);
+    }
+    // --- END NEW INTERFACE ---
+
     public interface EventHistoryListCallback {
         void onSuccess(List<EventHistoryItem> historyItems);
         void onError(String message);
     }
-    // --- END NEW INTERFACE ---
 
     /**
      * Constructor
@@ -148,6 +161,27 @@ public class EventRepository {
     }
 
     /**
+     * Gets the current number of users on a specific event's waiting list.
+     * Note: This can be expensive if the list is large.
+     *
+     * @param eventId The event to check.
+     * @param callback Returns the count of documents or an error.
+     */
+    public void getWaitingListCount(String eventId, WaitlistCountCallback callback) {
+        eventsRef.document(eventId).collection("waitingList")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        int count = task.getResult().size();
+                        callback.onSuccess(count);
+                    } else {
+                        Log.e(TAG, "Error getting waitlist count: ", task.getException());
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    /**
      * Adds the current user to an event's waiting list.
      * This performs an atomic (all-or-nothing) write to two locations,
      * as per the database design:
@@ -205,7 +239,54 @@ public class EventRepository {
                 });
     }
 
-    // --- NEW METHOD ---
+
+    // --- ADDED NEW METHOD ---
+    /**
+     * Removes the current user from an event's waiting list.
+     * This performs an atomic (all-or-nothing) write to two locations:
+     * 1. Deletes events/{EventID}/waitingList/{UserID}
+     * 2. Deletes users/{UserID}/eventHistory/{EventID}
+     *
+     * Corresponds to US 01.01.02.
+     *
+     * @param eventId The ID of the event to leave.
+     * @param callback Notifies of success or failure.
+     */
+    public void leaveWaitingList(String eventId, EventTaskCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        // 1. Create a WriteBatch for an atomic operation
+        WriteBatch batch = db.batch();
+
+        // 2. Define the reference for the event's waitingList sub-collection
+        DocumentReference waitingListRef = eventsRef.document(eventId)
+                .collection("waitingList").document(userId);
+        batch.delete(waitingListRef);
+
+        // 3. Define the reference for the user's eventHistory sub-collection
+        DocumentReference eventHistoryRef = usersRef.document(userId)
+                .collection("eventHistory").document(eventId);
+        batch.delete(eventHistoryRef);
+
+        // 4. Commit the atomic batch
+        batch.commit()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User " + userId + " successfully left waiting list for " + eventId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to leave waiting list", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+    // --- END NEW METHOD ---
+
+
     /**
      * Retrieves the event history for the currently signed-in user.
      * Corresponds to US 01.02.03.
@@ -237,10 +318,42 @@ public class EventRepository {
                     }
                 });
     }
+
+
+    // --- ADDED NEW METHOD ---
+    /**
+     * Checks the user's history for a specific event to see their status.
+     * @param eventId The event to check.
+     * @param callback Returns the status string (e.g., "Waiting") or null if no record exists.
+     */
+    public void checkEventHistoryStatus(String eventId, EventHistoryCheckCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        usersRef.document(userId).collection("eventHistory").document(eventId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (document.exists()) {
+                            String status = document.getString("status");
+                            callback.onSuccess(status); // e.g., "Waiting", "Confirmed"
+                        } else {
+                            callback.onSuccess(null); // User is not associated with this event
+                        }
+                    } else {
+                        Log.e(TAG, "Error checking event status: ", task.getException());
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
     // --- END NEW METHOD ---
 
     // TODO: We will add more methods here later, such as:
-    // - leaveWaitingList(String eventId, ...)
     // - getPendingInvitations(String userId, ...)
     // - respondToInvitation(String eventId, boolean didAccept, ...)
     // - runLottery(String eventId, int count, ...)

@@ -42,4 +42,6 @@
     <string name="role_admin_desc">Manage all users and events.</string>
     <string name="save_changes">Save Changes</string>
     <string name="delete_profile">Delete Profile</string>
+    <string name="event_management">Event Management</string>
+    <string name="navigate">Navigate</string>
 </resources>

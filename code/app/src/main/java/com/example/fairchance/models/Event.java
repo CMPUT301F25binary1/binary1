@@ -26,6 +26,7 @@ public class Event {
     private double price;
     private boolean geolocationRequired;
     private long waitingListLimit;
+    private String guidelines; // <-- ADDED THIS FIELD
 
     // --- Utility Fields ---
 
@@ -136,6 +137,16 @@ public class Event {
     public void setWaitingListLimit(long waitingListLimit) {
         this.waitingListLimit = waitingListLimit;
     }
+
+    // --- ADDED GETTERS AND SETTERS FOR GUIDELINES ---
+    public String getGuidelines() {
+        return guidelines;
+    }
+
+    public void setGuidelines(String guidelines) {
+        this.guidelines = guidelines;
+    }
+    // --- END ADDED SECTION ---
 
     @Exclude
     public String getEventId() {

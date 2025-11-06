@@ -7,6 +7,11 @@
         android:title="Home" />
 
     <item
+        android:id="@+id/nav_invitations"
+        android:icon="@drawable/ic_invitations_nav"
+        android:title="Invitations" />
+
+    <item
         android:id="@+id/nav_history"
         android:icon="@drawable/ic_history_nav"
         android:title="History" />

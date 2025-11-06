@@ -6,24 +6,29 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Filter; // <-- ADD THIS
+import android.widget.Filterable; // <-- ADD THIS
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
-import com.example.fairchance.ui.EventDetailsActivity; // <-- ADDED THIS IMPORT
+import com.example.fairchance.ui.EventDetailsActivity;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList; // <-- ADD THIS
 import java.util.List;
 import java.util.Locale;
 
-public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> {
+public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> implements Filterable { // <-- IMPLEMENTS FILTERABLE
 
     private List<Event> eventList;
+    private List<Event> eventListFull; // <-- ADD THIS FOR FILTERING
 
     public EventAdapter(List<Event> eventList) {
         this.eventList = eventList;
+        this.eventListFull = new ArrayList<>(eventList); // <-- INITIALIZE FULL LIST
     }
 
     @NonNull
@@ -43,6 +48,51 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     public int getItemCount() {
         return eventList.size();
     }
+
+    // --- ADDED: UPDATE METHOD FOR WHEN DATA FIRST LOADS ---
+    public void setEvents(List<Event> events) {
+        this.eventList = events;
+        this.eventListFull = new ArrayList<>(events);
+        notifyDataSetChanged();
+    }
+    // --- END ADDED METHOD ---
+
+    // --- START: ADDED FILTER IMPLEMENTATION ---
+    @Override
+    public Filter getFilter() {
+        return eventFilter;
+    }
+
+    private Filter eventFilter = new Filter() {
+        @Override
+        protected FilterResults performFiltering(CharSequence constraint) {
+            List<Event> filteredList = new ArrayList<>();
+
+            if (constraint == null || constraint.length() == 0) {
+                filteredList.addAll(eventListFull);
+            } else {
+                String filterPattern = constraint.toString().toLowerCase().trim();
+                for (Event item : eventListFull) {
+                    if (item.getName().toLowerCase().contains(filterPattern)) {
+                        filteredList.add(item);
+                    }
+                }
+            }
+
+            FilterResults results = new FilterResults();
+            results.values = filteredList;
+            return results;
+        }
+
+        @Override
+        protected void publishResults(CharSequence constraint, FilterResults results) {
+            eventList.clear();
+            eventList.addAll((List) results.values);
+            notifyDataSetChanged();
+        }
+    };
+    // --- END: ADDED FILTER IMPLEMENTATION ---
+
 
     // ViewHolder class
     class EventViewHolder extends RecyclerView.ViewHolder {
@@ -74,9 +124,6 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             // TODO: Load image with Glide or Picasso
             // Example: Glide.with(itemView.getContext()).load(event.getPosterImageUrl()).into(eventImage);
 
-
-            // --- START OF MODIFIED CODE ---
-
             // Create the click listener to navigate to details
             View.OnClickListener detailsClickListener = v -> {
                 Context context = itemView.getContext();
@@ -89,8 +136,6 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             buttonJoin.setOnClickListener(detailsClickListener);
             buttonDetails.setOnClickListener(detailsClickListener);
             itemView.setOnClickListener(detailsClickListener);
-
-            // --- END OF MODIFIED CODE ---
         }
     }
 }

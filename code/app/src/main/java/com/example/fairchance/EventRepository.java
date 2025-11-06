@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 // Import the models you created
 import com.example.fairchance.models.Event;
 import com.example.fairchance.models.EventHistoryItem;
+import com.example.fairchance.models.Invitation; // <-- ADD THIS IMPORT
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -57,20 +58,23 @@ public class EventRepository {
         void onError(String message);
     }
 
-    // --- ADDED NEW INTERFACE ---
     public interface EventHistoryCheckCallback {
-        /**
-         * @param status The user's status ("Waiting", "Confirmed", etc.), or null if no record exists.
-         */
         void onSuccess(String status);
         void onError(String message);
     }
-    // --- END NEW INTERFACE ---
 
     public interface EventHistoryListCallback {
         void onSuccess(List<EventHistoryItem> historyItems);
         void onError(String message);
     }
+
+    // --- ADDED NEW INTERFACE ---
+    public interface InvitationListCallback {
+        void onSuccess(List<Invitation> historyItems);
+        void onError(String message);
+    }
+    // --- END NEW INTERFACE ---
+
 
     /**
      * Constructor
@@ -239,8 +243,6 @@ public class EventRepository {
                 });
     }
 
-
-    // --- ADDED NEW METHOD ---
     /**
      * Removes the current user from an event's waiting list.
      * This performs an atomic (all-or-nothing) write to two locations:
@@ -284,8 +286,6 @@ public class EventRepository {
                     callback.onError(e.getMessage());
                 });
     }
-    // --- END NEW METHOD ---
-
 
     /**
      * Retrieves the event history for the currently signed-in user.
@@ -319,8 +319,6 @@ public class EventRepository {
                 });
     }
 
-
-    // --- ADDED NEW METHOD ---
     /**
      * Checks the user's history for a specific event to see their status.
      * @param eventId The event to check.
@@ -351,11 +349,100 @@ public class EventRepository {
                     }
                 });
     }
+
+
+    // --- ADDED NEW METHOD ---
+    /**
+     * Retrieves all pending invitations for the current user.
+     * (e.g., all events in their history with status "Selected")
+     * Corresponds to US 01.05.02, US 01.05.03.
+     *
+     * @param callback Returns the list of pending invitations or an error.
+     */
+    public void getPendingInvitations(InvitationListCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        usersRef.document(userId).collection("eventHistory")
+                .whereEqualTo("status", "Selected") // Query for pending invitations
+                .orderBy("eventDate", Query.Direction.DESCENDING)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Invitation> invitationList = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Invitation item = document.toObject(Invitation.class);
+                            item.setEventId(document.getId()); // Store the document ID
+                            invitationList.add(item);
+                        }
+                        callback.onSuccess(invitationList);
+                    } else {
+                        Log.e(TAG, "Error getting pending invitations: ", task.getException());
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
     // --- END NEW METHOD ---
 
-    // TODO: We will add more methods here later, such as:
-    // - getPendingInvitations(String userId, ...)
-    // - respondToInvitation(String eventId, boolean didAccept, ...)
-    // - runLottery(String eventId, int count, ...)
-    // - getWaitingList(String eventId, ...)
+
+    // --- ADDED NEW METHOD ---
+    /**
+     * Allows a user to accept or decline a pending event invitation.
+     * This updates the status in 3 places:
+     * 1. users/{UserID}/eventHistory/{EventID} (status: "Confirmed" or "Declined")
+     * 2. events/{EventID}/selected/{UserID} (status: "accepted" or "declined")
+     * 3. (If accepted) events/{EventID}/confirmedAttendees/{UserID} (new document)
+     *
+     * @param eventId  The event to respond to.
+     * @param accepted True if accepting, false if declining.
+     * @param callback Notifies of success or failure.
+     */
+    public void respondToInvitation(String eventId, boolean accepted, EventTaskCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        // 1. Create a WriteBatch for an atomic operation
+        WriteBatch batch = db.batch();
+
+        // 2. Define the reference for the user's eventHistory
+        DocumentReference eventHistoryRef = usersRef.document(userId)
+                .collection("eventHistory").document(eventId);
+        String newStatus = accepted ? "Confirmed" : "Declined";
+        batch.update(eventHistoryRef, "status", newStatus);
+
+        // 3. Define the reference for the event's selected list
+        DocumentReference selectedRef = eventsRef.document(eventId)
+                .collection("selected").document(userId);
+        String newSelectedStatus = accepted ? "accepted" : "declined";
+        batch.update(selectedRef, "status", newSelectedStatus);
+
+        // 4. (If accepted) Define the reference for the event's confirmedAttendees
+        if (accepted) {
+            DocumentReference confirmedRef = eventsRef.document(eventId)
+                    .collection("confirmedAttendees").document(userId);
+            Map<String, Object> confirmedData = new HashMap<>();
+            confirmedData.put("confirmedAt", com.google.firebase.Timestamp.now());
+            batch.set(confirmedRef, confirmedData);
+        }
+
+        // 5. Commit the atomic batch
+        batch.commit()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User " + userId + " responded to invitation for " + eventId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to respond to invitation", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+    // --- END NEW METHOD ---
 }

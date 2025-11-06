@@ -16,6 +16,7 @@ import com.example.fairchance.ui.RoleSelectionActivity;
 
 // --- ADD THESE IMPORTS ---
 import com.example.fairchance.ui.fragments.HistoryFragment;
+import com.example.fairchance.ui.fragments.InvitationsFragment; // <-- ADD THIS IMPORT
 import com.example.fairchance.ui.fragments.ProfileFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 // --- END of new imports ---
@@ -91,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Load the default "Home" fragment
         loadDashboardFragment(new EntrantHomeFragment());
+        // Set "Home" as selected in the menu
+        bottomNav.setSelectedItemId(R.id.nav_home); // <-- ADD THIS
 
         // Set the listener for navigation
         bottomNav.setOnItemSelectedListener(item -> {
@@ -99,6 +102,8 @@ public class MainActivity extends AppCompatActivity {
 
             if (itemId == R.id.nav_home) {
                 selectedFragment = new EntrantHomeFragment();
+            } else if (itemId == R.id.nav_invitations) { // <-- ADD THIS BLOCK
+                selectedFragment = new InvitationsFragment();
             } else if (itemId == R.id.nav_history) {
                 selectedFragment = new HistoryFragment();
             } else if (itemId == R.id.nav_profile) {

@@ -1,8 +1,8 @@
 package com.example.fairchance;
 
 import android.util.Log;
-
 import androidx.annotation.NonNull;
+import com.example.fairchance.models.User; // Import the User model
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
@@ -10,19 +10,16 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * (No change to this section)
- */
 public class AuthRepository {
 
     private static final String TAG = "AuthRepository";
     private final FirebaseAuth auth;
     private final FirebaseFirestore db;
 
+    // --- CALLBACK INTERFACES ---
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
         void onError(String message);
@@ -33,6 +30,17 @@ public class AuthRepository {
         void onError(String message);
     }
 
+    public interface UserProfileCallback {
+        void onSuccess(User user);
+        void onError(String message);
+    }
+
+    public interface TaskCallback {
+        void onSuccess();
+        void onError(String message);
+    }
+    // --- END CALLBACK INTERFACES ---
+
     public AuthRepository() {
         this.auth = FirebaseAuth.getInstance();
         this.db = FirebaseFirestore.getInstance();
@@ -42,7 +50,34 @@ public class AuthRepository {
         return auth.getCurrentUser();
     }
 
+    /**
+     * Fetches the full profile for the currently logged-in user.
+     */
+    public void getUserProfile(UserProfileCallback callback) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            callback.onError("No user is logged in.");
+            return;
+        }
+
+        db.collection("users").document(fUser.getUid()).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        User user = documentSnapshot.toObject(User.class);
+                        if (user != null) {
+                            callback.onSuccess(user);
+                        } else {
+                            callback.onError("Failed to parse user data.");
+                        }
+                    } else {
+                        callback.onError("User profile document not found.");
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
     public void getUserRole(RoleCallback callback) {
+        // ... (This method is unchanged)
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             callback.onError("No user is currently logged in.");
@@ -69,7 +104,52 @@ public class AuthRepository {
                 });
     }
 
+    /**
+     * Updates the user's profile data in Firestore.
+     */
+    public void updateUserProfile(String newName, String newEmail, String newPhone, TaskCallback callback) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            callback.onError("No user is logged in.");
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", newName);
+        updates.put("email", newEmail);
+        updates.put("phone", newPhone);
+        // We don't allow updating 'role'
+
+        db.collection("users").document(fUser.getUid())
+                .update(updates)
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    /**
+     * Deletes the user's Firestore document and their Authentication record.
+     */
+    public void deleteCurrentUser(TaskCallback callback) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            callback.onError("No user is logged in.");
+            return;
+        }
+        String userId = fUser.getUid();
+
+        // 1. Delete the user's document from Firestore
+        db.collection("users").document(userId).delete()
+                .addOnSuccessListener(aVoid -> {
+                    // 2. If Firestore delete succeeds, delete the auth record
+                    fUser.delete()
+                            .addOnSuccessListener(aVoid2 -> callback.onSuccess())
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
     public void loginEmailPasswordUser(String email, String password, String expectedRole, AuthCallback callback) {
+        // ... (This method is unchanged)
         auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -113,18 +193,14 @@ public class AuthRepository {
                 });
     }
 
-    /**
-     * Registers a new Organizer or Admin.
-     */
-    // *** UPDATED METHOD SIGNATURE ***
     public void registerEmailPasswordUser(String email, String password, String role,
                                           String firstName, String lastName, String phone, AuthCallback callback) {
+        // ... (This method is unchanged)
         auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Email/Password registration successful.");
                         FirebaseUser user = task.getResult().getUser();
-                        // *** UPDATED METHOD CALL ***
                         createUserDocument(user, email, role, firstName, lastName, phone, callback);
                     } else {
                         Log.w(TAG, "Email/Password registration failed.", task.getException());
@@ -133,17 +209,13 @@ public class AuthRepository {
                 });
     }
 
-    /**
-     * Registers and logs in a new Entrant using Anonymous Authentication.
-     */
-    // *** UPDATED METHOD SIGNATURE ***
     public void registerAndLoginEntrant(String email, String firstName, String lastName, String phone, AuthCallback callback) {
+        // ... (This method is unchanged)
         auth.signInAnonymously()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Anonymous sign-in successful.");
                         FirebaseUser user = task.getResult().getUser();
-                        // *** UPDATED METHOD CALL ***
                         createUserDocument(user, email, "entrant", firstName, lastName, phone, callback);
                     } else {
                         Log.w(TAG, "Anonymous sign-in failed.", task.getException());
@@ -152,34 +224,24 @@ public class AuthRepository {
                 });
     }
 
-    /**
-     * Private helper to create the user's profile in the 'users' collection.
-     */
-    // *** UPDATED METHOD SIGNATURE ***
     private void createUserDocument(FirebaseUser user, String email, String role,
                                     String firstName, String lastName, String phone, AuthCallback callback) {
+        // ... (This method is unchanged)
         if (user == null) {
             callback.onError("User is null, cannot create profile.");
             return;
         }
 
-        // 1. Create the default notification preferences map
         Map<String, Object> notificationPrefs = new HashMap<>();
         notificationPrefs.put("lotteryResults", true);
         notificationPrefs.put("organizerUpdates", true);
 
-        // 2. Create the main user data map
         Map<String, Object> userData = new HashMap<>();
         userData.put("email", email);
         userData.put("role", role);
-
-        // Combine firstName and lastName into a single 'name' field
         userData.put("name", firstName + " " + lastName);
-
-        // Add the new fields
-        userData.put("phone", phone); // <-- USE THE VARIABLE, NOT ""
+        userData.put("phone", phone);
         userData.put("notificationPreferences", notificationPrefs);
-
 
         db.collection("users").document(user.getUid())
                 .set(userData)
@@ -193,9 +255,6 @@ public class AuthRepository {
                 });
     }
 
-    /**
-     * Signs out the current user from Firebase Authentication.
-     */
     public void signOut() {
         auth.signOut();
     }

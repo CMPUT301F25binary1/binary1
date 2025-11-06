@@ -2,7 +2,11 @@ package com.example.fairchance;
 
 import android.util.Log;
 import androidx.annotation.NonNull;
+
+// Import the models you created
 import com.example.fairchance.models.Event;
+import com.example.fairchance.models.EventHistoryItem;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -11,6 +15,7 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query; // <-- NEW IMPORT
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
@@ -46,6 +51,13 @@ public class EventRepository {
         void onSuccess(List<Event> events);
         void onError(String message);
     }
+
+    // --- NEW INTERFACE for History ---
+    public interface EventHistoryListCallback {
+        void onSuccess(List<EventHistoryItem> historyItems);
+        void onError(String message);
+    }
+    // --- END NEW INTERFACE ---
 
     /**
      * Constructor
@@ -193,9 +205,44 @@ public class EventRepository {
                 });
     }
 
+    // --- NEW METHOD ---
+    /**
+     * Retrieves the event history for the currently signed-in user.
+     * Corresponds to US 01.02.03.
+     * @param callback Returns the list of history items or an error.
+     */
+    public void getEventHistory(EventHistoryListCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        usersRef.document(userId).collection("eventHistory")
+                .orderBy("eventDate", Query.Direction.DESCENDING) // Show newest first
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<EventHistoryItem> historyList = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            EventHistoryItem item = document.toObject(EventHistoryItem.class);
+                            item.setEventId(document.getId()); // Store the document ID
+                            historyList.add(item);
+                        }
+                        callback.onSuccess(historyList);
+                    } else {
+                        Log.e(TAG, "Error getting event history: ", task.getException());
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+    // --- END NEW METHOD ---
+
     // TODO: We will add more methods here later, such as:
     // - leaveWaitingList(String eventId, ...)
-    // - getWaitingList(String eventId, ...)
+    // - getPendingInvitations(String userId, ...)
+    // - respondToInvitation(String eventId, boolean didAccept, ...)
     // - runLottery(String eventId, int count, ...)
-    // - acceptInvitation(String eventId, ...)
+    // - getWaitingList(String eventId, ...)
 }

@@ -6,29 +6,31 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.Filter; // <-- ADD THIS
-import android.widget.Filterable; // <-- ADD THIS
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide; // <-- ADD THIS IMPORT
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
 import com.example.fairchance.ui.EventDetailsActivity;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList; // <-- ADD THIS
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> implements Filterable { // <-- IMPLEMENTS FILTERABLE
+public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> implements Filterable {
 
     private List<Event> eventList;
-    private List<Event> eventListFull; // <-- ADD THIS FOR FILTERING
+    private List<Event> eventListFull;
 
     public EventAdapter(List<Event> eventList) {
         this.eventList = eventList;
-        this.eventListFull = new ArrayList<>(eventList); // <-- INITIALIZE FULL LIST
+        this.eventListFull = new ArrayList<>(eventList);
     }
 
     @NonNull
@@ -49,15 +51,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         return eventList.size();
     }
 
-    // --- ADDED: UPDATE METHOD FOR WHEN DATA FIRST LOADS ---
     public void setEvents(List<Event> events) {
         this.eventList = events;
         this.eventListFull = new ArrayList<>(events);
         notifyDataSetChanged();
     }
-    // --- END ADDED METHOD ---
 
-    // --- START: ADDED FILTER IMPLEMENTATION ---
     @Override
     public Filter getFilter() {
         return eventFilter;
@@ -91,7 +90,6 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             notifyDataSetChanged();
         }
     };
-    // --- END: ADDED FILTER IMPLEMENTATION ---
 
 
     // ViewHolder class
@@ -115,14 +113,20 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
             // Format the date
             if (event.getEventDate() != null) {
-                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyY 'at' hh:mm a", Locale.getDefault());
                 eventDate.setText(sdf.format(event.getEventDate()));
             } else {
                 eventDate.setText("Date not set");
             }
 
-            // TODO: Load image with Glide or Picasso
-            // Example: Glide.with(itemView.getContext()).load(event.getPosterImageUrl()).into(eventImage);
+            // --- START: MODIFIED CODE ---
+            // Load image with Glide
+            Glide.with(itemView.getContext())
+                    .load(event.getPosterImageUrl())
+                    .placeholder(R.drawable.fairchance_logo_with_words___transparent) // Optional: show logo while loading
+                    .error(R.drawable.fairchance_logo_with_words___transparent) // Optional: show logo if it fails
+                    .into(eventImage);
+            // --- END: MODIFIED CODE ---
 
             // Create the click listener to navigate to details
             View.OnClickListener detailsClickListener = v -> {

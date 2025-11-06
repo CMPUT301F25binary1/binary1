@@ -107,7 +107,8 @@ public class AuthRepository {
     /**
      * Updates the user's profile data in Firestore.
      */
-    public void updateUserProfile(String newName, String newEmail, String newPhone, TaskCallback callback) {
+    public void updateUserProfile(String newName, String newEmail, String newPhone,
+                                  Map<String, Object> notificationPrefs, TaskCallback callback) {
         FirebaseUser fUser = auth.getCurrentUser();
         if (fUser == null) {
             callback.onError("No user is logged in.");
@@ -118,6 +119,7 @@ public class AuthRepository {
         updates.put("name", newName);
         updates.put("email", newEmail);
         updates.put("phone", newPhone);
+        updates.put("notificationPreferences", notificationPrefs);
         // We don't allow updating 'role'
 
         db.collection("users").document(fUser.getUid())
@@ -147,6 +149,27 @@ public class AuthRepository {
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
+
+    // --- START: ADDED NEW METHOD ---
+    /**
+     * Saves the user's FCM registration token to their Firestore document.
+     * @param token The FCM token.
+     */
+    public void saveFcmToken(String token) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            // No user logged in, can't save token.
+            // This is fine, it will be saved on next login via SplashActivity.
+            Log.d(TAG, "No user logged in, skipping FCM token save.");
+            return;
+        }
+
+        db.collection("users").document(fUser.getUid())
+                .update("fcmToken", token)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM Token saved to Firestore."))
+                .addOnFailureListener(e -> Log.e(TAG, "Error saving FCM Token", e));
+    }
+    // --- END: ADDED NEW METHOD ---
 
     public void loginEmailPasswordUser(String email, String password, String expectedRole, AuthCallback callback) {
         // ... (This method is unchanged)
@@ -224,9 +247,10 @@ public class AuthRepository {
                 });
     }
 
+    // --- START: MODIFIED METHOD ---
     private void createUserDocument(FirebaseUser user, String email, String role,
                                     String firstName, String lastName, String phone, AuthCallback callback) {
-        // ... (This method is unchanged)
+
         if (user == null) {
             callback.onError("User is null, cannot create profile.");
             return;
@@ -242,6 +266,7 @@ public class AuthRepository {
         userData.put("name", firstName + " " + lastName);
         userData.put("phone", phone);
         userData.put("notificationPreferences", notificationPrefs);
+        userData.put("fcmToken", null); // <-- ADDED THIS
 
         db.collection("users").document(user.getUid())
                 .set(userData)
@@ -254,6 +279,7 @@ public class AuthRepository {
                     callback.onError("Failed to save user profile: " + e.getMessage());
                 });
     }
+    // --- END: MODIFIED METHOD ---
 
     public void signOut() {
         auth.signOut();

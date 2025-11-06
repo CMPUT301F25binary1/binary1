@@ -19,7 +19,12 @@ import com.example.fairchance.AuthRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.User;
 import com.example.fairchance.ui.RoleSelectionActivity;
+// --- IMPORT THE CORRECT SWITCH ---
+import androidx.appcompat.widget.SwitchCompat;
 import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ProfileFragment extends Fragment {
 
@@ -29,6 +34,8 @@ public class ProfileFragment extends Fragment {
     private TextInputEditText etName, etEmail, etPhoneNumber, etRole;
     private Button btnSaveChanges, btnLogout, btnDeleteProfile;
     private ProgressBar progressBar;
+    // --- USE THE CORRECT SWITCH CLASS ---
+    private SwitchCompat switchLotteryResults, switchOrganizerUpdates;
 
     @Nullable
     @Override
@@ -52,6 +59,9 @@ public class ProfileFragment extends Fragment {
         btnLogout = view.findViewById(R.id.button_logout);
         btnDeleteProfile = view.findViewById(R.id.button_delete_profile);
         progressBar = view.findViewById(R.id.profile_progress_bar);
+
+        switchLotteryResults = view.findViewById(R.id.switch_lottery_results);
+        switchOrganizerUpdates = view.findViewById(R.id.switch_organizer_updates);
 
         // Disable editing for role (as requested)
         etRole.setEnabled(false);
@@ -80,6 +90,19 @@ public class ProfileFragment extends Fragment {
                     String capitalizedRole = role.substring(0, 1).toUpperCase() + role.substring(1);
                     etRole.setText(capitalizedRole);
                 }
+
+                // --- LOAD SWITCH PREFERENCES ---
+                if (user.getNotificationPreferences() != null) {
+                    Map<String, Boolean> prefs = user.getNotificationPreferences();
+                    // Set switch state, defaulting to true if key is missing
+                    switchLotteryResults.setChecked(prefs.getOrDefault("lotteryResults", true));
+                    switchOrganizerUpdates.setChecked(prefs.getOrDefault("organizerUpdates", true));
+                } else {
+                    // Default to true if the whole map is missing
+                    switchLotteryResults.setChecked(true);
+                    switchOrganizerUpdates.setChecked(true);
+                }
+
                 setLoading(false);
             }
 
@@ -104,8 +127,14 @@ public class ProfileFragment extends Fragment {
             return;
         }
 
+        // Build the notification preferences map
+        Map<String, Object> notificationPrefs = new HashMap<>();
+        notificationPrefs.put("lotteryResults", switchLotteryResults.isChecked());
+        notificationPrefs.put("organizerUpdates", switchOrganizerUpdates.isChecked());
+
         setLoading(true);
-        authRepository.updateUserProfile(name, email, phone, new AuthRepository.TaskCallback() {
+        // Updated call to authRepository
+        authRepository.updateUserProfile(name, email, phone, notificationPrefs, new AuthRepository.TaskCallback() {
             @Override
             public void onSuccess() {
                 setLoading(false);
@@ -146,8 +175,6 @@ public class ProfileFragment extends Fragment {
                 setLoading(false);
                 Log.e(TAG, "Error deleting profile: " + message);
                 Toast.makeText(getContext(), "Error: " + message, Toast.LENGTH_LONG).show();
-                // Note: Deleting an anonymous account may require re-authentication.
-                // If this fails, the user may need to clear app data.
             }
         });
     }
@@ -173,5 +200,8 @@ public class ProfileFragment extends Fragment {
         btnSaveChanges.setEnabled(!isLoading);
         btnLogout.setEnabled(!isLoading);
         btnDeleteProfile.setEnabled(!isLoading);
+        // Also disable switches while loading
+        switchLotteryResults.setEnabled(!isLoading);
+        switchOrganizerUpdates.setEnabled(!isLoading);
     }
 }

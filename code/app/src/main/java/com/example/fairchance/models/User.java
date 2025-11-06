@@ -12,6 +12,7 @@ public class User {
     private String phone;
     private String role;
     private Map<String, Boolean> notificationPreferences;
+    private String fcmToken; // <-- ADD THIS
 
     // A no-argument constructor is required for Firestore
     public User() {}
@@ -22,4 +23,5 @@ public class User {
     public String getPhone() { return phone; }
     public String getRole() { return role; }
     public Map<String, Boolean> getNotificationPreferences() { return notificationPreferences; }
+    public String getFcmToken() { return fcmToken; } // <-- ADD THIS
 }

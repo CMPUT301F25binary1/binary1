@@ -15,6 +15,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide; // <-- ADD THIS IMPORT
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
@@ -28,8 +29,8 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     private EventRepository eventRepository;
     private String currentEventId;
-    private Event currentEvent; // <-- ADDED: To hold the loaded event
-    private String currentEventStatus = null; // <-- ADDED: To track user's status
+    private Event currentEvent;
+    private String currentEventStatus = null;
 
     // UI Components
     private ImageView eventPosterImage;
@@ -37,7 +38,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private LinearLayout eventDetailsContent;
     private TextView tvEventName, tvEventDate, tvEventDescription, tvEventGuidelines, tvEventWaitlistCount;
     private Button btnJoinWaitlist;
-    private ProgressBar joinProgressBar; // <-- ADDED: For the button
+    private ProgressBar joinProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,12 +66,11 @@ public class EventDetailsActivity extends AppCompatActivity {
         tvEventGuidelines = findViewById(R.id.event_guidelines_text);
         tvEventWaitlistCount = findViewById(R.id.event_waitlist_count_text);
         btnJoinWaitlist = findViewById(R.id.join_waitlist_button);
-        joinProgressBar = findViewById(R.id.join_progress); // <-- ADDED
+        joinProgressBar = findViewById(R.id.join_progress);
 
         // Load data
         loadEventDetails();
 
-        // --- ADDED CLICK LISTENER ---
         btnJoinWaitlist.setOnClickListener(v -> {
             if (currentEventStatus == null) {
                 joinWaitlist();
@@ -86,13 +86,13 @@ public class EventDetailsActivity extends AppCompatActivity {
         eventRepository.getEvent(currentEventId, new EventRepository.EventCallback() {
             @Override
             public void onSuccess(Event event) {
-                currentEvent = event; // <-- ADDED: Store event
+                currentEvent = event;
                 populateUi(event);
 
                 // 2. After getting event, load waitlist count
                 loadWaitlistCount();
 
-                // 3. --- ADDED --- Check the user's status for this event
+                // 3. Check the user's status for this event
                 checkUserStatus();
             }
 
@@ -110,37 +110,33 @@ public class EventDetailsActivity extends AppCompatActivity {
             @Override
             public void onSuccess(int count) {
                 tvEventWaitlistCount.setText(count + " people");
-                // Don't call setLoading here, wait for checkUserStatus
             }
 
             @Override
             public void onError(String message) {
                 Log.e(TAG, "Error loading waitlist count: " + message);
                 tvEventWaitlistCount.setText("Error loading count");
-                // Don't call setLoading here, wait for checkUserStatus
             }
         });
     }
 
-    // --- ADDED NEW METHOD ---
     private void checkUserStatus() {
         eventRepository.checkEventHistoryStatus(currentEventId, new EventRepository.EventHistoryCheckCallback() {
             @Override
             public void onSuccess(String status) {
                 currentEventStatus = status;
                 updateJoinButtonUI();
-                setLoading(false); // Now we're done loading everything
+                setLoading(false);
             }
 
             @Override
             public void onError(String message) {
                 Log.e(TAG, "Error checking user status: " + message);
-                setLoading(false); // Still need to stop loading
+                setLoading(false);
             }
         });
     }
 
-    // --- ADDED NEW METHOD ---
     private void joinWaitlist() {
         if (currentEvent == null) {
             Toast.makeText(this, "Event data not loaded yet.", Toast.LENGTH_SHORT).show();
@@ -154,7 +150,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 currentEventStatus = "Waiting";
                 updateJoinButtonUI();
                 Toast.makeText(EventDetailsActivity.this, "Joined waitlist!", Toast.LENGTH_SHORT).show();
-                loadWaitlistCount(); // Refresh count
+                loadWaitlistCount();
             }
 
             @Override
@@ -165,7 +161,6 @@ public class EventDetailsActivity extends AppCompatActivity {
         });
     }
 
-    // --- ADDED NEW METHOD ---
     private void leaveWaitlist() {
         setButtonLoading(true);
         eventRepository.leaveWaitingList(currentEventId, new EventRepository.EventTaskCallback() {
@@ -175,7 +170,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 currentEventStatus = null;
                 updateJoinButtonUI();
                 Toast.makeText(EventDetailsActivity.this, "Left waitlist.", Toast.LENGTH_SHORT).show();
-                loadWaitlistCount(); // Refresh count
+                loadWaitlistCount();
             }
 
             @Override
@@ -193,7 +188,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         // Format the date
         if (event.getEventDate() != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyY 'at' hh:mm a", Locale.getDefault());
             tvEventDate.setText(sdf.format(event.getEventDate()));
         } else {
             tvEventDate.setText("Date not set");
@@ -206,11 +201,16 @@ public class EventDetailsActivity extends AppCompatActivity {
             tvEventGuidelines.setText("No specific guidelines provided.");
         }
 
-        // TODO: Load poster image with Glide or Picasso
-        // Glide.with(this).load(event.getPosterImageUrl()).into(eventPosterImage);
+        // --- START: MODIFIED CODE ---
+        // Load poster image with Glide
+        Glide.with(this)
+                .load(event.getPosterImageUrl())
+                .placeholder(R.drawable.fairchance_logo_with_words___transparent)
+                .error(R.drawable.fairchance_logo_with_words___transparent)
+                .into(eventPosterImage);
+        // --- END: MODIFIED CODE ---
     }
 
-    // --- ADDED NEW METHOD ---
     private void updateJoinButtonUI() {
         if ("Waiting".equals(currentEventStatus)) {
             btnJoinWaitlist.setText("Leave Waitlist");
@@ -238,11 +238,10 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
     }
 
-    // --- ADDED NEW METHOD ---
     private void setButtonLoading(boolean isLoading) {
         if (isLoading) {
             joinProgressBar.setVisibility(View.VISIBLE);
-            btnJoinWaitlist.setText(""); // Hide text
+            btnJoinWaitlist.setText("");
             btnJoinWaitlist.setEnabled(false);
         } else {
             joinProgressBar.setVisibility(View.GONE);

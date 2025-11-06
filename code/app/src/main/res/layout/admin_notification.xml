@@ -15,37 +15,31 @@
         <!-- Header with Logo and Title -->
 
         <!-- Profile Title -->
-
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="180dp"
-            android:background="@color/white"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="16dp">
-
-            <!-- FairChance Logo (FC balls) -->
-
-            <!-- App Title -->
-
-            <!-- Profile/Menu Icon -->
-            <ImageView
-                android:id="@+id/imageView2"
-                android:layout_width="237dp"
-                android:layout_height="213dp"
-                android:layout_weight="1"
-                app:srcCompat="@drawable/fairchance_logo_without_words___transparent" />
-
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="History"
-            android:textColor="@color/text_primary"
-            android:textSize="28sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+
+            <Button
+                android:id="@+id/button"
+                android:layout_width="65dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/ic_chevron_left"
+                android:textAlignment="center"
+                android:textSize="34sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Notifications"
+                android:textColor="@color/text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <!-- Event Card -->
         <androidx.cardview.widget.CardView

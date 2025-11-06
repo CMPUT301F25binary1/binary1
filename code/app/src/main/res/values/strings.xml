@@ -40,4 +40,6 @@
     <string name="role_organizer_desc">Create and manage your own events.</string>
     <string name="role_admin">Admin</string>
     <string name="role_admin_desc">Manage all users and events.</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="delete_profile">Delete Profile</string>
 </resources>

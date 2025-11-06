@@ -5,31 +5,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
-    android:fillViewport="true"
-    android:padding="24dp">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <!-- Header with Logo and Title -->
-
-        <!-- Profile Title -->
+        android:orientation="vertical"
+        android:padding="24dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="180dp"
             android:background="@color/white"
-            android:gravity="center_vertical"
+            android:gravity="center"
             android:orientation="horizontal"
             android:padding="16dp">
 
-            <!-- FairChance Logo (FC balls) -->
-
-            <!-- App Title -->
-
-            <!-- Profile/Menu Icon -->
             <ImageView
                 android:id="@+id/imageView2"
                 android:layout_width="237dp"
@@ -48,16 +39,12 @@
             android:textSize="28sp"
             android:textStyle="bold" />
 
-        <!-- Divider -->
-
-        <!-- Profile Form -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="40dp">
+            android:layout_marginTop="16dp">
 
-            <!-- Name Field -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -70,27 +57,18 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:boxCornerRadiusBottomEnd="8dp"
-                app:boxCornerRadiusBottomStart="8dp"
-                app:boxCornerRadiusTopEnd="8dp"
-                app:boxCornerRadiusTopStart="8dp"
-                app:boxStrokeColor="#E0E0E0"
-                app:boxBackgroundColor="#FAFAFA">
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Input Name"
-                    android:textSize="16sp"
-                    android:padding="16dp"
-                    android:background="@android:color/transparent"
-                    android:textColor="@color/text_primary" />
+                    android:textSize="16sp" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Email Field -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -103,13 +81,8 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:boxCornerRadiusBottomEnd="8dp"
-                app:boxCornerRadiusBottomStart="8dp"
-                app:boxCornerRadiusTopEnd="8dp"
-                app:boxCornerRadiusTopStart="8dp"
-                app:boxStrokeColor="#E0E0E0"
-                app:boxBackgroundColor="#FAFAFA">
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etEmail"
@@ -117,14 +90,10 @@
                     android:layout_height="wrap_content"
                     android:hint="Input Email"
                     android:textSize="16sp"
-                    android:inputType="textEmailAddress"
-                    android:padding="16dp"
-                    android:background="@android:color/transparent"
-                    android:textColor="@color/text_primary" />
+                    android:inputType="textEmailAddress" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Phone Number Field -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -137,13 +106,8 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:boxCornerRadiusBottomEnd="8dp"
-                app:boxCornerRadiusBottomStart="8dp"
-                app:boxCornerRadiusTopEnd="8dp"
-                app:boxCornerRadiusTopStart="8dp"
-                app:boxStrokeColor="#E0E0E0"
-                app:boxBackgroundColor="#FAFAFA">
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etPhoneNumber"
@@ -151,14 +115,10 @@
                     android:layout_height="wrap_content"
                     android:hint="Input Phone Number"
                     android:textSize="16sp"
-                    android:inputType="phone"
-                    android:padding="16dp"
-                    android:background="@android:color/transparent"
-                    android:textColor="@color/text_primary" />
+                    android:inputType="phone" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Role Field -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -171,13 +131,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="40dp"
-                app:boxCornerRadiusBottomEnd="8dp"
-                app:boxCornerRadiusBottomStart="8dp"
-                app:boxCornerRadiusTopEnd="8dp"
-                app:boxCornerRadiusTopStart="8dp"
-                app:boxStrokeColor="#E0E0E0"
-                app:boxBackgroundColor="#FAFAFA"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:enabled="false">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -186,9 +140,6 @@
                     android:layout_height="wrap_content"
                     android:hint="Account Role"
                     android:textSize="16sp"
-                    android:padding="16dp"
-                    android:background="@android:color/transparent"
-                    android:textColor="@color/text_secondary"
                     android:clickable="false"
                     android:focusable="false" />
 
@@ -196,22 +147,31 @@
 
         </LinearLayout>
 
-        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:minHeight="32dp"/>
 
-        <!-- Action Buttons -->
+        <ProgressBar
+            android:id="@+id/profile_progress_bar"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:visibility="gone"
+            tools:visibility="visible"/>
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp">
 
-            <!-- Save Changes Button -->
             <Button
-                android:id="@+id/btnSaveChanges"
+                android:id="@+id/button_save_changes"
                 style="?android:attr/borderlessButtonStyle"
                 android:layout_width="150dp"
                 android:layout_height="80dp"
-                android:layout_marginEnd="20dp"
-                android:layout_marginBottom="32dp"
                 android:background="@drawable/roundstyle"
                 android:backgroundTint="@color/FCgreen"
                 android:paddingVertical="16dp"
@@ -219,27 +179,34 @@
                 android:textColor="@android:color/white"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                app:layout_constraintEnd_toStartOf="@+id/btnDeleteProfile"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:layout_editor_absoluteY="32dp" />
+                app:layout_constraintTop_toTopOf="parent" />
 
-            <!-- Delete Profile Button -->
             <Button
-                android:id="@+id/btnDeleteProfile"
+                android:id="@+id/button_delete_profile"
                 style="?android:attr/borderlessButtonStyle"
                 android:layout_width="150dp"
                 android:layout_height="80dp"
-                android:layout_marginEnd="20dp"
-                android:layout_marginBottom="32dp"
                 android:background="@drawable/roundstyle"
                 android:paddingVertical="16dp"
                 android:text="Delete Profile"
                 android:textColor="@android:color/white"
                 android:textSize="16sp"
                 android:textStyle="bold"
+                app:backgroundTint="#E53935"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <Button
+            android:id="@+id/button_logout"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="16dp"
+            android:text="Log Out"
+            app:backgroundTint="@android:color/holo_orange_dark" />
+
     </LinearLayout>
 </ScrollView>

@@ -47,8 +47,51 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         Log.d(TAG, "From: " + remoteMessage.getFrom());
 
-        // Check if message contains a notification payload.
-        if (remoteMessage.getNotification() != null) {
+        // Check if message contains a data payload for a status update
+        if (remoteMessage.getData().size() > 0) {
+            String eventId = remoteMessage.getData().get("eventId");
+            String status = remoteMessage.getData().get("status");
+            String title = remoteMessage.getData().get("title");
+            String body = remoteMessage.getData().get("body");
+
+            if (eventId != null && status != null) {
+                // If it's a status update (like 'Not selected' or 'Selected')
+                Log.d(TAG, "Handling status update for event: " + eventId + " to " + status);
+
+                AuthRepository authRepository = new AuthRepository();
+                if (authRepository.getCurrentUser() != null) {
+                    EventRepository eventRepository = new EventRepository();
+                    // Update the user's history in Firestore first
+                    eventRepository.updateEventHistoryStatus(eventId, status, new EventRepository.EventTaskCallback() {
+                        @Override
+                        public void onSuccess() {
+                            Log.d(TAG, "Event status updated successfully in history.");
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            Log.e(TAG, "Failed to update event status from notification: " + message);
+                        }
+                    });
+                }
+            }
+
+            // Determine content for system notification
+            if (remoteMessage.getNotification() != null) {
+                // Use default notification payload if available
+                title = remoteMessage.getNotification().getTitle();
+                body = remoteMessage.getNotification().getBody();
+            } else if (title == null || body == null) {
+                // Use a generic default if no explicit notification payload exists
+                title = "FairChance Update";
+                body = "You have a new status update.";
+            }
+
+            // Always show a system notification
+            sendNotification(title, body);
+
+        } else if (remoteMessage.getNotification() != null) {
+            // Standard case: just a notification payload without data
             String title = remoteMessage.getNotification().getTitle();
             String body = remoteMessage.getNotification().getBody();
             Log.d(TAG, "Notification Title: " + title);

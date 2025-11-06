@@ -272,6 +272,35 @@ public class EventRepository {
     }
 
     /**
+            * Updates the user's status for a specific event in their event history.
+            * This is typically used by the system to mark an event as "Not selected" or for
+            * organizer/admin actions.
+            *
+            * @param eventId  The ID of the event to update.
+            * @param newStatus The new status to set (e.g., "Not selected", "Cancelled").
+            * @param callback Notifies of success or failure.
+            */
+    public void updateEventHistoryStatus(String eventId, String newStatus, EventTaskCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+        DocumentReference eventHistoryRef = usersRef.document(userId)
+                .collection("eventHistory").document(eventId);
+        eventHistoryRef.update("status", newStatus)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User " + userId + " history status updated to " + newStatus + " for " + eventId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to update event history status", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
+    /**
      * Retrieves the event history for the currently signed-in user.
      * Corresponds to US 01.02.03.
      *

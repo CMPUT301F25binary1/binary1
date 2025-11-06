@@ -32,6 +32,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
     private List<Event> eventList;
     private List<Event> eventListFull; // A copy of the full list for filtering
+    private String currentCategory = "All";
+    private String currentSearchText = "";
 
     /**
      * Constructs a new EventAdapter.
@@ -69,7 +71,19 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     public void setEvents(List<Event> events) {
         this.eventList = events;
         this.eventListFull = new ArrayList<>(events);
+        this.currentCategory = "All";
+        this.currentSearchText = "";
         notifyDataSetChanged();
+    }
+
+    /**
+     * Sets the category to filter by and applies the filter.
+     *
+     * @param category The category to filter (e.g., "All", "Sports", "Music", etc.).
+     */
+    public void setCategory(String category) {
+        this.currentCategory = category;
+        getFilter().filter(this.currentSearchText);
     }
 
     /**
@@ -87,16 +101,19 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         protected FilterResults performFiltering(CharSequence constraint) {
             List<Event> filteredList = new ArrayList<>();
 
-            if (constraint == null || constraint.length() == 0) {
-                filteredList.addAll(eventListFull);
-            } else {
-                String filterPattern = constraint.toString().toLowerCase().trim();
-                for (Event item : eventListFull) {
-                    if (item.getName().toLowerCase().contains(filterPattern)) {
-                        filteredList.add(item);
-                    }
+            currentSearchText = constraint.toString().toLowerCase().trim();
+
+            for (Event item : eventListFull) {
+                boolean categoryMatches = currentCategory.equals("All") || (item.getCategory() != null && item.getCategory().equalsIgnoreCase(currentCategory));
+
+                boolean searchMatches = currentSearchText.isEmpty() || item.getName().toLowerCase().contains(currentSearchText);
+
+                if (categoryMatches && searchMatches) {
+                    filteredList.add(item);
                 }
+
             }
+
 
             FilterResults results = new FilterResults();
             results.values = filteredList;

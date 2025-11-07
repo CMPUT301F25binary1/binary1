@@ -1,6 +1,7 @@
 package com.example.fairchance.ui.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +12,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.fairchance.R;
 import com.example.fairchance.models.EventHistoryItem;
+import com.example.fairchance.ui.EventDetailsActivity;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
@@ -103,6 +105,13 @@ public class EventHistoryAdapter extends RecyclerView.Adapter<EventHistoryAdapte
                     tvStatus.setBackgroundColor(Color.GRAY);
                     break;
             }
+
+            // FIX: Add click listener to launch EventDetailsActivity (US 01.02.03, Criterion 5)
+            itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(context, EventDetailsActivity.class);
+                intent.putExtra("EVENT_ID", item.getEventId());
+                context.startActivity(intent);
+            });
         }
     }
 }

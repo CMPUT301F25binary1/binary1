@@ -15,13 +15,13 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration; // FIX: Added import
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import java.util.ArrayList;
-import java.util.Date; // FIX: Added import
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -148,7 +148,7 @@ public class EventRepository {
      * @param callback Returns the list of events or an error.
      * @return A ListenerRegistration object to stop listening for updates.
      */
-    public ListenerRegistration getAllEvents(EventListCallback callback) { // FIX: Changed return type to ListenerRegistration
+    public ListenerRegistration getAllEvents(EventListCallback callback) {
         return eventsRef.addSnapshotListener((value, error) -> {
             if (error != null) {
                 Log.e(TAG, "Error getting all events in real-time: ", error);
@@ -319,34 +319,38 @@ public class EventRepository {
     }
 
     /**
-     * Retrieves the event history for the currently signed-in user.
-     * Corresponds to US 01.02.03.
+     * Retrieves the event history for the currently signed-in user in real-time.
+     * Corresponds to US 01.02.03. (FIX: Now real-time)
      *
      * @param callback Returns the list of history items or an error.
+     * @return A ListenerRegistration object to stop listening for updates.
      */
-    public void getEventHistory(EventHistoryListCallback callback) {
+    public ListenerRegistration getEventHistory(EventHistoryListCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             callback.onError("No user is signed in.");
-            return;
+            // Return a no-op registration if no user to prevent crashes
+            return () -> {};
         }
         String userId = user.getUid();
 
-        usersRef.document(userId).collection("eventHistory")
+        return usersRef.document(userId).collection("eventHistory")
                 .orderBy("eventDate", Query.Direction.DESCENDING)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error getting event history in real-time: ", error);
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (value != null) {
                         List<EventHistoryItem> historyList = new ArrayList<>();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
+                        for (QueryDocumentSnapshot document : value) {
                             EventHistoryItem item = document.toObject(EventHistoryItem.class);
                             item.setEventId(document.getId());
                             historyList.add(item);
                         }
                         callback.onSuccess(historyList);
-                    } else {
-                        Log.e(TAG, "Error getting event history: ", task.getException());
-                        callback.onError(task.getException().getMessage());
                     }
                 });
     }

@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -30,7 +31,7 @@ public class OrganizerDashboardFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_dashboard_organizer, container, false);
 
-        // --- Firestore reference ---
+        // --- Firestore reference (for simple settings demos) ---
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         // ========== FEATURE 1: GEOLOCATION TOGGLE (US 02.02.03) ==========
@@ -90,6 +91,46 @@ public class OrganizerDashboardFragment extends Fragment {
                     .addOnFailureListener(e ->
                             Toast.makeText(getContext(), "Error saving limit: " + e.getMessage(), Toast.LENGTH_SHORT).show());
         });
+
+        // ========== FEATURE 3: SAMPLE N ATTENDEES (US 02.05.02) ==========
+        EditText etEventId = view.findViewById(R.id.edit_event_id_for_sampling);
+        EditText etCount   = view.findViewById(R.id.edit_sample_count);
+        Button btnRun      = view.findViewById(R.id.btnRunSampling);
+
+        if (etEventId != null && etCount != null && btnRun != null) {
+            EventRepository repo = new EventRepository();
+
+            btnRun.setOnClickListener(v -> {
+                String eventId = etEventId.getText().toString().trim();
+                String c = etCount.getText().toString().trim();
+
+                if (eventId.isEmpty() || c.isEmpty()) {
+                    Toast.makeText(getContext(), "Enter Event ID and N.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                int n;
+                try {
+                    n = Integer.parseInt(c);
+                    if (n <= 0) throw new NumberFormatException();
+                } catch (NumberFormatException e) {
+                    Toast.makeText(getContext(), "N must be a positive number.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                btnRun.setEnabled(false);
+                repo.sampleAttendees(eventId, n, new EventRepository.EventTaskCallback() {
+                    @Override public void onSuccess() {
+                        btnRun.setEnabled(true);
+                        Toast.makeText(getContext(), "Sampled " + n + " entrants.", Toast.LENGTH_LONG).show();
+                    }
+                    @Override public void onError(String msg) {
+                        btnRun.setEnabled(true);
+                        Toast.makeText(getContext(), "Error: " + msg, Toast.LENGTH_LONG).show();
+                    }
+                });
+            });
+        }
 
         return view;
     }

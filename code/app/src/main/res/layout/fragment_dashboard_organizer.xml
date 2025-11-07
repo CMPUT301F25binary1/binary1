@@ -57,4 +57,39 @@
         android:text="Save Waitlist Limit"
         android:layout_marginTop="12dp" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#CCCCCC"
+        android:layout_marginVertical="20dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Run Lottery (Sample N Attendees)"
+        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/edit_event_id_for_sampling"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Event ID"
+        android:padding="8dp" />
+
+    <EditText
+        android:id="@+id/edit_sample_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Number to sample (N)"
+        android:inputType="number"
+        android:padding="8dp" />
+
+    <Button
+        android:id="@+id/btnRunSampling"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Run Lottery" />
+
+
 </LinearLayout>

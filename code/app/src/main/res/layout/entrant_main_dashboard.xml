@@ -122,18 +122,39 @@
         </LinearLayout>
     </HorizontalScrollView>
 
-    <Button
-        android:id="@+id/btn_how_it_works"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:text="@string/how_it_works"
-        android:textColor="@color/FCblue"
-        android:textStyle="bold"
+        android:orientation="horizontal"
         android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
-        android:paddingStart="0dp"/>
+        android:gravity="center_vertical">
+
+        <Button
+            android:id="@+id/btn_how_it_works"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/how_it_works"
+            android:textColor="@color/FCblue"
+            android:textStyle="bold"
+            android:paddingStart="0dp"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/btn_filter_today"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Today's Events"
+            android:textSize="12sp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:textColor="@color/text_primary"
+            app:strokeColor="@color/text_secondary"/>
+
+    </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"

@@ -56,6 +56,15 @@
                 android:textColor="@color/FCgreen"
                 tools:text="October 10 – 2:30 PM" />
 
+            <TextView
+                android:id="@+id/event_location_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textColor="@color/text_secondary"
+                tools:text="Riverside Community Center" />
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"

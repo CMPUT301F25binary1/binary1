@@ -24,6 +24,7 @@ public class Event {
     private long waitingListLimit;
     private String guidelines;
     private String category;
+    private String location;
 
     @Exclude
     private String eventId;
@@ -143,6 +144,14 @@ public class Event {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     /**

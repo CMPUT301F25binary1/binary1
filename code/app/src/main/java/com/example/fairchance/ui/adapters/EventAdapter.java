@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Calendar;
 
 /**
  * A RecyclerView.Adapter for displaying a filterable list of Event objects.
@@ -34,6 +35,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     private List<Event> eventListFull; // A copy of the full list for filtering
     private String currentCategory = "All";
     private String currentSearchText = "";
+    private String currentDateFilter = "ALL";
 
     /**
      * Constructs a new EventAdapter.
@@ -64,6 +66,17 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     }
 
     /**
+     * Updates the adapter's base data source and re-applies current filters.
+     * Called when real-time updates are received (US 01.01.03 Criterion 6).
+     *
+     * @param events The new list of events.
+     */
+    public void updateBaseEventsAndRefilter(List<Event> events) {
+        this.eventListFull = new ArrayList<>(events);
+        getFilter().filter(this.currentSearchText);
+    }
+
+    /**
      * Updates the adapter's data source and refreshes the full list for filtering.
      *
      * @param events The new list of events.
@@ -87,6 +100,16 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     }
 
     /**
+     * Sets the date filter and applies the combined filter (US 01.01.04).
+     *
+     * @param dateFilter The date filter to apply (e.g., "ALL", "TODAY").
+     */
+    public void setDateFilter(String dateFilter) {
+        this.currentDateFilter = dateFilter;
+        getFilter().filter(this.currentSearchText); // Use the existing search constraint
+    }
+
+    /**
      * Returns the Filter object that can be used to filter the list.
      *
      * @return A Filter for performing searches.
@@ -102,16 +125,36 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             List<Event> filteredList = new ArrayList<>();
 
             currentSearchText = constraint.toString().toLowerCase().trim();
+            String currentFilterCategory = currentCategory;
+            String currentFilterDate = currentDateFilter;
+
+            // Prepare for date comparison (for simplicity, only checking TODAY)
+            Calendar today = Calendar.getInstance();
+            today.set(Calendar.HOUR_OF_DAY, 0);
+            today.set(Calendar.MINUTE, 0);
+            today.set(Calendar.SECOND, 0);
+            today.set(Calendar.MILLISECOND, 0);
 
             for (Event item : eventListFull) {
-                boolean categoryMatches = currentCategory.equals("All") || (item.getCategory() != null && item.getCategory().equalsIgnoreCase(currentCategory));
-
+                boolean categoryMatches = currentFilterCategory.equals("All") || (item.getCategory() != null && item.getCategory().equalsIgnoreCase(currentFilterCategory));
                 boolean searchMatches = currentSearchText.isEmpty() || item.getName().toLowerCase().contains(currentSearchText);
 
-                if (categoryMatches && searchMatches) {
-                    filteredList.add(item);
+                // Date Filtering Logic (New for US 01.01.04)
+                boolean dateMatches = true;
+                if (currentFilterDate.equals("TODAY") && item.getEventDate() != null) {
+                    Calendar eventCal = Calendar.getInstance();
+                    eventCal.setTime(item.getEventDate());
+                    eventCal.set(Calendar.HOUR_OF_DAY, 0);
+                    eventCal.set(Calendar.MINUTE, 0);
+                    eventCal.set(Calendar.SECOND, 0);
+                    eventCal.set(Calendar.MILLISECOND, 0);
+
+                    dateMatches = eventCal.equals(today);
                 }
 
+                if (categoryMatches && searchMatches && dateMatches) {
+                    filteredList.add(item);
+                }
             }
 
 
@@ -134,7 +177,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
      */
     class EventViewHolder extends RecyclerView.ViewHolder {
         private ImageView eventImage;
-        private TextView eventTitle, eventDate;
+        // Updated for US 01.01.03
+        private TextView eventTitle, eventDate, eventLocation, eventStatus;
         private Button buttonJoin;
         private TextView buttonDetails;
 
@@ -148,6 +192,9 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             eventImage = itemView.findViewById(R.id.event_image);
             eventTitle = itemView.findViewById(R.id.event_title);
             eventDate = itemView.findViewById(R.id.event_date);
+            // Updated for US 01.01.03
+            eventLocation = itemView.findViewById(R.id.event_location);
+            eventStatus = itemView.findViewById(R.id.event_status);
             buttonJoin = itemView.findViewById(R.id.button_join);
             buttonDetails = itemView.findViewById(R.id.button_details);
         }
@@ -166,6 +213,17 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             } else {
                 eventDate.setText("Date not set");
             }
+
+            // Updated for US 01.01.03: Populate location
+            if (event.getLocation() != null && !event.getLocation().isEmpty()) {
+                eventLocation.setText(event.getLocation());
+            } else {
+                eventLocation.setText("Location not specified");
+            }
+
+            // Updated for US 01.01.03: Populate registration status
+            eventStatus.setText("Status: Registration Open");
+
 
             // Load image with Glide
             Glide.with(itemView.getContext())

@@ -19,6 +19,7 @@ import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.EventHistoryItem;
 import com.example.fairchance.ui.adapters.EventHistoryAdapter;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,7 @@ public class HistoryFragment extends Fragment {
     private EventHistoryAdapter historyAdapter;
     private List<EventHistoryItem> historyList = new ArrayList<>();
     private EventRepository eventRepository;
+    private ListenerRegistration eventHistoryRegistration; // FIX: Added field for listener registration
 
     private ProgressBar progressBar;
     private TextView emptyView;
@@ -67,12 +69,27 @@ public class HistoryFragment extends Fragment {
     }
 
     /**
+     * FIX: Cleans up the real-time listener when the fragment's view is destroyed.
+     * (Part of US 01.02.03 Criterion 3 cleanup)
+     */
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (eventHistoryRegistration != null) {
+            eventHistoryRegistration.remove();
+            Log.d(TAG, "Event history listener removed.");
+        }
+    }
+
+
+    /**
      * Fetches the user's complete event history from the EventRepository
-     * and populates the RecyclerView.
+     * and populates the RecyclerView. (Now uses a real-time listener for US 01.02.03)
      */
     private void loadHistory() {
         showLoading(true);
-        eventRepository.getEventHistory(new EventRepository.EventHistoryListCallback() {
+        // FIX: Replaced one-time call with real-time listener and stored registration
+        eventHistoryRegistration = eventRepository.getEventHistory(new EventRepository.EventHistoryListCallback() {
             @Override
             public void onSuccess(List<EventHistoryItem> items) {
                 showLoading(false);

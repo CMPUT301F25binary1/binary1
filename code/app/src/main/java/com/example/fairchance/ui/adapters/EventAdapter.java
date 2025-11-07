@@ -1,0 +1,191 @@
+package com.example.fairchance.ui.adapters;
+
+import android.content.Context;
+import android.content.Intent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.Filter;
+import android.widget.Filterable;
+import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
+import com.example.fairchance.R;
+import com.example.fairchance.models.Event;
+import com.example.fairchance.ui.EventDetailsActivity;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * A RecyclerView.Adapter for displaying a filterable list of Event objects.
+ * This adapter is used in the EntrantHomeFragment to show all available events.
+ * It implements Filterable to allow for real-time searching.
+ */
+public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> implements Filterable {
+
+    private List<Event> eventList;
+    private List<Event> eventListFull; // A copy of the full list for filtering
+    private String currentCategory = "All";
+    private String currentSearchText = "";
+
+    /**
+     * Constructs a new EventAdapter.
+     *
+     * @param eventList The initial list of events to display.
+     */
+    public EventAdapter(List<Event> eventList) {
+        this.eventList = eventList;
+        this.eventListFull = new ArrayList<>(eventList);
+    }
+
+    @NonNull
+    @Override
+    public EventViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_event_card, parent, false);
+        return new EventViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull EventViewHolder holder, int position) {
+        Event event = eventList.get(position);
+        holder.bind(event);
+    }
+
+    @Override
+    public int getItemCount() {
+        return eventList.size();
+    }
+
+    /**
+     * Updates the adapter's data source and refreshes the full list for filtering.
+     *
+     * @param events The new list of events.
+     */
+    public void setEvents(List<Event> events) {
+        this.eventList = events;
+        this.eventListFull = new ArrayList<>(events);
+        this.currentCategory = "All";
+        this.currentSearchText = "";
+        notifyDataSetChanged();
+    }
+
+    /**
+     * Sets the category to filter by and applies the filter.
+     *
+     * @param category The category to filter (e.g., "All", "Sports", "Music", etc.).
+     */
+    public void setCategory(String category) {
+        this.currentCategory = category;
+        getFilter().filter(this.currentSearchText);
+    }
+
+    /**
+     * Returns the Filter object that can be used to filter the list.
+     *
+     * @return A Filter for performing searches.
+     */
+    @Override
+    public Filter getFilter() {
+        return eventFilter;
+    }
+
+    private Filter eventFilter = new Filter() {
+        @Override
+        protected FilterResults performFiltering(CharSequence constraint) {
+            List<Event> filteredList = new ArrayList<>();
+
+            currentSearchText = constraint.toString().toLowerCase().trim();
+
+            for (Event item : eventListFull) {
+                boolean categoryMatches = currentCategory.equals("All") || (item.getCategory() != null && item.getCategory().equalsIgnoreCase(currentCategory));
+
+                boolean searchMatches = currentSearchText.isEmpty() || item.getName().toLowerCase().contains(currentSearchText);
+
+                if (categoryMatches && searchMatches) {
+                    filteredList.add(item);
+                }
+
+            }
+
+
+            FilterResults results = new FilterResults();
+            results.values = filteredList;
+            return results;
+        }
+
+        @Override
+        protected void publishResults(CharSequence constraint, FilterResults results) {
+            eventList.clear();
+            eventList.addAll((List) results.values);
+            notifyDataSetChanged();
+        }
+    };
+
+
+    /**
+     * ViewHolder class for an individual event card.
+     */
+    class EventViewHolder extends RecyclerView.ViewHolder {
+        private ImageView eventImage;
+        private TextView eventTitle, eventDate;
+        private Button buttonJoin;
+        private TextView buttonDetails;
+
+        /**
+         * Constructs a new ViewHolder.
+         *
+         * @param itemView The root view of the item_event_card layout.
+         */
+        EventViewHolder(View itemView) {
+            super(itemView);
+            eventImage = itemView.findViewById(R.id.event_image);
+            eventTitle = itemView.findViewById(R.id.event_title);
+            eventDate = itemView.findViewById(R.id.event_date);
+            buttonJoin = itemView.findViewById(R.id.button_join);
+            buttonDetails = itemView.findViewById(R.id.button_details);
+        }
+
+        /**
+         * Binds an Event object to the views in the ViewHolder.
+         *
+         * @param event The Event object to display.
+         */
+        void bind(Event event) {
+            eventTitle.setText(event.getName());
+
+            if (event.getEventDate() != null) {
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyY 'at' hh:mm a", Locale.getDefault());
+                eventDate.setText(sdf.format(event.getEventDate()));
+            } else {
+                eventDate.setText("Date not set");
+            }
+
+            // Load image with Glide
+            Glide.with(itemView.getContext())
+                    .load(event.getPosterImageUrl())
+                    .placeholder(R.drawable.fairchance_logo_with_words___transparent)
+                    .error(R.drawable.fairchance_logo_with_words___transparent)
+                    .into(eventImage);
+
+            // Create the click listener to navigate to details
+            View.OnClickListener detailsClickListener = v -> {
+                Context context = itemView.getContext();
+                Intent intent = new Intent(context, EventDetailsActivity.class);
+                intent.putExtra("EVENT_ID", event.getEventId());
+                context.startActivity(intent);
+            };
+
+            // Set click listeners for Join, Details, and the whole card
+            buttonJoin.setOnClickListener(detailsClickListener);
+            buttonDetails.setOnClickListener(detailsClickListener);
+            itemView.setOnClickListener(detailsClickListener);
+        }
+    }
+}

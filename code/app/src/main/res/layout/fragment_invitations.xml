@@ -16,7 +16,6 @@
         android:padding="16dp">
 
         <ImageView
-            android:id="@+id/imageView2"
             android:layout_width="120dp"
             android:layout_height="120dp"
             app:srcCompat="@drawable/fairchance_logo_without_words___transparent" />
@@ -27,7 +26,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="Event History"
+        android:text="Event Invitations"
         android:textColor="@color/text_primary"
         android:textSize="28sp"
         android:textStyle="bold"
@@ -39,12 +38,12 @@
         android:layout_weight="1">
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/history_recycler_view"
+            android:id="@+id/invitations_recycler_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:visibility="gone"
-            tools:listitem="@layout/item_history_card" />
+            tools:listitem="@layout/item_invitation_card" />
 
         <ProgressBar
             android:id="@+id/progress_bar"
@@ -58,7 +57,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="You have no event history."
+            android:text="You have no pending invitations."
             android:textSize="18sp"
             android:visibility="gone" />
 

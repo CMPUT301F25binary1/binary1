@@ -3,9 +3,8 @@ package com.example.fairchance.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
-
+import androidx.cardview.widget.CardView;
 import com.example.fairchance.R;
-import com.google.android.material.button.MaterialButton;
 
 /**
  * This activity is shown to new or logged-out users, allowing them
@@ -18,13 +17,14 @@ public class RoleSelectionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_role_selection);
 
-        MaterialButton entrantButton = findViewById(R.id.button_entrant);
-        MaterialButton organizerButton = findViewById(R.id.button_organizer);
-        MaterialButton adminButton = findViewById(R.id.button_admin);
+        CardView entrantCard = findViewById(R.id.cardEntrant);
+        CardView organizerCard = findViewById(R.id.cardOrganizer);
+        CardView adminCard = findViewById(R.id.cardAdmin);
 
-        entrantButton.setOnClickListener(v -> startAuthActivity("entrant"));
-        organizerButton.setOnClickListener(v -> startAuthActivity("organizer"));
-        adminButton.setOnClickListener(v -> startAuthActivity("admin"));
+        // Set listeners on the cards
+        entrantCard.setOnClickListener(v -> startAuthActivity("entrant"));
+        organizerCard.setOnClickListener(v -> startAuthActivity("organizer"));
+        adminCard.setOnClickListener(v -> startAuthActivity("admin"));
     }
 
     /**

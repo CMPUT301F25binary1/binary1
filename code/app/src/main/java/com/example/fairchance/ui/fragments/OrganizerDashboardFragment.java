@@ -9,12 +9,15 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.example.fairchance.R;
 
+/**
+ * A simple fragment that displays the main dashboard for the 'Organizer' role.
+ * This is loaded into MainActivity when an Organizer logs in.
+ */
 public class OrganizerDashboardFragment extends Fragment {
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_dashboard_organizer, container, false);
     }
 }

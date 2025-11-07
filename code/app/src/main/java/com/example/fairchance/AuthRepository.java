@@ -1,8 +1,8 @@
 package com.example.fairchance;
 
 import android.util.Log;
-
 import androidx.annotation.NonNull;
+import com.example.fairchance.models.User;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
@@ -10,12 +10,13 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * (No change to this section)
+ * Repository class implementing the "single source of truth" pattern for all
+ * authentication and user profile-related data. It handles all interactions
+ * with Firebase Authentication and the 'users' collection in Firestore.
  */
 public class AuthRepository {
 
@@ -23,6 +24,7 @@ public class AuthRepository {
     private final FirebaseAuth auth;
     private final FirebaseFirestore db;
 
+    //region Callback Interfaces
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
         void onError(String message);
@@ -33,15 +35,69 @@ public class AuthRepository {
         void onError(String message);
     }
 
+    public interface UserProfileCallback {
+        void onSuccess(User user);
+        void onError(String message);
+    }
+
+    public interface TaskCallback {
+        void onSuccess();
+        void onError(String message);
+    }
+    //endregion
+
+    /**
+     * Initializes the repository with instances of FirebaseAuth and FirebaseFirestore.
+     */
     public AuthRepository() {
         this.auth = FirebaseAuth.getInstance();
         this.db = FirebaseFirestore.getInstance();
     }
 
+    /**
+     * Gets the currently signed-in FirebaseUser.
+     *
+     * @return The current FirebaseUser, or null if no user is signed in.
+     */
     public FirebaseUser getCurrentUser() {
         return auth.getCurrentUser();
     }
 
+    /**
+     * Fetches the full profile (as a User object) for the currently logged-in user
+     * from the 'users' collection in Firestore.
+     *
+     * @param callback A callback to return the User object on success or an error message.
+     */
+    public void getUserProfile(UserProfileCallback callback) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            callback.onError("No user is logged in.");
+            return;
+        }
+
+        db.collection("users").document(fUser.getUid()).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        User user = documentSnapshot.toObject(User.class);
+                        if (user != null) {
+                            callback.onSuccess(user);
+                        } else {
+                            callback.onError("Failed to parse user data.");
+                        }
+                    } else {
+                        callback.onError("User profile document not found.");
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    /**
+     * Fetches just the 'role' field for the currently logged-in user.
+     * Used for determining which dashboard to display.
+     *
+     * @param callback A callback to return the role string on success or an error message.
+     */
     public void getUserRole(RoleCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
@@ -69,6 +125,85 @@ public class AuthRepository {
                 });
     }
 
+    /**
+     * Updates the user's profile data in their Firestore document.
+     *
+     * @param newName           The user's updated name.
+     * @param newEmail          The user's updated email.
+     * @param newPhone          The user's updated phone number.
+     * @param notificationPrefs A map of the user's notification preferences.
+     * @param callback          A callback to notify of success or failure.
+     */
+    public void updateUserProfile(String newName, String newEmail, String newPhone,
+                                  Map<String, Object> notificationPrefs, TaskCallback callback) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            callback.onError("No user is logged in.");
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", newName);
+        updates.put("email", newEmail);
+        updates.put("phone", newPhone);
+        updates.put("notificationPreferences", notificationPrefs);
+
+        db.collection("users").document(fUser.getUid())
+                .update(updates)
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    /**
+     * Deletes the user's Firestore document and their Authentication record.
+     * This is an irreversible action.
+     *
+     * @param callback A callback to notify of success or failure.
+     */
+    public void deleteCurrentUser(TaskCallback callback) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            callback.onError("No user is logged in.");
+            return;
+        }
+        String userId = fUser.getUid();
+
+        db.collection("users").document(userId).delete()
+                .addOnSuccessListener(aVoid -> {
+                    fUser.delete()
+                            .addOnSuccessListener(aVoid2 -> callback.onSuccess())
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    /**
+     * Saves the user's FCM registration token to their Firestore document.
+     *
+     * @param token The FCM token.
+     */
+    public void saveFcmToken(String token) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            Log.d(TAG, "No user logged in, skipping FCM token save.");
+            return;
+        }
+
+        db.collection("users").document(fUser.getUid())
+                .update("fcmToken", token)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM Token saved to Firestore."))
+                .addOnFailureListener(e -> Log.e(TAG, "Error saving FCM Token", e));
+    }
+
+    /**
+     * Logs in a user with email and password (for Organizer or Admin).
+     * Also verifies that the user's role in Firestore matches the expected role.
+     *
+     * @param email        User's email.
+     * @param password     User's password.
+     * @param expectedRole The role the user is trying to log in as ("organizer" or "admin").
+     * @param callback     A callback to return the FirebaseUser on success or an error message.
+     */
     public void loginEmailPasswordUser(String email, String password, String expectedRole, AuthCallback callback) {
         auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
@@ -114,9 +249,17 @@ public class AuthRepository {
     }
 
     /**
-     * Registers a new Organizer or Admin.
+     * Registers a new user with email and password (for Organizer or Admin).
+     * Creates their Auth record and their user document in Firestore.
+     *
+     * @param email     User's email.
+     * @param password  User's password.
+     * @param role      The role to assign ("organizer" or "admin").
+     * @param firstName User's first name.
+     * @param lastName  User's last name.
+     * @param phone     User's phone number.
+     * @param callback  A callback to return the FirebaseUser on success or an error message.
      */
-    // *** UPDATED METHOD SIGNATURE ***
     public void registerEmailPasswordUser(String email, String password, String role,
                                           String firstName, String lastName, String phone, AuthCallback callback) {
         auth.createUserWithEmailAndPassword(email, password)
@@ -124,7 +267,6 @@ public class AuthRepository {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Email/Password registration successful.");
                         FirebaseUser user = task.getResult().getUser();
-                        // *** UPDATED METHOD CALL ***
                         createUserDocument(user, email, role, firstName, lastName, phone, callback);
                     } else {
                         Log.w(TAG, "Email/Password registration failed.", task.getException());
@@ -134,16 +276,21 @@ public class AuthRepository {
     }
 
     /**
-     * Registers and logs in a new Entrant using Anonymous Authentication.
+     * Registers and logs in a new Entrant user via Anonymous Authentication.
+     * Creates their Auth record and their user document in Firestore.
+     *
+     * @param email     User's email.
+     * @param firstName User's first name.
+     * @param lastName  User's last name.
+     * @param phone     User's phone number.
+     * @param callback  A callback to return the FirebaseUser on success or an error message.
      */
-    // *** UPDATED METHOD SIGNATURE ***
     public void registerAndLoginEntrant(String email, String firstName, String lastName, String phone, AuthCallback callback) {
         auth.signInAnonymously()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         Log.d(TAG, "Anonymous sign-in successful.");
                         FirebaseUser user = task.getResult().getUser();
-                        // *** UPDATED METHOD CALL ***
                         createUserDocument(user, email, "entrant", firstName, lastName, phone, callback);
                     } else {
                         Log.w(TAG, "Anonymous sign-in failed.", task.getException());
@@ -153,33 +300,28 @@ public class AuthRepository {
     }
 
     /**
-     * Private helper to create the user's profile in the 'users' collection.
+     * Private helper method to create a new user document in the 'users' collection
+     * after a successful Firebase Authentication registration.
      */
-    // *** UPDATED METHOD SIGNATURE ***
     private void createUserDocument(FirebaseUser user, String email, String role,
                                     String firstName, String lastName, String phone, AuthCallback callback) {
+
         if (user == null) {
             callback.onError("User is null, cannot create profile.");
             return;
         }
 
-        // 1. Create the default notification preferences map
         Map<String, Object> notificationPrefs = new HashMap<>();
         notificationPrefs.put("lotteryResults", true);
         notificationPrefs.put("organizerUpdates", true);
 
-        // 2. Create the main user data map
         Map<String, Object> userData = new HashMap<>();
         userData.put("email", email);
         userData.put("role", role);
-
-        // Combine firstName and lastName into a single 'name' field
         userData.put("name", firstName + " " + lastName);
-
-        // Add the new fields
-        userData.put("phone", phone); // <-- USE THE VARIABLE, NOT ""
+        userData.put("phone", phone);
         userData.put("notificationPreferences", notificationPrefs);
-
+        userData.put("fcmToken", null);
 
         db.collection("users").document(user.getUid())
                 .set(userData)
@@ -194,7 +336,7 @@ public class AuthRepository {
     }
 
     /**
-     * Signs out the current user from Firebase Authentication.
+     * Signs out the current user.
      */
     public void signOut() {
         auth.signOut();

@@ -10,6 +10,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.messaging.FirebaseMessaging; // FIX: Added import
 import java.util.HashMap;
 import java.util.Map;
 
@@ -180,7 +181,7 @@ public class AuthRepository {
     /**
      * Saves the user's FCM registration token to their Firestore document.
      *
-     * @param token The FCM token.
+     * @param token The FCM token (or null to remove it).
      */
     public void saveFcmToken(String token) {
         FirebaseUser fUser = auth.getCurrentUser();
@@ -193,6 +194,55 @@ public class AuthRepository {
                 .update("fcmToken", token)
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM Token saved to Firestore."))
                 .addOnFailureListener(e -> Log.e(TAG, "Error saving FCM Token", e));
+    }
+
+    /**
+     * FIX: Private method to save FCM token with a TaskCallback.
+     */
+    private void saveFcmToken(String token, TaskCallback callback) {
+        FirebaseUser fUser = auth.getCurrentUser();
+        if (fUser == null) {
+            callback.onError("No user logged in.");
+            return;
+        }
+
+        db.collection("users").document(fUser.getUid())
+                .update("fcmToken", token)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "FCM Token update successful: " + (token == null ? "removed" : "set"));
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error saving FCM Token with callback", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
+
+    /**
+     * FIX: Updates the user's overall notification status by deleting or setting the FCM token.
+     * Fulfills US 01.04.03 Criterion 2: Mechanism to stop push notifications.
+     *
+     * @param enableNotifications True to fetch and set token, false to set token to null.
+     * @param callback Notifies of success or failure.
+     */
+    public void updateNotificationStatus(boolean enableNotifications, TaskCallback callback) {
+        if (!enableNotifications) {
+            // Option 1: User opts out - set token to null
+            saveFcmToken(null, callback);
+            return;
+        }
+
+        // Option 2: User opts in - fetch new token and save
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        callback.onError("Fetching FCM registration token failed: " + task.getException().getMessage());
+                        return;
+                    }
+                    String token = task.getResult();
+                    saveFcmToken(token, callback);
+                });
     }
 
     /**

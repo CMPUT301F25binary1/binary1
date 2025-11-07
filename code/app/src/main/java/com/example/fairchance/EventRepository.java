@@ -15,11 +15,13 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration; // FIX: Added import
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import java.util.ArrayList;
+import java.util.Date; // FIX: Added import
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,27 +142,43 @@ public class EventRepository {
     }
 
     /**
-     * Retrieves all events from the 'events' collection.
-     * Corresponds to US 01.01.03.
+     * Retrieves all events from the 'events' collection in real-time.
+     * Filters for events currently open for registration (US 01.01.03).
      *
      * @param callback Returns the list of events or an error.
+     * @return A ListenerRegistration object to stop listening for updates.
      */
-    public void getAllEvents(EventListCallback callback) {
-        eventsRef.get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        List<Event> eventList = new ArrayList<>();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Event event = document.toObject(Event.class);
-                            event.setEventId(document.getId());
-                            eventList.add(event);
-                        }
-                        callback.onSuccess(eventList);
-                    } else {
-                        Log.e(TAG, "Error getting all events: ", task.getException());
-                        callback.onError(task.getException().getMessage());
+    public ListenerRegistration getAllEvents(EventListCallback callback) { // FIX: Changed return type to ListenerRegistration
+        return eventsRef.addSnapshotListener((value, error) -> {
+            if (error != null) {
+                Log.e(TAG, "Error getting all events in real-time: ", error);
+                callback.onError(error.getMessage());
+                return;
+            }
+
+            if (value != null) {
+                List<Event> eventList = new ArrayList<>();
+                Date now = new Date(); // Current time for registration filtering
+
+                for (QueryDocumentSnapshot document : value) {
+                    Event event = document.toObject(Event.class);
+                    event.setEventId(document.getId());
+
+                    // Logic for US 01.01.03 Criterion 3: Only show events open for registration
+                    Date registrationStart = event.getRegistrationStart();
+                    Date registrationEnd = event.getRegistrationEnd();
+
+                    boolean isRegistrationOpen =
+                            (registrationStart == null || registrationStart.before(now)) &&
+                                    (registrationEnd == null || registrationEnd.after(now));
+
+                    if (isRegistrationOpen) {
+                        eventList.add(event);
                     }
-                });
+                }
+                callback.onSuccess(eventList);
+            }
+        });
     }
 
     /**
@@ -272,14 +290,14 @@ public class EventRepository {
     }
 
     /**
-            * Updates the user's status for a specific event in their event history.
-            * This is typically used by the system to mark an event as "Not selected" or for
-            * organizer/admin actions.
-            *
-            * @param eventId  The ID of the event to update.
-            * @param newStatus The new status to set (e.g., "Not selected", "Cancelled").
-            * @param callback Notifies of success or failure.
-            */
+     * Updates the user's status for a specific event in their event history.
+     * This is typically used by the system to mark an event as "Not selected" or for
+     * organizer/admin actions.
+     *
+     * @param eventId  The ID of the event to update.
+     * @param newStatus The new status to set (e.g., "Not selected", "Cancelled").
+     * @param callback Notifies of success or failure.
+     */
     public void updateEventHistoryStatus(String eventId, String newStatus, EventTaskCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {

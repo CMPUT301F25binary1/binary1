@@ -421,6 +421,63 @@ public class EventRepository {
                     }
                 });
     }
+    /**
+     * Samples N entrants from events/{eventId}/waitingList into events/{eventId}/selected.
+     * Skips users already in 'selected'. Also sets users/{uid}/eventHistory/{eventId}.status = "Selected".
+     * Firestore-only (Spark/free).
+     */
+    public void sampleAttendees(String eventId, int count, EventTaskCallback callback) {
+        eventsRef.document(eventId).collection("selected").get()
+                .addOnSuccessListener(selSnap -> {
+                    java.util.Set<String> already = new java.util.HashSet<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot d : selSnap) {
+                        already.add(d.getId());
+                    }
+
+                    eventsRef.document(eventId).collection("waitingList").get()
+                            .addOnSuccessListener(waitSnap -> {
+                                java.util.List<String> pool = new java.util.ArrayList<>();
+                                for (com.google.firebase.firestore.QueryDocumentSnapshot d : waitSnap) {
+                                    String uid = d.getId();
+                                    if (!already.contains(uid)) pool.add(uid);
+                                }
+                                if (pool.isEmpty()) { callback.onError("No entrants to sample."); return; }
+
+                                java.util.Collections.shuffle(pool);
+                                int take = Math.min(count, pool.size());
+
+                                com.google.firebase.firestore.WriteBatch batch = db.batch();
+                                com.google.firebase.Timestamp now = com.google.firebase.Timestamp.now();
+
+                                for (int i = 0; i < take; i++) {
+                                    String uid = pool.get(i);
+
+                                    // events/{eventId}/selected/{uid}
+                                    DocumentReference selRef = eventsRef.document(eventId)
+                                            .collection("selected").document(uid);
+                                    java.util.Map<String,Object> selData = new java.util.HashMap<>();
+                                    selData.put("status", "pending");
+                                    selData.put("sampledAt", now);
+                                    batch.set(selRef, selData);
+
+                                    // users/{uid}/eventHistory/{eventId} -> Selected (merge)
+                                    DocumentReference histRef = usersRef.document(uid)
+                                            .collection("eventHistory").document(eventId);
+                                    java.util.Map<String,Object> hist = new java.util.HashMap<>();
+                                    hist.put("status", "Selected");
+                                    hist.put("updatedAt", now);
+                                    batch.set(histRef, hist, com.google.firebase.firestore.SetOptions.merge());
+                                }
+
+                                batch.commit()
+                                        .addOnSuccessListener(a -> callback.onSuccess())
+                                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            })
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
 
     /**
      * Allows a user to accept or decline a pending event invitation using an atomic batch write.

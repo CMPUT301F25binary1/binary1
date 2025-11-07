@@ -202,7 +202,7 @@
                         <TextView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:background="@drawable/circle_primary"
+                            android:background="@drawable/roundstyle"
                             android:gravity="center"
                             android:text="1"
                             android:textColor="@android:color/white"
@@ -308,7 +308,7 @@
                         <TextView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:background="@drawable/circle_primary"
+                            android:background="@drawable/roundstyle"
                             android:gravity="center"
                             android:text="2"
                             android:textColor="@android:color/white"
@@ -414,7 +414,7 @@
                         <TextView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:background="@drawable/circle_primary"
+                            android:background="@drawable/roundstyle"
                             android:gravity="center"
                             android:text="3"
                             android:textColor="@android:color/white"
@@ -519,7 +519,7 @@
                         <TextView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:background="@drawable/circle_primary"
+                            android:background="@drawable/roundstyle"
                             android:gravity="center"
                             android:text="4"
                             android:textColor="@android:color/white"

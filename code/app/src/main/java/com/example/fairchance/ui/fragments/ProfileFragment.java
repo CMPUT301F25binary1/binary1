@@ -19,8 +19,20 @@ import com.example.fairchance.AuthRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.User;
 import com.example.fairchance.ui.RoleSelectionActivity;
+import androidx.appcompat.widget.SwitchCompat;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * This fragment displays the entrant's profile information (name, email, phone).
+ * It allows the user to:
+ * 1. Update their profile information (US 01.02.02).
+ * 2. Update their notification preferences (US 01.04.03).
+ * 3. Log out of the application.
+ * 4. Delete their profile and all associated data (US 01.02.04).
+ */
 public class ProfileFragment extends Fragment {
 
     private static final String TAG = "ProfileFragment";
@@ -29,11 +41,11 @@ public class ProfileFragment extends Fragment {
     private TextInputEditText etName, etEmail, etPhoneNumber, etRole;
     private Button btnSaveChanges, btnLogout, btnDeleteProfile;
     private ProgressBar progressBar;
+    private SwitchCompat switchLotteryResults, switchOrganizerUpdates;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.entrant_profile, container, false);
     }
 
@@ -52,19 +64,22 @@ public class ProfileFragment extends Fragment {
         btnLogout = view.findViewById(R.id.button_logout);
         btnDeleteProfile = view.findViewById(R.id.button_delete_profile);
         progressBar = view.findViewById(R.id.profile_progress_bar);
+        switchLotteryResults = view.findViewById(R.id.switch_lottery_results);
+        switchOrganizerUpdates = view.findViewById(R.id.switch_organizer_updates);
 
-        // Disable editing for role (as requested)
         etRole.setEnabled(false);
-
-        // Load the user's data
         loadUserProfile();
 
-        // --- SET UP BUTTON LISTENERS ---
+        // Set up button listeners
         btnLogout.setOnClickListener(v -> logout());
         btnSaveChanges.setOnClickListener(v -> saveChanges());
         btnDeleteProfile.setOnClickListener(v -> confirmDeleteProfile());
     }
 
+    /**
+     * Loads the current user's profile data from AuthRepository
+     * and populates all the fields in the UI.
+     */
     private void loadUserProfile() {
         setLoading(true);
         authRepository.getUserProfile(new AuthRepository.UserProfileCallback() {
@@ -76,10 +91,20 @@ public class ProfileFragment extends Fragment {
 
                 String role = user.getRole();
                 if (role != null && !role.isEmpty()) {
-                    // Capitalize first letter for display
                     String capitalizedRole = role.substring(0, 1).toUpperCase() + role.substring(1);
                     etRole.setText(capitalizedRole);
                 }
+
+                // Load switch preferences
+                if (user.getNotificationPreferences() != null) {
+                    Map<String, Boolean> prefs = user.getNotificationPreferences();
+                    switchLotteryResults.setChecked(prefs.getOrDefault("lotteryResults", true));
+                    switchOrganizerUpdates.setChecked(prefs.getOrDefault("organizerUpdates", true));
+                } else {
+                    switchLotteryResults.setChecked(true);
+                    switchOrganizerUpdates.setChecked(true);
+                }
+
                 setLoading(false);
             }
 
@@ -92,24 +117,54 @@ public class ProfileFragment extends Fragment {
         });
     }
 
+    /**
+     * Validates input fields and saves all changes (name, email, phone, notifications)
+     * to Firestore via the AuthRepository.
+     */
     private void saveChanges() {
         String name = etName.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
         String phone = etPhoneNumber.getText().toString().trim();
 
-        // Simple Validation
         if (name.isEmpty() || email.isEmpty()) {
             etName.setError(name.isEmpty() ? "Name cannot be empty" : null);
             etEmail.setError(email.isEmpty() ? "Email cannot be empty" : null);
             return;
         }
 
+        // Build the notification preferences map
+        Map<String, Object> notificationPrefs = new HashMap<>();
+        boolean lotteryResultsEnabled = switchLotteryResults.isChecked();
+        boolean organizerUpdatesEnabled = switchOrganizerUpdates.isChecked();
+
+        notificationPrefs.put("lotteryResults", lotteryResultsEnabled);
+        notificationPrefs.put("organizerUpdates", organizerUpdatesEnabled);
+
+        // FIX: Determine overall opt-out status (US 01.04.03 Criterion 2)
+        // Notifications are globally enabled if AT LEAST ONE switch is ON.
+        boolean notificationsGloballyEnabled = lotteryResultsEnabled || organizerUpdatesEnabled;
+
+
         setLoading(true);
-        authRepository.updateUserProfile(name, email, phone, new AuthRepository.TaskCallback() {
+        // Step 1: Update basic profile details and preferences
+        authRepository.updateUserProfile(name, email, phone, notificationPrefs, new AuthRepository.TaskCallback() {
             @Override
             public void onSuccess() {
-                setLoading(false);
-                Toast.makeText(getContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show();
+                // Step 2: Update FCM token based on preference (opt-out mechanism)
+                authRepository.updateNotificationStatus(notificationsGloballyEnabled, new AuthRepository.TaskCallback() {
+                    @Override
+                    public void onSuccess() {
+                        setLoading(false);
+                        Toast.makeText(getContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        setLoading(false);
+                        Log.e(TAG, "Error updating notification status/token: " + message);
+                        Toast.makeText(getContext(), "Profile updated, but notification status failed: " + message, Toast.LENGTH_LONG).show();
+                    }
+                });
             }
 
             @Override
@@ -121,8 +176,10 @@ public class ProfileFragment extends Fragment {
         });
     }
 
+    /**
+     * Shows a confirmation dialog before deleting the user's profile.
+     */
     private void confirmDeleteProfile() {
-        // Show a confirmation dialog before deleting
         new AlertDialog.Builder(getContext())
                 .setTitle("Delete Profile")
                 .setMessage("Are you sure you want to permanently delete your profile? This action cannot be undone.")
@@ -131,6 +188,10 @@ public class ProfileFragment extends Fragment {
                 .show();
     }
 
+    /**
+     * Calls the AuthRepository to delete the user's Auth record and Firestore document.
+     * On success, navigates back to the RoleSelectionActivity.
+     */
     private void deleteProfile() {
         setLoading(true);
         authRepository.deleteCurrentUser(new AuthRepository.TaskCallback() {
@@ -146,18 +207,22 @@ public class ProfileFragment extends Fragment {
                 setLoading(false);
                 Log.e(TAG, "Error deleting profile: " + message);
                 Toast.makeText(getContext(), "Error: " + message, Toast.LENGTH_LONG).show();
-                // Note: Deleting an anonymous account may require re-authentication.
-                // If this fails, the user may need to clear app data.
             }
         });
     }
 
+    /**
+     * Signs the user out and navigates back to the RoleSelectionActivity.
+     */
     private void logout() {
         authRepository.signOut();
         Toast.makeText(getContext(), "Logged out.", Toast.LENGTH_SHORT).show();
         goToRoleSelection();
     }
 
+    /**
+     * Navigates to the RoleSelectionActivity and clears the activity stack.
+     */
     private void goToRoleSelection() {
         if (getActivity() == null) return;
         Intent intent = new Intent(getActivity(), RoleSelectionActivity.class);
@@ -166,6 +231,10 @@ public class ProfileFragment extends Fragment {
         getActivity().finish();
     }
 
+    /**
+     * Helper method to show/hide the progress bar and disable/enable UI elements.
+     * @param isLoading True to show loading state, false otherwise.
+     */
     private void setLoading(boolean isLoading) {
         if (progressBar == null) return;
 
@@ -173,5 +242,7 @@ public class ProfileFragment extends Fragment {
         btnSaveChanges.setEnabled(!isLoading);
         btnLogout.setEnabled(!isLoading);
         btnDeleteProfile.setEnabled(!isLoading);
+        switchLotteryResults.setEnabled(!isLoading);
+        switchOrganizerUpdates.setEnabled(!isLoading);
     }
 }

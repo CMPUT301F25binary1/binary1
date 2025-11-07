@@ -3,9 +3,9 @@ package com.example.fairchance;
 import android.util.Log;
 import androidx.annotation.NonNull;
 
-// Import the models you created
 import com.example.fairchance.models.Event;
 import com.example.fairchance.models.EventHistoryItem;
+import com.example.fairchance.models.Invitation;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -15,18 +15,21 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query; // <-- NEW IMPORT
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Repository class for handling all database operations related to Events.
- * This class is designed to work with the defined Firestore structure.
+ * Repository class implementing the "single source of truth" pattern for all
+ * event-related data. It handles all interactions with the 'events' collection,
+ * as well as its sub-collections and related user history.
  */
 public class EventRepository {
 
@@ -36,7 +39,7 @@ public class EventRepository {
     private final CollectionReference eventsRef;
     private final CollectionReference usersRef;
 
-    // --- Callback Interfaces ---
+    //region Callback Interfaces
     public interface EventTaskCallback {
         void onSuccess();
         void onError(String message);
@@ -52,15 +55,30 @@ public class EventRepository {
         void onError(String message);
     }
 
-    // --- NEW INTERFACE for History ---
+    public interface WaitlistCountCallback {
+        void onSuccess(int count);
+        void onError(String message);
+    }
+
+    public interface EventHistoryCheckCallback {
+        void onSuccess(String status);
+        void onError(String message);
+    }
+
     public interface EventHistoryListCallback {
         void onSuccess(List<EventHistoryItem> historyItems);
         void onError(String message);
     }
-    // --- END NEW INTERFACE ---
+
+    public interface InvitationListCallback {
+        void onSuccess(List<Invitation> historyItems);
+        void onError(String message);
+    }
+    //endregion
 
     /**
-     * Constructor
+     * Initializes the repository with instances of FirebaseAuth and FirebaseFirestore
+     * and sets up references to the main collections.
      */
     public EventRepository() {
         this.db = FirebaseFirestore.getInstance();
@@ -72,15 +90,13 @@ public class EventRepository {
     /**
      * Creates a new event in the 'events' collection.
      * Corresponds to US 02.01.01.
-     * @param event The Event object to be added.
+     *
+     * @param event    The Event object to be added.
      * @param callback Notifies of success or failure.
      */
     public void createEvent(Event event, EventTaskCallback callback) {
-        // Add a new document with a generated ID
         eventsRef.add(event)
                 .addOnSuccessListener(documentReference -> {
-                    // Get the new ID and write it back to the document
-                    // This is optional but very good practice
                     String eventId = documentReference.getId();
                     documentReference.update("eventId", eventId)
                             .addOnSuccessListener(aVoid -> {
@@ -100,7 +116,8 @@ public class EventRepository {
 
     /**
      * Retrieves a single Event object from Firestore by its ID.
-     * @param eventId The unique ID of the event.
+     *
+     * @param eventId  The unique ID of the event.
      * @param callback Returns the Event or an error.
      */
     public void getEvent(String eventId, EventCallback callback) {
@@ -109,7 +126,7 @@ public class EventRepository {
                     if (documentSnapshot.exists()) {
                         Event event = documentSnapshot.toObject(Event.class);
                         if (event != null) {
-                            event.setEventId(documentSnapshot.getId()); // Set the ID
+                            event.setEventId(documentSnapshot.getId());
                             callback.onSuccess(event);
                         } else {
                             callback.onError("Failed to parse event object.");
@@ -125,39 +142,74 @@ public class EventRepository {
     }
 
     /**
-     * Retrieves all events from the 'events' collection.
-     * Corresponds to US 01.01.03.
+     * Retrieves all events from the 'events' collection in real-time.
+     * Filters for events currently open for registration (US 01.01.03).
+     *
      * @param callback Returns the list of events or an error.
+     * @return A ListenerRegistration object to stop listening for updates.
      */
-    public void getAllEvents(EventListCallback callback) {
-        eventsRef.get()
+    public ListenerRegistration getAllEvents(EventListCallback callback) {
+        return eventsRef.addSnapshotListener((value, error) -> {
+            if (error != null) {
+                Log.e(TAG, "Error getting all events in real-time: ", error);
+                callback.onError(error.getMessage());
+                return;
+            }
+
+            if (value != null) {
+                List<Event> eventList = new ArrayList<>();
+                Date now = new Date(); // Current time for registration filtering
+
+                for (QueryDocumentSnapshot document : value) {
+                    Event event = document.toObject(Event.class);
+                    event.setEventId(document.getId());
+
+                    // Logic for US 01.01.03 Criterion 3: Only show events open for registration
+                    Date registrationStart = event.getRegistrationStart();
+                    Date registrationEnd = event.getRegistrationEnd();
+
+                    boolean isRegistrationOpen =
+                            (registrationStart == null || registrationStart.before(now)) &&
+                                    (registrationEnd == null || registrationEnd.after(now));
+
+                    if (isRegistrationOpen) {
+                        eventList.add(event);
+                    }
+                }
+                callback.onSuccess(eventList);
+            }
+        });
+    }
+
+    /**
+     * Gets the current number of users on a specific event's waiting list.
+     * Note: This can be expensive if the list is large.
+     *
+     * @param eventId  The event to check.
+     * @param callback Returns the count of documents or an error.
+     */
+    public void getWaitingListCount(String eventId, WaitlistCountCallback callback) {
+        eventsRef.document(eventId).collection("waitingList")
+                .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        List<Event> eventList = new ArrayList<>();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Event event = document.toObject(Event.class);
-                            event.setEventId(document.getId()); // Set the ID
-                            eventList.add(event);
-                        }
-                        callback.onSuccess(eventList);
+                        int count = task.getResult().size();
+                        callback.onSuccess(count);
                     } else {
-                        Log.e(TAG, "Error getting all events: ", task.getException());
+                        Log.e(TAG, "Error getting waitlist count: ", task.getException());
                         callback.onError(task.getException().getMessage());
                     }
                 });
     }
 
     /**
-     * Adds the current user to an event's waiting list.
-     * This performs an atomic (all-or-nothing) write to two locations,
-     * as per the database design:
-     * 1. events/{EventID}/waitingList/{UserID}
-     * 2. users/{UserID}/eventHistory/{EventID}
-     *
+     * Adds the current user to an event's waiting list using an atomic batch write.
+     * 1. Creates a doc in events/{EventID}/waitingList/{UserID}
+     * 2. Creates a doc in users/{UserID}/eventHistory/{EventID}
      * Corresponds to US 01.01.01 and US 01.02.03.
      *
-     * @param eventId The ID of the event to join.
-     * @param event The Event object (needed for its name/date).
+     * @param eventId  The ID of the event to join.
+     * @param event    The Event object (needed for its name/date).
      * @param callback Notifies of success or failure.
      */
     public void joinWaitingList(String eventId, Event event, EventTaskCallback callback) {
@@ -168,32 +220,26 @@ public class EventRepository {
         }
         String userId = user.getUid();
 
-        // 1. Create a WriteBatch for an atomic operation
         WriteBatch batch = db.batch();
 
-        // 2. Define the reference for the event's waitingList sub-collection
         DocumentReference waitingListRef = eventsRef.document(eventId)
                 .collection("waitingList").document(userId);
 
-        // 3. Define the data for the waiting list
         Map<String, Object> waitingListData = new HashMap<>();
         waitingListData.put("joinedAt", com.google.firebase.Timestamp.now());
         // We would add Geopoint here if geolocation is enabled
         // waitingListData.put("location", new GeoPoint(lat, lon));
         batch.set(waitingListRef, waitingListData);
 
-        // 4. Define the reference for the user's eventHistory sub-collection
         DocumentReference eventHistoryRef = usersRef.document(userId)
                 .collection("eventHistory").document(eventId);
 
-        // 5. Define the denormalized data for the user's history
         Map<String, Object> eventHistoryData = new HashMap<>();
         eventHistoryData.put("eventName", event.getName());
         eventHistoryData.put("eventDate", event.getEventDate());
         eventHistoryData.put("status", "Waiting");
         batch.set(eventHistoryRef, eventHistoryData);
 
-        // 6. Commit the atomic batch
         batch.commit()
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "User " + userId + " successfully joined waiting list for " + eventId);
@@ -205,13 +251,150 @@ public class EventRepository {
                 });
     }
 
-    // --- NEW METHOD ---
     /**
-     * Retrieves the event history for the currently signed-in user.
-     * Corresponds to US 01.02.03.
-     * @param callback Returns the list of history items or an error.
+     * Removes the current user from an event's waiting list using an atomic batch write.
+     * 1. Deletes events/{EventID}/waitingList/{UserID}
+     * 2. Deletes users/{UserID}/eventHistory/{EventID}
+     * Corresponds to US 01.01.02.
+     *
+     * @param eventId  The ID of the event to leave.
+     * @param callback Notifies of success or failure.
      */
-    public void getEventHistory(EventHistoryListCallback callback) {
+    public void leaveWaitingList(String eventId, EventTaskCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        WriteBatch batch = db.batch();
+
+        DocumentReference waitingListRef = eventsRef.document(eventId)
+                .collection("waitingList").document(userId);
+        batch.delete(waitingListRef);
+
+        DocumentReference eventHistoryRef = usersRef.document(userId)
+                .collection("eventHistory").document(eventId);
+        batch.delete(eventHistoryRef);
+
+        batch.commit()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User " + userId + " successfully left waiting list for " + eventId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to leave waiting list", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
+    /**
+     * Updates the user's status for a specific event in their event history.
+     * This is typically used by the system to mark an event as "Not selected" or for
+     * organizer/admin actions.
+     *
+     * @param eventId  The ID of the event to update.
+     * @param newStatus The new status to set (e.g., "Not selected", "Cancelled").
+     * @param callback Notifies of success or failure.
+     */
+    public void updateEventHistoryStatus(String eventId, String newStatus, EventTaskCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+        DocumentReference eventHistoryRef = usersRef.document(userId)
+                .collection("eventHistory").document(eventId);
+        eventHistoryRef.update("status", newStatus)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User " + userId + " history status updated to " + newStatus + " for " + eventId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to update event history status", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
+    /**
+     * Retrieves the event history for the currently signed-in user in real-time.
+     * Corresponds to US 01.02.03. (FIX: Now real-time)
+     *
+     * @param callback Returns the list of history items or an error.
+     * @return A ListenerRegistration object to stop listening for updates.
+     */
+    public ListenerRegistration getEventHistory(EventHistoryListCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            // Return a no-op registration if no user to prevent crashes
+            return () -> {};
+        }
+        String userId = user.getUid();
+
+        return usersRef.document(userId).collection("eventHistory")
+                .orderBy("eventDate", Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error getting event history in real-time: ", error);
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (value != null) {
+                        List<EventHistoryItem> historyList = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : value) {
+                            EventHistoryItem item = document.toObject(EventHistoryItem.class);
+                            item.setEventId(document.getId());
+                            historyList.add(item);
+                        }
+                        callback.onSuccess(historyList);
+                    }
+                });
+    }
+
+    /**
+     * Checks the user's history for a specific event to see their status.
+     *
+     * @param eventId  The event to check.
+     * @param callback Returns the status string (e.g., "Waiting") or null if no record exists.
+     */
+    public void checkEventHistoryStatus(String eventId, EventHistoryCheckCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        usersRef.document(userId).collection("eventHistory").document(eventId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (document.exists()) {
+                            String status = document.getString("status");
+                            callback.onSuccess(status);
+                        } else {
+                            callback.onSuccess(null); // User is not associated with this event
+                        }
+                    } else {
+                        Log.e(TAG, "Error checking event status: ", task.getException());
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    /**
+     * Retrieves all pending invitations for the current user.
+     * (e.g., all events in their history with status "Selected")
+     * Corresponds to US 01.05.02, US 01.05.03.
+     *
+     * @param callback Returns the list of pending invitations or an error.
+     */
+    public void getPendingInvitations(InvitationListCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             callback.onError("No user is signed in.");
@@ -220,29 +403,76 @@ public class EventRepository {
         String userId = user.getUid();
 
         usersRef.document(userId).collection("eventHistory")
-                .orderBy("eventDate", Query.Direction.DESCENDING) // Show newest first
+                .whereEqualTo("status", "Selected")
+                .orderBy("eventDate", Query.Direction.DESCENDING)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        List<EventHistoryItem> historyList = new ArrayList<>();
+                        List<Invitation> invitationList = new ArrayList<>();
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            EventHistoryItem item = document.toObject(EventHistoryItem.class);
-                            item.setEventId(document.getId()); // Store the document ID
-                            historyList.add(item);
+                            Invitation item = document.toObject(Invitation.class);
+                            item.setEventId(document.getId());
+                            invitationList.add(item);
                         }
-                        callback.onSuccess(historyList);
+                        callback.onSuccess(invitationList);
                     } else {
-                        Log.e(TAG, "Error getting event history: ", task.getException());
+                        Log.e(TAG, "Error getting pending invitations: ", task.getException());
                         callback.onError(task.getException().getMessage());
                     }
                 });
     }
-    // --- END NEW METHOD ---
+
+    /**
+     * Allows a user to accept or decline a pending event invitation using an atomic batch write.
+     * This updates the status in 3 places:
+     * 1. users/{UserID}/eventHistory/{EventID} (status: "Confirmed" or "Declined")
+     * 2. events/{EventID}/selected/{UserID} (status: "accepted" or "declined")
+     * 3. (If accepted) events/{EventID}/confirmedAttendees/{UserID} (new document)
+     *
+     * @param eventId  The event to respond to.
+     * @param accepted True if accepting, false if declining.
+     * @param callback Notifies of success or failure.
+     */
+    public void respondToInvitation(String eventId, boolean accepted, EventTaskCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        WriteBatch batch = db.batch();
+
+        DocumentReference eventHistoryRef = usersRef.document(userId)
+                .collection("eventHistory").document(eventId);
+        String newStatus = accepted ? "Confirmed" : "Declined";
+        batch.update(eventHistoryRef, "status", newStatus);
+
+        DocumentReference selectedRef = eventsRef.document(eventId)
+                .collection("selected").document(userId);
+        String newSelectedStatus = accepted ? "accepted" : "declined";
+        batch.update(selectedRef, "status", newSelectedStatus);
+
+        if (accepted) {
+            DocumentReference confirmedRef = eventsRef.document(eventId)
+                    .collection("confirmedAttendees").document(userId);
+            Map<String, Object> confirmedData = new HashMap<>();
+            confirmedData.put("confirmedAt", com.google.firebase.Timestamp.now());
+            batch.set(confirmedRef, confirmedData);
+        }
+
+        batch.commit()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User " + userId + " responded to invitation for " + eventId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to respond to invitation", e);
+                    callback.onError(e.getMessage());
+                });
+    }
 
     // TODO: We will add more methods here later, such as:
-    // - leaveWaitingList(String eventId, ...)
-    // - getPendingInvitations(String userId, ...)
-    // - respondToInvitation(String eventId, boolean didAccept, ...)
     // - runLottery(String eventId, int count, ...)
     // - getWaitingList(String eventId, ...)
 }

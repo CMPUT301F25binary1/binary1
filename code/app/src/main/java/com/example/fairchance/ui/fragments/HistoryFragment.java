@@ -19,10 +19,17 @@ import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.EventHistoryItem;
 import com.example.fairchance.ui.adapters.EventHistoryAdapter;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This fragment displays the entrant's full event history.
+ * It shows a list of all events the user has joined, been invited to, or confirmed,
+ * along with their final status (e.g., "Confirmed", "Declined", "Not selected").
+ * Fulfills US 01.02.03.
+ */
 public class HistoryFragment extends Fragment {
 
     private static final String TAG = "HistoryFragment";
@@ -31,6 +38,7 @@ public class HistoryFragment extends Fragment {
     private EventHistoryAdapter historyAdapter;
     private List<EventHistoryItem> historyList = new ArrayList<>();
     private EventRepository eventRepository;
+    private ListenerRegistration eventHistoryRegistration; // FIX: Added field for listener registration
 
     private ProgressBar progressBar;
     private TextView emptyView;
@@ -38,7 +46,6 @@ public class HistoryFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.entrant_history, container, false);
     }
 
@@ -58,13 +65,31 @@ public class HistoryFragment extends Fragment {
         historyAdapter = new EventHistoryAdapter(getContext(), historyList);
         historyRecyclerView.setAdapter(historyAdapter);
 
-        // Load data from Firestore
         loadHistory();
     }
 
+    /**
+     * FIX: Cleans up the real-time listener when the fragment's view is destroyed.
+     * (Part of US 01.02.03 Criterion 3 cleanup)
+     */
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (eventHistoryRegistration != null) {
+            eventHistoryRegistration.remove();
+            Log.d(TAG, "Event history listener removed.");
+        }
+    }
+
+
+    /**
+     * Fetches the user's complete event history from the EventRepository
+     * and populates the RecyclerView. (Now uses a real-time listener for US 01.02.03)
+     */
     private void loadHistory() {
         showLoading(true);
-        eventRepository.getEventHistory(new EventRepository.EventHistoryListCallback() {
+        // FIX: Replaced one-time call with real-time listener and stored registration
+        eventHistoryRegistration = eventRepository.getEventHistory(new EventRepository.EventHistoryListCallback() {
             @Override
             public void onSuccess(List<EventHistoryItem> items) {
                 showLoading(false);
@@ -87,6 +112,10 @@ public class HistoryFragment extends Fragment {
         });
     }
 
+    /**
+     * Helper method to show/hide the main progress bar.
+     * @param isLoading True to show loading state, false otherwise.
+     */
     private void showLoading(boolean isLoading) {
         if (isLoading) {
             progressBar.setVisibility(View.VISIBLE);
@@ -97,6 +126,10 @@ public class HistoryFragment extends Fragment {
         }
     }
 
+    /**
+     * Helper method to show/hide the "You have no event history" text.
+     * @param show True to show the empty view, false to show the RecyclerView.
+     */
     private void showEmptyView(boolean show) {
         if (show) {
             emptyView.setVisibility(View.VISIBLE);

@@ -10,6 +10,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -32,8 +34,36 @@ public class EventDetailsFragment extends Fragment {
     private TextView tvEventName, tvEventDescription, tvEventTimeLocation, tvRegistrationDates, tvRegistrationTimes;
     private ImageView ivEventPoster, ivQRCode;
     private Button btnWaitingList, btnChosen, btnCancelled, btnFinal;
+
+    // Optional views for the two user stories
+    private TextView tvGeolocationRequiredLabel, tvGeolocationRequiredValue;
+    private Button btnUpdatePoster, btnEditEvent;
+
     private String eventId;
     private EventRepository repository;
+    private Event loadedEvent;
+
+    // Image picker for Update Poster
+    private final ActivityResultLauncher<String> pickImage =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null && loadedEvent != null) {
+                    repository.uploadPosterAndUpdate(
+                            loadedEvent.getEventId(),
+                            uri,
+                            new EventRepository.EventTaskCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    Toast.makeText(getContext(), "Poster updated.", Toast.LENGTH_SHORT).show();
+                                    loadEventDetails(loadedEvent.getEventId());
+                                }
+                                @Override
+                                public void onError(String message) {
+                                    Toast.makeText(getContext(), "Upload failed: " + message, Toast.LENGTH_LONG).show();
+                                }
+                            }
+                    );
+                }
+            });
 
     public EventDetailsFragment() { }
 
@@ -72,6 +102,30 @@ public class EventDetailsFragment extends Fragment {
         btnCancelled = view.findViewById(R.id.btnCancelledEntrants);
         btnFinal = view.findViewById(R.id.btnFinalEntrants);
 
+        // Optional new views if added in layout
+        tvGeolocationRequiredLabel = view.findViewById(R.id.tvGeolocationRequiredLabel);
+        tvGeolocationRequiredValue = view.findViewById(R.id.tvGeolocationRequiredValue);
+        btnUpdatePoster = view.findViewById(R.id.btnUpdatePoster);
+        btnEditEvent = view.findViewById(R.id.btnEditEvent);
+
+        if (btnUpdatePoster != null) {
+            btnUpdatePoster.setOnClickListener(v -> {
+                if (loadedEvent == null) return;
+                pickImage.launch("image/*");
+            });
+        }
+
+        if (btnEditEvent != null) {
+            btnEditEvent.setOnClickListener(v1 -> {
+                if (eventId != null) {
+                    FragmentTransaction ft = requireActivity().getSupportFragmentManager().beginTransaction();
+                    ft.replace(R.id.fragment_container, UpdateEventFragment.newInstance(eventId));
+                    ft.addToBackStack(null);
+                    ft.commit();
+                }
+            });
+        }
+
         if (getArguments() != null) {
             eventId = getArguments().getString("EVENT_ID");
             loadEventDetails(eventId);
@@ -88,9 +142,9 @@ public class EventDetailsFragment extends Fragment {
         repository.getEvent(eventId, new EventRepository.EventCallback() {
             @Override
             public void onSuccess(Event event) {
+                loadedEvent = event;
                 populateUI(event);
             }
-
             @Override
             public void onError(String message) {
                 Toast.makeText(getContext(), "Error loading event: " + message, Toast.LENGTH_LONG).show();
@@ -115,13 +169,15 @@ public class EventDetailsFragment extends Fragment {
                             sdfTime.format(event.getRegistrationEnd()));
         }
 
-        // Load poster if exists
         Glide.with(requireContext())
                 .load(event.getPosterImageUrl())
                 .placeholder(R.drawable.fairchance_logo_with_words___transparent)
                 .into(ivEventPoster);
 
-        // Generate QR Code for eventId
+        if (tvGeolocationRequiredValue != null) {
+            tvGeolocationRequiredValue.setText(event.isGeolocationRequired() ? "Yes" : "No");
+        }
+
         try {
             BitMatrix matrix = new MultiFormatWriter()
                     .encode(event.getEventId(), BarcodeFormat.QR_CODE, 400, 400);

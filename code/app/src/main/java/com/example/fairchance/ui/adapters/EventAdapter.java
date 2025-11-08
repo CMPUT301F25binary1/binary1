@@ -1,6 +1,9 @@
 package com.example.fairchance.ui.adapters;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +16,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,6 +26,8 @@ import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
 import com.example.fairchance.ui.fragments.EventDetailsFragment;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -105,7 +112,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                         (item.getCategory() != null && item.getCategory().equalsIgnoreCase(currentCategory));
 
                 boolean searchMatches = currentSearchText.isEmpty() ||
-                        item.getName().toLowerCase().contains(currentSearchText);
+                        (item.getName() != null && item.getName().toLowerCase().contains(currentSearchText));
 
                 boolean dateMatches = true;
                 if (currentDateFilter.equals("TODAY") && item.getEventDate() != null) {
@@ -129,6 +136,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
             eventList.clear();
+            //noinspection unchecked
             eventList.addAll((List<Event>) results.values);
             notifyDataSetChanged();
         }
@@ -166,7 +174,6 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
             Context context = itemView.getContext();
 
-            // 🔹 Navigate to EventDetailsFragment when clicking card or Details button
             View.OnClickListener openDetails = v -> {
                 EventDetailsFragment fragment = EventDetailsFragment.newInstance(event.getEventId());
                 FragmentTransaction transaction = ((AppCompatActivity) context)
@@ -180,7 +187,6 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             buttonDetails.setOnClickListener(openDetails);
             itemView.setOnClickListener(openDetails);
 
-            // 🔹 Join/Leave Waiting List handling
             repo.checkEventHistoryStatus(event.getEventId(), new EventRepository.EventHistoryCheckCallback() {
                 @Override
                 public void onSuccess(String status) {
@@ -200,19 +206,68 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             buttonJoin.setOnClickListener(v -> {
                 String label = buttonJoin.getText().toString();
                 if (label.contains("Join")) {
-                    repo.joinWaitingList(event.getEventId(), event, new EventRepository.EventTaskCallback() {
-                        @Override
-                        public void onSuccess() {
-                            Toast.makeText(context, "Joined waiting list!", Toast.LENGTH_SHORT).show();
-                            buttonJoin.setText("Leave Waiting List");
-                            buttonJoin.setBackgroundTintList(context.getResources().getColorStateList(R.color.FCgreen));
+                    if (event.isGeolocationRequired()) {
+                        Activity activity = (Activity) context;
+
+                        boolean fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                        boolean coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+
+                        if (!fine && !coarse) {
+                            ActivityCompat.requestPermissions(
+                                    activity,
+                                    new String[]{ Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION },
+                                    1001
+                            );
+                            Toast.makeText(context, "Grant location permission then tap Join again.", Toast.LENGTH_LONG).show();
+                            return;
                         }
 
-                        @Override
-                        public void onError(String message) {
-                            Toast.makeText(context, "Error: " + message, Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                        FusedLocationProviderClient fused = LocationServices.getFusedLocationProviderClient(context);
+                        fused.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                                .addOnSuccessListener(loc -> {
+                                    if (loc == null) {
+                                        Toast.makeText(context, "Could not get location. Try again.", Toast.LENGTH_SHORT).show();
+                                        return;
+                                    }
+                                    repo.joinWaitingListWithLocation(
+                                            event.getEventId(),
+                                            event,
+                                            loc.getLatitude(),
+                                            loc.getLongitude(),
+                                            new EventRepository.EventTaskCallback() {
+                                                @Override
+                                                public void onSuccess() {
+                                                    Toast.makeText(context, "Joined with location.", Toast.LENGTH_SHORT).show();
+                                                    buttonJoin.setText("Leave Waiting List");
+                                                    buttonJoin.setBackgroundTintList(context.getResources().getColorStateList(R.color.FCgreen));
+                                                }
+
+                                                @Override
+                                                public void onError(String message) {
+                                                    Toast.makeText(context, "Error: " + message, Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+                                    );
+                                })
+                                .addOnFailureListener(e ->
+                                        Toast.makeText(context, "Location error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                );
+
+                    } else {
+                        repo.joinWaitingList(event.getEventId(), event, new EventRepository.EventTaskCallback() {
+                            @Override
+                            public void onSuccess() {
+                                Toast.makeText(context, "Joined waiting list!", Toast.LENGTH_SHORT).show();
+                                buttonJoin.setText("Leave Waiting List");
+                                buttonJoin.setBackgroundTintList(context.getResources().getColorStateList(R.color.FCgreen));
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                Toast.makeText(context, "Error: " + message, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
                 } else {
                     repo.leaveWaitingList(event.getEventId(), new EventRepository.EventTaskCallback() {
                         @Override

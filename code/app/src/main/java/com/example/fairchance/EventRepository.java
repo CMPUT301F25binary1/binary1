@@ -1,6 +1,7 @@
 package com.example.fairchance;
 
 import android.util.Log;
+import android.net.Uri;
 import androidx.annotation.NonNull;
 
 import com.example.fairchance.models.Event;
@@ -20,6 +21,10 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,6 +40,7 @@ public class EventRepository {
 
     private static final String TAG = "EventRepository";
     private final FirebaseFirestore db;
+    private final FirebaseStorage storage = FirebaseStorage.getInstance();
     private final FirebaseAuth auth;
     private final CollectionReference eventsRef;
     private final CollectionReference usersRef;
@@ -250,6 +256,39 @@ public class EventRepository {
                     callback.onError(e.getMessage());
                 });
     }
+    /**
+     * Same as joinWaitingList but saves location if provided.
+     */
+    public void joinWaitingListWithLocation(String eventId, Event event, Double lat, Double lng, EventTaskCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) { callback.onError("No user is signed in."); return; }
+        String userId = user.getUid();
+
+        WriteBatch batch = db.batch();
+
+        DocumentReference waitingListRef = eventsRef.document(eventId)
+                .collection("waitingList").document(userId);
+
+        Map<String, Object> waitingListData = new HashMap<>();
+        waitingListData.put("joinedAt", com.google.firebase.Timestamp.now());
+        if (lat != null && lng != null) {
+            waitingListData.put("location", new GeoPoint(lat, lng));
+        }
+        batch.set(waitingListRef, waitingListData, SetOptions.merge());
+
+        DocumentReference eventHistoryRef = usersRef.document(userId)
+                .collection("eventHistory").document(eventId);
+
+        Map<String, Object> eventHistoryData = new HashMap<>();
+        eventHistoryData.put("eventName", event.getName());
+        eventHistoryData.put("eventDate", event.getEventDate());
+        eventHistoryData.put("status", "Waiting");
+        batch.set(eventHistoryRef, eventHistoryData, SetOptions.merge());
+
+        batch.commit()
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
 
     /**
      * Removes the current user from an event's waiting list using an atomic batch write.
@@ -290,6 +329,17 @@ public class EventRepository {
     }
 
     /**
+     * Updates one or more fields on an event document.
+     */
+    public void updateEventFields(String eventId, Map<String, Object> updates, EventTaskCallback callback) {
+        eventsRef.document(eventId)
+                .set(updates, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+
+    /**
      * Updates the user's status for a specific event in their event history.
      * This is typically used by the system to mark an event as "Not selected" or for
      * organizer/admin actions.
@@ -317,6 +367,32 @@ public class EventRepository {
                     callback.onError(e.getMessage());
                 });
     }
+
+    /**
+     * Uploads an image to Firebase Storage and updates posterImageUrl on the event.
+     */
+    public void uploadPosterAndUpdate(String eventId, Uri imageUri, EventTaskCallback callback) {
+        if (imageUri == null) {
+            callback.onError("No image selected.");
+            return;
+        }
+        String fileName = "poster_" + System.currentTimeMillis() + ".jpg";
+        StorageReference ref = storage.getReference()
+                .child("event_posters")
+                .child(eventId)
+                .child(fileName);
+
+        ref.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl()
+                        .addOnSuccessListener(uri -> {
+                            Map<String, Object> updates = new HashMap<>();
+                            updates.put("posterImageUrl", uri.toString());
+                            updateEventFields(eventId, updates, callback);
+                        })
+                        .addOnFailureListener(e -> callback.onError(e.getMessage())))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
 
     /**
      * Retrieves the event history for the currently signed-in user in real-time.

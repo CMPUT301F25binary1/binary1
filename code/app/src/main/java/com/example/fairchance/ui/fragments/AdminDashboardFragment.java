@@ -14,8 +14,12 @@ import androidx.fragment.app.FragmentTransaction;
 import com.example.fairchance.R;
 
 /**
- * A simple fragment that displays the main dashboard for the 'Admin' role.
- * This is loaded into MainActivity when an Admin logs in.
+ * Admin Dashboard Screen
+ * Allows navigation to:
+ *  - Event Management
+ *  - Profile Management
+ *  - Image Management
+ *  - Notification Logs
  */
 public class AdminDashboardFragment extends Fragment {
 
@@ -24,24 +28,47 @@ public class AdminDashboardFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        // Use the layout file that actually has cardEventManagement
-        return inflater.inflate(R.layout.admin_main_dashboard, container, false);
+
+        // Inflate the correct full dashboard layout
+        View root = inflater.inflate(R.layout.admin_main_dashboard, container, false);
+
+        // Wire the cards (make sure XML has these IDs)
+        CardView cardProfile = root.findViewById(R.id.cardProfileManagement);
+        CardView cardEvent = root.findViewById(R.id.cardEventManagement);
+        CardView cardImage = root.findViewById(R.id.cardImageManagement);
+        CardView cardNotifications = root.findViewById(R.id.cardNotifications);
+
+        // PROFILE MANAGEMENT → AdminProfileManagementFragment
+        if (cardProfile != null) {
+            cardProfile.setOnClickListener(v -> openFragment(new AdminProfileManagementFragment()));
+        }
+
+        // EVENT MANAGEMENT → AdminEventManagementFragment
+        if (cardEvent != null) {
+            cardEvent.setOnClickListener(v -> openFragment(new AdminEventManagementFragment()));
+        }
+
+        // IMAGE MANAGEMENT → AdminImageManagementFragment
+        if (cardImage != null) {
+            cardImage.setOnClickListener(v -> openFragment(new AdminImageManagementFragment()));
+        }
+
+        // NOTIFICATION LOGS → AdminNotificationLogsFragment
+        if (cardNotifications != null) {
+        }
+
+        return root;
     }
 
-
-    @Override
-    public void onViewCreated(@NonNull View view,
-                              @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        CardView cardEventManagement = view.findViewById(R.id.cardEventManagement);
-        cardEventManagement.setOnClickListener(v -> {
-            FragmentTransaction ft = requireActivity()
-                    .getSupportFragmentManager()
-                    .beginTransaction();
-            ft.replace(R.id.fragment_container, new AdminEventManagementFragment());
-            ft.addToBackStack(null);
-            ft.commit();
-        });
+    /**
+     * Helper method for clean fragment navigation.
+     */
+    private void openFragment(Fragment fragment) {
+        FragmentTransaction ft = requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction();
+        ft.replace(R.id.fragment_container, fragment);
+        ft.addToBackStack(null);
+        ft.commit();
     }
 }

@@ -323,50 +323,58 @@
 
             <!-- Profile Management -->
             <androidx.cardview.widget.CardView
+                android:id="@+id/cardProfileManagement"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="4dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="20dp"
                     android:orientation="horizontal"
+                    android:padding="20dp"
                     android:gravity="center_vertical">
 
+                    <!-- Icon -->
                     <ImageView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:src="@drawable/ic_profile_nav"
+                        android:contentDescription="Profile Management"
                         android:background="@drawable/roundstyle"
-                        android:backgroundTint="@color/card_green"
-                        android:padding="8dp" />
+                        android:padding="8dp"
+                        android:backgroundTint="@color/card_green" />
 
+                    <!-- Text -->
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:layout_marginStart="16dp"
                         android:text="Profile Management"
+                        android:textSize="18sp"
                         android:textColor="@color/text_primary"
-                        android:textSize="18sp" />
+                        android:layout_marginStart="16dp" />
 
+                    <!-- Chevron -->
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_chevron_right"
+                        android:contentDescription="Navigate"
                         android:backgroundTint="#666666" />
 
                 </LinearLayout>
+
             </androidx.cardview.widget.CardView>
 
             <!-- Image Management -->
             <androidx.cardview.widget.CardView
+                android:id="@+id/cardImageManagement"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clickable="true"

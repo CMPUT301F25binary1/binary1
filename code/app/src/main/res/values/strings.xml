@@ -48,4 +48,19 @@
     <string name="event_title">Event Title</string>
     <string name="join_waitlist">Join Waitlist</string>
     <string name="details">Details</string>
+    <string name="app_logo">App Logo</string>
+    <string name="admin_dashboard">Admin Dashboard</string>
+    <string name="active_events">Active Events</string>
+    <string name="user_profiles">User Profiles</string>
+    <string name="uploaded_images">Uploaded Images</string>
+    <string name="organizers">Organizers</string>
+    <string name="management_section">Management Section</string>
+    <string name="notifications">Notifications</string>
+    <string name="stat_active_events">42</string>
+    <string name="stat_user_profiles">1,254</string>
+    <string name="stat_uploaded_images">876</string>
+    <string name="stat_organizers">38</string>
+    <string name="profile_management">Profile Management</string>
+    <string name="image_management">Image Management</string>
+
 </resources>

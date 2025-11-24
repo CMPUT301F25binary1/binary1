@@ -218,7 +218,73 @@ public class EventRepository {
      * @param event    The Event object (needed for its name/date).
      * @param callback Notifies of success or failure.
      */
+    /**
+     * Adds the current user to an event's waiting list, **respecting the optional waitingListLimit**.
+     * If waitingListLimit <= 0, the list is treated as unlimited.
+     */
     public void joinWaitingList(String eventId, Event event, EventTaskCallback callback) {
+        long limit = event.getWaitingListLimit();   // 0 or less = "no limit"
+
+        if (limit > 0) {
+            // Check how many people are already on the waiting list
+            getWaitingListCount(eventId, new WaitlistCountCallback() {
+                @Override
+                public void onSuccess(int count) {
+                    if (count >= limit) {
+                        // Reject join: waiting list is full
+                        callback.onError("The waiting list for this event is full.");
+                    } else {
+                        // Still room – proceed as before
+                        joinWaitingListInternal(eventId, event, callback);
+                    }
+                }
+
+                @Override
+                public void onError(String message) {
+                    callback.onError(message);
+                }
+            });
+        } else {
+            // No limit set – behave as before
+            joinWaitingListInternal(eventId, event, callback);
+        }
+    }
+
+    /**
+     * Same as joinWaitingList but saves location if provided, **respecting waitingListLimit**.
+     */
+    public void joinWaitingListWithLocation(
+            String eventId,
+            Event event,
+            Double lat,
+            Double lng,
+            EventTaskCallback callback
+    ) {
+        long limit = event.getWaitingListLimit();
+
+        if (limit > 0) {
+            getWaitingListCount(eventId, new WaitlistCountCallback() {
+                @Override
+                public void onSuccess(int count) {
+                    if (count >= limit) {
+                        callback.onError("The waiting list for this event is full.");
+                    } else {
+                        joinWaitingListWithLocationInternal(eventId, event, lat, lng, callback);
+                    }
+                }
+
+                @Override
+                public void onError(String message) {
+                    callback.onError(message);
+                }
+            });
+        } else {
+            joinWaitingListWithLocationInternal(eventId, event, lat, lng, callback);
+        }
+    }
+
+
+    private void joinWaitingListInternal(String eventId, Event event, EventTaskCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             callback.onError("No user is signed in.");
@@ -233,8 +299,6 @@ public class EventRepository {
 
         Map<String, Object> waitingListData = new HashMap<>();
         waitingListData.put("joinedAt", com.google.firebase.Timestamp.now());
-        // We would add Geopoint here if geolocation is enabled
-        // waitingListData.put("location", new GeoPoint(lat, lon));
         batch.set(waitingListRef, waitingListData);
 
         DocumentReference eventHistoryRef = usersRef.document(userId)
@@ -256,12 +320,19 @@ public class EventRepository {
                     callback.onError(e.getMessage());
                 });
     }
-    /**
-     * Same as joinWaitingList but saves location if provided.
-     */
-    public void joinWaitingListWithLocation(String eventId, Event event, Double lat, Double lng, EventTaskCallback callback) {
+
+    private void joinWaitingListWithLocationInternal(
+            String eventId,
+            Event event,
+            Double lat,
+            Double lng,
+            EventTaskCallback callback
+    ) {
         FirebaseUser user = auth.getCurrentUser();
-        if (user == null) { callback.onError("No user is signed in."); return; }
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
         String userId = user.getUid();
 
         WriteBatch batch = db.batch();
@@ -286,8 +357,14 @@ public class EventRepository {
         batch.set(eventHistoryRef, eventHistoryData, SetOptions.merge());
 
         batch.commit()
-                .addOnSuccessListener(aVoid -> callback.onSuccess())
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User " + userId + " successfully joined waiting list (with location) for " + eventId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to join waiting list (with location)", e);
+                    callback.onError(e.getMessage());
+                });
     }
 
     /**
@@ -299,6 +376,7 @@ public class EventRepository {
      * @param eventId  The ID of the event to leave.
      * @param callback Notifies of success or failure.
      */
+
     public void leaveWaitingList(String eventId, EventTaskCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {

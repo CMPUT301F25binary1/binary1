@@ -682,6 +682,31 @@ public class EventRepository {
                     callback.onError(e.getMessage());
                 });
     }
+    /**
+     * Marks all events created by a given organizer as DEACTIVATED.
+     */
+    public void deactivateEventsByOrganizer(String organizerId, EventTaskCallback callback) {
+        eventsRef.whereEqualTo("organizerId", organizerId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        // Nothing to update
+                        callback.onSuccess();
+                        return;
+                    }
+
+                    WriteBatch batch = db.batch();
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        batch.update(doc.getReference(), "status", "DEACTIVATED");
+                    }
+
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> callback.onSuccess())
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
 
     // TODO: We will add more methods here later, such as:
     // - runLottery(String eventId, int count, ...)

@@ -67,8 +67,13 @@ public class AdminDashboardFragment extends Fragment {
         FragmentTransaction ft = requireActivity()
                 .getSupportFragmentManager()
                 .beginTransaction();
-        ft.replace(R.id.fragment_container, fragment);
+        // ❌ old
+        // ft.replace(R.id.fragment_container, fragment);
+
+        // ✅ new: replace the same container that holds AdminDashboardFragment
+        ft.replace(R.id.dashboard_container, fragment);
         ft.addToBackStack(null);
         ft.commit();
     }
 }
+

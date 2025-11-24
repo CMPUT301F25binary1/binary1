@@ -80,6 +80,12 @@ public class EventRepository {
         void onSuccess(List<Invitation> historyItems);
         void onError(String message);
     }
+
+    public interface OrganizerNameCallback {
+        void onSuccess(String organizerName);
+        void onError(String message);
+    }
+
     //endregion
 
     /**
@@ -683,7 +689,108 @@ public class EventRepository {
                 });
     }
 
-    // TODO: We will add more methods here later, such as:
+    /**
+     * Returns all events that currently have a posterImageUrl set.
+     * Used by the Admin Image Management screen to list uploaded images.
+     */
+    /**
+     * Returns all events that currently have a posterImageUrl set.
+     * Used by the Admin Image Management screen to list uploaded images.
+     */
+    public void getAllEventsWithPosters(EventListCallback callback) {
+        eventsRef.get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Event> result = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        Event event = doc.toObject(Event.class);
+                        event.setEventId(doc.getId());
+                        if (event.getPosterImageUrl() != null &&
+                                !event.getPosterImageUrl().isEmpty()) {
+                            result.add(event);
+                        }
+                    }
+                    callback.onSuccess(result);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error getting events with posters", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
+    /**
+     * Fetches the organizer's display name from the users collection.
+     * Tries fullName → name → email → falls back to UID.
+     */
+    public void getOrganizerName(String organizerId, OrganizerNameCallback callback) {
+
+        if (organizerId == null || organizerId.isEmpty()) {
+            callback.onSuccess("Unknown");
+            return;
+        }
+
+        usersRef.document(organizerId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        String name = doc.getString("fullName");
+                        if (name == null || name.isEmpty()) {
+                            name = doc.getString("name");
+                        }
+                        if (name == null || name.isEmpty()) {
+                            name = doc.getString("email");
+                        }
+                        if (name == null || name.isEmpty()) {
+                            name = organizerId;
+                        }
+                        callback.onSuccess(name);
+                    } else {
+                        callback.onSuccess(organizerId);
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    /**
+     * Removes the poster image for a given event:
+     * 1) Deletes the file from Firebase Storage (if possible).
+     * 2) Clears posterImageUrl field in the event document.
+     */
+    public void removeEventPoster(String eventId, String posterUrl, EventTaskCallback callback) {
+        // If no URL, just clear the field
+        if (posterUrl == null || posterUrl.isEmpty()) {
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("posterImageUrl", null);
+            updateEventFields(eventId, updates, callback);
+            return;
+        }
+
+        try {
+            StorageReference ref = storage.getReferenceFromUrl(posterUrl);
+            ref.delete()
+                    .addOnSuccessListener(aVoid -> {
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("posterImageUrl", null);
+                        updateEventFields(eventId, updates, callback);
+                    })
+                    .addOnFailureListener(e -> {
+                        // If deletion from Storage fails, at least clear Firestore
+                        Log.e(TAG, "Failed to delete image from storage", e);
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("posterImageUrl", null);
+                        updateEventFields(eventId, updates, callback);
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "Invalid poster URL", e);
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("posterImageUrl", null);
+            updateEventFields(eventId, updates, callback);
+        }
+    }
+}
+
+
+
+
+// TODO: We will add more methods here later, such as:
     // - runLottery(String eventId, int count, ...)
     // - getWaitingList(String eventId, ...)
-}

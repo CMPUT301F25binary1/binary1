@@ -54,7 +54,7 @@ public class AdminDashboardFragment extends Fragment {
             );
         }
 
-        // IMAGE MANAGEMENT → AdminImageManagementFragment
+        // IMAGE MANAGEMENT → AdminImageManagementActivity (from other branch)
         if (cardImage != null) {
             cardImage.setOnClickListener(v ->
                     openFragment(new AdminImageManagementFragment())

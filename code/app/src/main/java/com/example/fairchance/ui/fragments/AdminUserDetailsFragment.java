@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -13,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.example.fairchance.AuthRepository;
 import com.example.fairchance.R;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -36,11 +38,14 @@ public class AdminUserDetailsFragment extends Fragment {
     private final SimpleDateFormat df =
             new SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault());
 
+    private final AuthRepository authRepository = new AuthRepository();
+
     private TextView tvName, tvEmail, tvPhone, tvRole, tvCreated;
     private ProgressBar progressBar;
+    private View btnRemoveUser;
 
-    // keep this so we can delete the correct user later
     private String userId;
+    private String userRole; // track the role so we only remove organizers
 
     @Nullable
     @Override
@@ -61,7 +66,7 @@ public class AdminUserDetailsFragment extends Fragment {
         tvRole = view.findViewById(R.id.tvDetailRole);
         tvCreated = view.findViewById(R.id.tvDetailCreated);
         progressBar = view.findViewById(R.id.progressBarUserDetail);
-        View btnRemove = view.findViewById(R.id.btnRemoveUser);
+        btnRemoveUser = view.findViewById(R.id.btnRemoveUser);
 
         userId = getArguments() != null ? getArguments().getString(ARG_USER_ID) : null;
         if (userId == null) {
@@ -70,7 +75,7 @@ public class AdminUserDetailsFragment extends Fragment {
             return;
         }
 
-        btnRemove.setOnClickListener(v -> confirmRemoveUser());
+        btnRemoveUser.setOnClickListener(v -> confirmRemoveUser());
 
         loadUser(userId);
     }
@@ -99,7 +104,9 @@ public class AdminUserDetailsFragment extends Fragment {
         String name = doc.getString("name");
         String email = doc.getString("email");
         String role = doc.getString("role");
-        String phone = doc.getString("phone"); // make sure your users doc has this field
+        String phone = doc.getString("phone");
+
+        userRole = role; // store role for later checks
 
         tvName.setText(name != null ? name : "N/A");
         tvEmail.setText(email != null ? "Email: " + email : "Email: N/A");
@@ -112,37 +119,67 @@ public class AdminUserDetailsFragment extends Fragment {
         } else {
             tvCreated.setText("Registered: N/A");
         }
+
+        // Only allow removal if this user is an organizer
+        if (role != null && role.equalsIgnoreCase("organizer")) {
+            btnRemoveUser.setVisibility(View.VISIBLE);
+        } else {
+            btnRemoveUser.setVisibility(View.GONE);
+        }
     }
 
     private void confirmRemoveUser() {
         if (userId == null) return;
 
+        // Safety: only organizers should be removed here
+        if (userRole == null || !userRole.equalsIgnoreCase("organizer")) {
+            Toast.makeText(requireContext(),
+                    "Only organizers can be removed with this action.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Simple dialog with optional "reason" field
+        final EditText input = new EditText(requireContext());
+        input.setHint("Reason for removal (optional)");
+
         new AlertDialog.Builder(requireContext())
-                .setTitle("Remove profile")
-                .setMessage("Are you sure you want to remove this user profile?")
+                .setTitle("Remove Organizer")
+                .setMessage("Are you sure you want to deactivate this organizer and their events?")
+                .setView(input)
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Remove", (dialog, which) -> deleteUser())
+                .setPositiveButton("Remove", (dialog, which) -> {
+                    String reason = input.getText() != null
+                            ? input.getText().toString()
+                            : "";
+                    deactivateOrganizer(reason);
+                })
                 .show();
     }
 
-    private void deleteUser() {
+    private void deactivateOrganizer(String reason) {
         progressBar.setVisibility(View.VISIBLE);
+        btnRemoveUser.setEnabled(false);
 
-        db.collection("users").document(userId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(),
-                            "Profile removed",
-                            Toast.LENGTH_SHORT).show();
-                    // go back to the list
-                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
-                })
-                .addOnFailureListener(e -> {
-                    progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(),
-                            "Error removing profile: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
+        authRepository.deactivateOrganizerAndEvents(userId, reason,
+                new AuthRepository.TaskCallback() {
+                    @Override
+                    public void onSuccess() {
+                        progressBar.setVisibility(View.GONE);
+                        Toast.makeText(requireContext(),
+                                "Organizer removed and events deactivated.",
+                                Toast.LENGTH_SHORT).show();
+                        requireActivity().getOnBackPressedDispatcher().onBackPressed();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        progressBar.setVisibility(View.GONE);
+                        btnRemoveUser.setEnabled(true);
+                        Toast.makeText(requireContext(),
+                                "Error removing organizer: " + message,
+                                Toast.LENGTH_LONG).show();
+                    }
                 });
     }
 }

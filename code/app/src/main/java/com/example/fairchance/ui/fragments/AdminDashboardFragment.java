@@ -20,6 +20,7 @@ import com.example.fairchance.R;
  *  - Profile Management
  *  - Image Management
  *  - Notification Logs
+ *  - Organizer Management
  */
 public class AdminDashboardFragment extends Fragment {
 
@@ -32,11 +33,14 @@ public class AdminDashboardFragment extends Fragment {
         // Inflate the full admin dashboard UI
         View root = inflater.inflate(R.layout.admin_main_dashboard, container, false);
 
-        // Get card views (make sure these IDs exist in admin_main_dashboard.xml)
+        // Existing card views
         CardView cardProfile = root.findViewById(R.id.cardProfileManagement);
         CardView cardEvent = root.findViewById(R.id.cardEventManagement);
         CardView cardImage = root.findViewById(R.id.cardImageManagement);
         CardView cardNotifications = root.findViewById(R.id.cardNotifications);
+
+        // NEW: Organizer Management card
+        CardView cardOrganizerManagement = root.findViewById(R.id.cardOrganizerManagement);
 
         // PROFILE MANAGEMENT → AdminProfileManagementFragment
         if (cardProfile != null) {
@@ -52,17 +56,24 @@ public class AdminDashboardFragment extends Fragment {
             );
         }
 
-        // IMAGE MANAGEMENT → AdminImageManagementActivity (from other branch)
+        // IMAGE MANAGEMENT → AdminImageManagementFragment
         if (cardImage != null) {
             cardImage.setOnClickListener(v ->
                     openFragment(new AdminImageManagementFragment())
             );
         }
 
-        // NOTIFICATION LOGS → AdminNotificationLogsFragment
+        // NOTIFICATION LOGS → AdminNotificationFragment
         if (cardNotifications != null) {
             cardNotifications.setOnClickListener(v ->
                     openFragment(new AdminNotificationFragment())
+            );
+        }
+
+        // ORGANIZER MANAGEMENT → AdminOrganizerManagementFragment
+        if (cardOrganizerManagement != null) {
+            cardOrganizerManagement.setOnClickListener(v ->
+                    openFragment(new AdminOrganizerManagementFragment())
             );
         }
 
@@ -77,7 +88,6 @@ public class AdminDashboardFragment extends Fragment {
                 .getSupportFragmentManager()
                 .beginTransaction();
 
-        // Replace the container that holds AdminDashboardFragment
         ft.replace(R.id.dashboard_container, fragment);
         ft.addToBackStack(null);
         ft.commit();

@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -16,16 +18,19 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.fairchance.AdminImageRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.AdminImageItem;
 import com.example.fairchance.ui.adapters.AdminImageAdapter;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.text.DateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class AdminImageManagementFragment extends Fragment
-        implements AdminImageAdapter.OnRemoveClickListener {
+        implements AdminImageAdapter.OnImageActionListener {
 
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
@@ -95,6 +100,13 @@ public class AdminImageManagementFragment extends Fragment
         });
     }
 
+    // === Callbacks from adapter ===
+
+    @Override
+    public void onPreview(AdminImageItem item) {
+        showPreviewDialog(item);
+    }
+
     @Override
     public void onRemoveClicked(AdminImageItem item) {
         new AlertDialog.Builder(requireContext())
@@ -104,6 +116,8 @@ public class AdminImageManagementFragment extends Fragment
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
+    // === Moderation actions ===
 
     private void deleteImage(AdminImageItem item) {
         setLoading(true);
@@ -128,6 +142,57 @@ public class AdminImageManagementFragment extends Fragment
                         Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    private void showPreviewDialog(AdminImageItem item) {
+        View dialogView = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_admin_image_preview, null, false);
+
+        ImageView ivPreview = dialogView.findViewById(R.id.ivPreviewImage);
+        TextView tvTitle = dialogView.findViewById(R.id.tvPreviewTitle);
+        TextView tvUploader = dialogView.findViewById(R.id.tvPreviewUploader);
+        TextView tvUploadedAt = dialogView.findViewById(R.id.tvPreviewUploadedAt);
+        Button btnRetain = dialogView.findViewById(R.id.btnRetainImage);
+        Button btnDelete = dialogView.findViewById(R.id.btnDelete);
+
+        Glide.with(this)
+                .load(item.getImageUrl())
+                .into(ivPreview);
+
+        tvTitle.setText(item.getTitle());
+
+        String uploader = item.getUploaderName();
+        if (uploader == null || uploader.isEmpty()) {
+            tvUploader.setText("Uploader: Unknown");
+        } else {
+            tvUploader.setText("Uploader: " + uploader);
+        }
+
+        if (item.getUploadedAt() != null) {
+            Date date = item.getUploadedAt().toDate();
+            DateFormat df = DateFormat.getDateTimeInstance(
+                    DateFormat.MEDIUM, DateFormat.SHORT);
+            tvUploadedAt.setText("Uploaded: " + df.format(date));
+        } else {
+            tvUploadedAt.setText("Uploaded: No date");
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .create();
+
+        btnRetain.setOnClickListener(v -> {
+            // Retain = do nothing, just dismiss
+            Toast.makeText(requireContext(), "Image retained.", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        btnDelete.setOnClickListener(v -> {
+            dialog.dismiss();
+            onRemoveClicked(item);
+        });
+
+        dialog.show();
     }
 
     private void setLoading(boolean loading) {

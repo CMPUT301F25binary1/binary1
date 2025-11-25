@@ -90,6 +90,22 @@ public class AdminProfileManagementFragment extends Fragment
                         String name = doc.getString("name");
                         String email = doc.getString("email");
                         String role = doc.getString("role");
+
+                        // Only show organizers
+                        if (role == null || !role.equalsIgnoreCase("organizer")) {
+                            continue;
+                        }
+
+                        // Respect soft-deactivation flags
+                        Boolean isActive = doc.getBoolean("isActive");
+                        Boolean roleActive = doc.getBoolean("roleActive");
+                        if (isActive != null && !isActive) {
+                            continue;
+                        }
+                        if (roleActive != null && !roleActive) {
+                            continue;
+                        }
+
                         // adjust the field name if your timestamp is different
                         com.google.firebase.Timestamp createdAt =
                                 doc.getTimestamp("timeCreated");
@@ -116,6 +132,7 @@ public class AdminProfileManagementFragment extends Fragment
                             Toast.LENGTH_LONG).show();
                 });
     }
+
 
     private void setLoading(boolean loading) {
         progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);

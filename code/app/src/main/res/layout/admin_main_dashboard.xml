@@ -417,6 +417,54 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- Organizer Management -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardOrganizerManagement"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="20dp">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_profile_nav"
+                        android:background="@drawable/roundstyle"
+                        android:backgroundTint="@color/card_purple"
+                        android:padding="8dp"
+                        android:contentDescription="Organizer Management" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Organizer Management"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:layout_marginStart="16dp" />
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:backgroundTint="#666666"
+                        android:contentDescription="Navigate" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

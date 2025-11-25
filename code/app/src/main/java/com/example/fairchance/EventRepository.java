@@ -87,6 +87,11 @@ public class EventRepository {
         void onError(String message);
     }
 
+    public interface SampleAttendeesCallback {
+        void onSuccess(int selectedCount);
+        void onError(String message);
+    }
+
     //endregion
 
     /**
@@ -617,9 +622,9 @@ public class EventRepository {
     /**
      * Samples N entrants from events/{eventId}/waitingList into events/{eventId}/selected.
      * Skips users already in 'selected'. Also sets users/{uid}/eventHistory/{eventId}.status = "Selected".
-     * Firestore-only (Spark/free).
+     * If there are fewer available entrants than N, all remaining entrants are selected.
      */
-    public void sampleAttendees(String eventId, int count, EventTaskCallback callback) {
+    public void sampleAttendees(String eventId, int count, SampleAttendeesCallback callback) {
         eventsRef.document(eventId).collection("selected").get()
                 .addOnSuccessListener(selSnap -> {
                     java.util.Set<String> already = new java.util.HashSet<>();
@@ -632,8 +637,11 @@ public class EventRepository {
                                 java.util.List<String> pool = new java.util.ArrayList<>();
                                 for (QueryDocumentSnapshot d : waitSnap) {
                                     String uid = d.getId();
-                                    if (!already.contains(uid)) pool.add(uid);
+                                    if (!already.contains(uid)) {
+                                        pool.add(uid);
+                                    }
                                 }
+
                                 if (pool.isEmpty()) {
                                     callback.onError("No entrants to sample.");
                                     return;
@@ -666,13 +674,29 @@ public class EventRepository {
                                 }
 
                                 batch.commit()
-                                        .addOnSuccessListener(a -> callback.onSuccess())
+                                        .addOnSuccessListener(a -> callback.onSuccess(take))
                                         .addOnFailureListener(e -> callback.onError(e.getMessage()));
                             })
                             .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
+
+    // Backwards-compatible overload for any existing callers that used EventTaskCallback
+    public void sampleAttendees(String eventId, int count, EventTaskCallback callback) {
+        sampleAttendees(eventId, count, new SampleAttendeesCallback() {
+            @Override
+            public void onSuccess(int selectedCount) {
+                callback.onSuccess();
+            }
+
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
+    }
+
 
     /**
      * Allows a user to accept or decline a pending event invitation using an atomic batch write.
@@ -990,6 +1014,14 @@ public class EventRepository {
                         callback.onError(e.getMessage());
                     }
                 });
+    }
+
+    /**
+     * Draws a single replacement entrant for an event.
+     * Reuses the sampling logic with count = 1.
+     */
+    public void drawReplacement(String eventId, EventTaskCallback callback) {
+        sampleAttendees(eventId, 1, callback);
     }
 
 

@@ -1,7 +1,9 @@
 package com.example.fairchance;
 
 import android.util.Log;
+
 import androidx.annotation.NonNull;
+
 import com.example.fairchance.models.User;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -9,9 +11,14 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.messaging.FirebaseMessaging; // FIX: Added import
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.messaging.FirebaseMessaging;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,6 +50,31 @@ public class AuthRepository {
 
     public interface TaskCallback {
         void onSuccess();
+        void onError(String message);
+    }
+
+    // For admin listing/deleting users
+    public static class AdminUserSummary {
+        private final String userId;
+        private final String name;
+        private final String email;
+        private final String role;
+
+        public AdminUserSummary(String userId, String name, String email, String role) {
+            this.userId = userId;
+            this.name = name;
+            this.email = email;
+            this.role = role;
+        }
+
+        public String getUserId() { return userId; }
+        public String getName() { return name; }
+        public String getEmail() { return email; }
+        public String getRole() { return role; }
+    }
+
+    public interface AdminUsersCallback {
+        void onSuccess(List<AdminUserSummary> users);
         void onError(String message);
     }
     //endregion
@@ -121,7 +153,8 @@ public class AuthRepository {
                             callback.onError("User profile document not found.");
                         }
                     } else {
-                        callback.onError("Failed to fetch user role: " + task.getException().getMessage());
+                        callback.onError("Failed to fetch user role: " +
+                                (task.getException() != null ? task.getException().getMessage() : "unknown error"));
                     }
                 });
     }
@@ -156,7 +189,7 @@ public class AuthRepository {
     }
 
     /**
-     * Deletes the user's Firestore document and their Authentication record.
+     * Deletes the CURRENT user's Firestore document and their Authentication record.
      * This is an irreversible action.
      *
      * @param callback A callback to notify of success or failure.
@@ -197,7 +230,7 @@ public class AuthRepository {
     }
 
     /**
-     * FIX: Private method to save FCM token with a TaskCallback.
+     * Private method to save FCM token with a TaskCallback.
      */
     private void saveFcmToken(String token, TaskCallback callback) {
         FirebaseUser fUser = auth.getCurrentUser();
@@ -209,7 +242,8 @@ public class AuthRepository {
         db.collection("users").document(fUser.getUid())
                 .update("fcmToken", token)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "FCM Token update successful: " + (token == null ? "removed" : "set"));
+                    Log.d(TAG, "FCM Token update successful: " +
+                            (token == null ? "removed" : "set"));
                     callback.onSuccess();
                 })
                 .addOnFailureListener(e -> {
@@ -218,13 +252,12 @@ public class AuthRepository {
                 });
     }
 
-
     /**
-     * FIX: Updates the user's overall notification status by deleting or setting the FCM token.
+     * Updates the user's overall notification status by deleting or setting the FCM token.
      * Fulfills US 01.04.03 Criterion 2: Mechanism to stop push notifications.
      *
      * @param enableNotifications True to fetch and set token, false to set token to null.
-     * @param callback Notifies of success or failure.
+     * @param callback            Notifies of success or failure.
      */
     public void updateNotificationStatus(boolean enableNotifications, TaskCallback callback) {
         if (!enableNotifications) {
@@ -237,7 +270,8 @@ public class AuthRepository {
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
                     if (!task.isSuccessful()) {
-                        callback.onError("Fetching FCM registration token failed: " + task.getException().getMessage());
+                        callback.onError("Fetching FCM registration token failed: " +
+                                (task.getException() != null ? task.getException().getMessage() : "unknown error"));
                         return;
                     }
                     String token = task.getResult();
@@ -276,9 +310,11 @@ public class AuthRepository {
                                                 Log.d(TAG, "Role match. Login successful.");
                                                 callback.onSuccess(user);
                                             } else {
-                                                Log.w(TAG, "Role mismatch. Expected: " + expectedRole + ", Got: " + actualRole);
+                                                Log.w(TAG, "Role mismatch. Expected: " + expectedRole +
+                                                        ", Got: " + actualRole);
                                                 auth.signOut(); // Log the user back out
-                                                callback.onError("Access Denied: You do not have " + expectedRole + " privileges.");
+                                                callback.onError("Access Denied: You do not have " +
+                                                        expectedRole + " privileges.");
                                             }
                                         } else {
                                             Log.w(TAG, "Login failed: User profile document not found.");
@@ -286,14 +322,17 @@ public class AuthRepository {
                                             callback.onError("Login failed: User profile not found.");
                                         }
                                     } else {
-                                        Log.w(TAG, "Login failed: Could not read user document.", docTask.getException());
+                                        Log.w(TAG, "Login failed: Could not read user document.",
+                                                docTask.getException());
                                         auth.signOut();
                                         callback.onError("Login failed: Could not read user profile.");
                                     }
                                 });
                     } else {
                         Log.w(TAG, "Email/Password login failed.", task.getException());
-                        callback.onError(task.getException().getMessage());
+                        callback.onError(task.getException() != null
+                                ? task.getException().getMessage()
+                                : "Unknown login error");
                     }
                 });
     }
@@ -320,7 +359,9 @@ public class AuthRepository {
                         createUserDocument(user, email, role, firstName, lastName, phone, callback);
                     } else {
                         Log.w(TAG, "Email/Password registration failed.", task.getException());
-                        callback.onError(task.getException().getMessage());
+                        callback.onError(task.getException() != null
+                                ? task.getException().getMessage()
+                                : "Unknown registration error");
                     }
                 });
     }
@@ -335,7 +376,8 @@ public class AuthRepository {
      * @param phone     User's phone number.
      * @param callback  A callback to return the FirebaseUser on success or an error message.
      */
-    public void registerAndLoginEntrant(String email, String firstName, String lastName, String phone, AuthCallback callback) {
+    public void registerAndLoginEntrant(String email, String firstName, String lastName,
+                                        String phone, AuthCallback callback) {
         auth.signInAnonymously()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -344,7 +386,9 @@ public class AuthRepository {
                         createUserDocument(user, email, "entrant", firstName, lastName, phone, callback);
                     } else {
                         Log.w(TAG, "Anonymous sign-in failed.", task.getException());
-                        callback.onError(task.getException().getMessage());
+                        callback.onError(task.getException() != null
+                                ? task.getException().getMessage()
+                                : "Unknown anonymous sign-in error");
                     }
                 });
     }
@@ -354,7 +398,8 @@ public class AuthRepository {
      * after a successful Firebase Authentication registration.
      */
     private void createUserDocument(FirebaseUser user, String email, String role,
-                                    String firstName, String lastName, String phone, AuthCallback callback) {
+                                    String firstName, String lastName, String phone,
+                                    AuthCallback callback) {
 
         if (user == null) {
             callback.onError("User is null, cannot create profile.");
@@ -383,6 +428,62 @@ public class AuthRepository {
                     Log.w(TAG, "Error creating user document", e);
                     callback.onError("Failed to save user profile: " + e.getMessage());
                 });
+    }
+
+    /**
+     * Fetches a lightweight list of all user profiles for the Admin UI.
+     */
+    public void fetchAllUsers(AdminUsersCallback callback) {
+        db.collection("users")
+                .get()
+                .addOnSuccessListener((QuerySnapshot snapshots) -> {
+                    List<AdminUserSummary> result = new ArrayList<>();
+                    for (DocumentSnapshot doc : snapshots) {
+                        String id = doc.getId();
+                        String name = doc.getString("name");
+                        String email = doc.getString("email");
+                        String role = doc.getString("role");
+                        result.add(new AdminUserSummary(id, name, email, role));
+                    }
+                    callback.onSuccess(result);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    /**
+     * Deletes a specific user's Firestore profile document (not the Auth record),
+     * and logs the removal for record-keeping.
+     *
+     * @param userId   ID of the user to remove.
+     * @param callback Callback for success / error.
+     */
+    public void deleteUserProfileById(String userId, TaskCallback callback) {
+        FirebaseUser admin = auth.getCurrentUser();
+        String adminId = admin != null ? admin.getUid() : "unknown";
+
+        db.collection("users").document(userId).delete()
+                .addOnSuccessListener(aVoid -> {
+                    logUserRemoval(userId, adminId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    /**
+     * Logs that an admin removed a user profile.
+     * Collection: "adminRemovalLogs"
+     */
+    private void logUserRemoval(String removedUserId, String adminId) {
+        Map<String, Object> log = new HashMap<>();
+        log.put("removedUserId", removedUserId);
+        log.put("removedByAdminId", adminId);
+        log.put("timestamp", FieldValue.serverTimestamp());
+
+        db.collection("adminRemovalLogs").add(log)
+                .addOnSuccessListener(ref ->
+                        Log.d(TAG, "Removal logged with id: " + ref.getId()))
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Failed to log removal", e));
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.example.fairchance;
 
 import android.util.Log;
+import android.net.Uri;
 import androidx.annotation.NonNull;
 
 import com.example.fairchance.models.Event;
@@ -20,6 +21,10 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,6 +40,7 @@ public class EventRepository {
 
     private static final String TAG = "EventRepository";
     private final FirebaseFirestore db;
+    private final FirebaseStorage storage = FirebaseStorage.getInstance();
     private final FirebaseAuth auth;
     private final CollectionReference eventsRef;
     private final CollectionReference usersRef;
@@ -212,7 +218,73 @@ public class EventRepository {
      * @param event    The Event object (needed for its name/date).
      * @param callback Notifies of success or failure.
      */
+    /**
+     * Adds the current user to an event's waiting list, **respecting the optional waitingListLimit**.
+     * If waitingListLimit <= 0, the list is treated as unlimited.
+     */
     public void joinWaitingList(String eventId, Event event, EventTaskCallback callback) {
+        long limit = event.getWaitingListLimit();   // 0 or less = "no limit"
+
+        if (limit > 0) {
+            // Check how many people are already on the waiting list
+            getWaitingListCount(eventId, new WaitlistCountCallback() {
+                @Override
+                public void onSuccess(int count) {
+                    if (count >= limit) {
+                        // Reject join: waiting list is full
+                        callback.onError("The waiting list for this event is full.");
+                    } else {
+                        // Still room – proceed as before
+                        joinWaitingListInternal(eventId, event, callback);
+                    }
+                }
+
+                @Override
+                public void onError(String message) {
+                    callback.onError(message);
+                }
+            });
+        } else {
+            // No limit set – behave as before
+            joinWaitingListInternal(eventId, event, callback);
+        }
+    }
+
+    /**
+     * Same as joinWaitingList but saves location if provided, **respecting waitingListLimit**.
+     */
+    public void joinWaitingListWithLocation(
+            String eventId,
+            Event event,
+            Double lat,
+            Double lng,
+            EventTaskCallback callback
+    ) {
+        long limit = event.getWaitingListLimit();
+
+        if (limit > 0) {
+            getWaitingListCount(eventId, new WaitlistCountCallback() {
+                @Override
+                public void onSuccess(int count) {
+                    if (count >= limit) {
+                        callback.onError("The waiting list for this event is full.");
+                    } else {
+                        joinWaitingListWithLocationInternal(eventId, event, lat, lng, callback);
+                    }
+                }
+
+                @Override
+                public void onError(String message) {
+                    callback.onError(message);
+                }
+            });
+        } else {
+            joinWaitingListWithLocationInternal(eventId, event, lat, lng, callback);
+        }
+    }
+
+
+    private void joinWaitingListInternal(String eventId, Event event, EventTaskCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             callback.onError("No user is signed in.");
@@ -227,8 +299,6 @@ public class EventRepository {
 
         Map<String, Object> waitingListData = new HashMap<>();
         waitingListData.put("joinedAt", com.google.firebase.Timestamp.now());
-        // We would add Geopoint here if geolocation is enabled
-        // waitingListData.put("location", new GeoPoint(lat, lon));
         batch.set(waitingListRef, waitingListData);
 
         DocumentReference eventHistoryRef = usersRef.document(userId)
@@ -251,6 +321,52 @@ public class EventRepository {
                 });
     }
 
+    private void joinWaitingListWithLocationInternal(
+            String eventId,
+            Event event,
+            Double lat,
+            Double lng,
+            EventTaskCallback callback
+    ) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("No user is signed in.");
+            return;
+        }
+        String userId = user.getUid();
+
+        WriteBatch batch = db.batch();
+
+        DocumentReference waitingListRef = eventsRef.document(eventId)
+                .collection("waitingList").document(userId);
+
+        Map<String, Object> waitingListData = new HashMap<>();
+        waitingListData.put("joinedAt", com.google.firebase.Timestamp.now());
+        if (lat != null && lng != null) {
+            waitingListData.put("location", new GeoPoint(lat, lng));
+        }
+        batch.set(waitingListRef, waitingListData, SetOptions.merge());
+
+        DocumentReference eventHistoryRef = usersRef.document(userId)
+                .collection("eventHistory").document(eventId);
+
+        Map<String, Object> eventHistoryData = new HashMap<>();
+        eventHistoryData.put("eventName", event.getName());
+        eventHistoryData.put("eventDate", event.getEventDate());
+        eventHistoryData.put("status", "Waiting");
+        batch.set(eventHistoryRef, eventHistoryData, SetOptions.merge());
+
+        batch.commit()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User " + userId + " successfully joined waiting list (with location) for " + eventId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to join waiting list (with location)", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
     /**
      * Removes the current user from an event's waiting list using an atomic batch write.
      * 1. Deletes events/{EventID}/waitingList/{UserID}
@@ -260,6 +376,7 @@ public class EventRepository {
      * @param eventId  The ID of the event to leave.
      * @param callback Notifies of success or failure.
      */
+
     public void leaveWaitingList(String eventId, EventTaskCallback callback) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
@@ -290,6 +407,17 @@ public class EventRepository {
     }
 
     /**
+     * Updates one or more fields on an event document.
+     */
+    public void updateEventFields(String eventId, Map<String, Object> updates, EventTaskCallback callback) {
+        eventsRef.document(eventId)
+                .set(updates, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+
+    /**
      * Updates the user's status for a specific event in their event history.
      * This is typically used by the system to mark an event as "Not selected" or for
      * organizer/admin actions.
@@ -317,6 +445,32 @@ public class EventRepository {
                     callback.onError(e.getMessage());
                 });
     }
+
+    /**
+     * Uploads an image to Firebase Storage and updates posterImageUrl on the event.
+     */
+    public void uploadPosterAndUpdate(String eventId, Uri imageUri, EventTaskCallback callback) {
+        if (imageUri == null) {
+            callback.onError("No image selected.");
+            return;
+        }
+        String fileName = "poster_" + System.currentTimeMillis() + ".jpg";
+        StorageReference ref = storage.getReference()
+                .child("event_posters")
+                .child(eventId)
+                .child(fileName);
+
+        ref.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl()
+                        .addOnSuccessListener(uri -> {
+                            Map<String, Object> updates = new HashMap<>();
+                            updates.put("posterImageUrl", uri.toString());
+                            updateEventFields(eventId, updates, callback);
+                        })
+                        .addOnFailureListener(e -> callback.onError(e.getMessage())))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
 
     /**
      * Retrieves the event history for the currently signed-in user in real-time.
@@ -528,7 +682,119 @@ public class EventRepository {
                     callback.onError(e.getMessage());
                 });
     }
+    /**
+     * Admin: listen to ALL events (no registration-date filtering).
+     * Used by the Admin Event Management screen.
+     */
+    public ListenerRegistration listenToAllEventsForAdmin(EventListCallback callback) {
+        return eventsRef.addSnapshotListener((value, error) -> {
+            if (error != null) {
+                Log.e(TAG, "Error getting all events for admin: ", error);
+                callback.onError(error.getMessage());
+                return;
+            }
 
+            if (value != null) {
+                List<Event> eventList = new ArrayList<>();
+                for (QueryDocumentSnapshot document : value) {
+                    Event event = document.toObject(Event.class);
+                    event.setEventId(document.getId());
+                    eventList.add(event);
+                }
+                callback.onSuccess(eventList);
+            }
+        });
+    }
+
+    /**
+     * Admin: delete an event and its known subcollections from Firestore.
+     * Subcollections removed: waitingList, selected, confirmedAttendees.
+     */
+    public void deleteEvent(String eventId, EventTaskCallback callback) {
+        DocumentReference eventDoc = eventsRef.document(eventId);
+
+        String[] subcollections = new String[] {
+                "waitingList",
+                "selected",
+                "confirmedAttendees"
+        };
+
+        deleteSubcollectionsThenEvent(eventDoc, subcollections, 0, callback);
+    }
+
+    // Helper: recursively delete subcollections then the parent event doc
+    private void deleteSubcollectionsThenEvent(
+            DocumentReference eventDoc,
+            String[] subcollections,
+            int index,
+            EventTaskCallback callback
+    ) {
+        if (index >= subcollections.length) {
+            // No more subcollections – delete event doc itself
+            eventDoc.delete()
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "Event deleted: " + eventDoc.getId());
+                        callback.onSuccess();
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error deleting event document", e);
+                        callback.onError(e.getMessage());
+                    });
+            return;
+        }
+
+        String sub = subcollections[index];
+        eventDoc.collection(sub).get()
+                .addOnSuccessListener(snapshot -> {
+                    WriteBatch batch = db.batch();
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        batch.delete(doc.getReference());
+                    }
+                    batch.commit()
+                            .addOnSuccessListener(aVoid ->
+                                    deleteSubcollectionsThenEvent(eventDoc, subcollections, index + 1, callback))
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error deleting subcollection " + sub, e);
+                                callback.onError(e.getMessage());
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching subcollection " + sub, e);
+                    callback.onError(e.getMessage());
+                });
+    }
+    public interface AdminEventsListener {
+        void onEventsChanged(List<Event> events);
+        void onError(String message);
+    }
+
+    /**
+     * Real-time listener for all events, ordered by creation time.
+     * Used by the Admin Event Management screen.
+     */
+    public ListenerRegistration listenToAllEvents(final AdminEventsListener listener) {
+        return db.collection("events")
+                .orderBy("timeCreated", Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        listener.onError(error.getMessage());
+                        return;
+                    }
+                    if (value == null) {
+                        listener.onEventsChanged(new ArrayList<>());
+                        return;
+                    }
+
+                    List<Event> result = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : value) {
+                        Event event = doc.toObject(Event.class);
+                        // IMPORTANT: store the document ID into eventId
+                        event.setEventId(doc.getId());
+                        result.add(event);
+                    }
+                    listener.onEventsChanged(result);
+                });
+    }
     // TODO: We will add more methods here later, such as:
     // - runLottery(String eventId, int count, ...)
     // - getWaitingList(String eventId, ...)

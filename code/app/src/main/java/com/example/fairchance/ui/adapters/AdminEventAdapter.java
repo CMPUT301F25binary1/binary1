@@ -24,11 +24,17 @@ import com.example.fairchance.ui.fragments.EventDetailsFragment;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adapter for the Admin Event Management list.
+ * Shows each event with its poster, name, description,
+ * and lets the admin view details or remove the event.
+ */
 public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.AdminEventViewHolder> {
 
     private final List<Event> events = new ArrayList<>();
     private final EventRepository repo = new EventRepository();
 
+    /** Replace the entire list of events. */
     public void setEvents(List<Event> newEvents) {
         events.clear();
         if (newEvents != null) {
@@ -73,18 +79,24 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
         void bind(Event event) {
             Context ctx = itemView.getContext();
 
-            tvEventName.setText(event.getName() != null ? event.getName() : "Untitled Event");
-            tvEventDescription.setText(event.getDescription() != null
-                    ? event.getDescription()
-                    : "No description provided");
+            // Basic text fields
+            tvEventName.setText(
+                    event.getName() != null ? event.getName() : "Untitled Event"
+            );
+            tvEventDescription.setText(
+                    event.getDescription() != null
+                            ? event.getDescription()
+                            : "No description provided"
+            );
 
+            // Load poster image from posterImageUrl (can be null)
             Glide.with(ctx)
                     .load(event.getPosterImageUrl())
                     .placeholder(R.drawable.fairchance_logo_with_words___transparent)
                     .error(R.drawable.fairchance_logo_with_words___transparent)
                     .into(ivEventImage);
 
-            // View details -> reuse EventDetailsFragment
+            // Open EventDetailsFragment
             View.OnClickListener openDetails = v -> {
                 if (!(ctx instanceof FragmentActivity)) return;
                 FragmentActivity act = (FragmentActivity) ctx;
@@ -98,7 +110,7 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
             btnViewDetails.setOnClickListener(openDetails);
             itemView.setOnClickListener(openDetails);
 
-            // Remove event
+            // Remove event (and associated data via repository)
             btnRemoveEvent.setOnClickListener(v -> {
                 new AlertDialog.Builder(ctx)
                         .setTitle("Remove Event")

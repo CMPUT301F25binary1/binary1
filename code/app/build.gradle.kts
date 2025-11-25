@@ -99,5 +99,6 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore:25.1.1")
     implementation("com.google.firebase:firebase-storage:21.0.1")
     implementation("com.google.android.gms:play-services-tasks:18.0.2")
+    implementation("com.google.firebase:firebase-functions:20.4.0")
 
 }

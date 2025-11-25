@@ -257,6 +257,21 @@
             app:layout_constraintTop_toBottomOf="@id/layoutUpdateButtons" />
 
         <Button
+            android:id="@+id/btnSamplingReplacement"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Sampling &amp; Replacement"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:background="#4CAF50"
+            android:padding="16dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/btnCancelledEntrants"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+
+        <Button
             android:id="@+id/btnChosenEntrants"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

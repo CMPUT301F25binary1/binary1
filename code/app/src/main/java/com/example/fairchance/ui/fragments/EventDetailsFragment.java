@@ -39,6 +39,9 @@ public class EventDetailsFragment extends Fragment {
     private TextView tvGeolocationRequiredLabel, tvGeolocationRequiredValue;
     private Button btnUpdatePoster, btnEditEvent;
 
+    // NEW BUTTON (Sampling & Replacement)
+    private Button btnSamplingReplacement;
+
     private String eventId;
     private EventRepository repository;
     private Event loadedEvent;
@@ -56,6 +59,7 @@ public class EventDetailsFragment extends Fragment {
                                     Toast.makeText(getContext(), "Poster updated.", Toast.LENGTH_SHORT).show();
                                     loadEventDetails(loadedEvent.getEventId());
                                 }
+
                                 @Override
                                 public void onError(String message) {
                                     Toast.makeText(getContext(), "Upload failed: " + message, Toast.LENGTH_LONG).show();
@@ -102,6 +106,9 @@ public class EventDetailsFragment extends Fragment {
         btnCancelled = view.findViewById(R.id.btnCancelledEntrants);
         btnFinal = view.findViewById(R.id.btnFinalEntrants);
 
+        // NEW: Find Sampling & Replacement Button
+        btnSamplingReplacement = view.findViewById(R.id.btnSamplingReplacement);
+
         // Optional new views if added in layout
         tvGeolocationRequiredLabel = view.findViewById(R.id.tvGeolocationRequiredLabel);
         tvGeolocationRequiredValue = view.findViewById(R.id.tvGeolocationRequiredValue);
@@ -133,9 +140,36 @@ public class EventDetailsFragment extends Fragment {
 
         // Navigation buttons
         btnWaitingList.setOnClickListener(v -> openFragment(new EntrantsWaitingListFragment()));
-        btnChosen.setOnClickListener(v -> openFragment(new ChosenEntrantsFragment()));
+        btnChosen.setOnClickListener(v -> {
+            if (eventId != null && !eventId.isEmpty()) {
+                openFragment(ChosenEntrantsFragment.newInstance(eventId));
+            } else {
+                Toast.makeText(getContext(),
+                        "No event ID available for chosen entrants.",
+                        Toast.LENGTH_LONG).show();
+            }
+        });
         btnCancelled.setOnClickListener(v -> openFragment(new CancelledEntrantsFragment()));
         btnFinal.setOnClickListener(v -> openFragment(new FinalEntrantsFragment()));
+
+        // NEW: Sampling & Replacement button logic
+        if (btnSamplingReplacement != null) {
+            btnSamplingReplacement.setOnClickListener(v -> {
+                if (loadedEvent == null) {
+                    Toast.makeText(getContext(), "Event not loaded yet.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                FragmentTransaction ft = requireActivity()
+                        .getSupportFragmentManager()
+                        .beginTransaction();
+
+                ft.replace(R.id.fragment_container,
+                        SamplingReplacementFragment.newInstance(loadedEvent.getEventId()));
+                ft.addToBackStack(null);
+                ft.commit();
+            });
+        }
     }
 
     private void loadEventDetails(String eventId) {
@@ -145,6 +179,7 @@ public class EventDetailsFragment extends Fragment {
                 loadedEvent = event;
                 populateUI(event);
             }
+
             @Override
             public void onError(String message) {
                 Toast.makeText(getContext(), "Error loading event: " + message, Toast.LENGTH_LONG).show();

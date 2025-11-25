@@ -124,6 +124,7 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
                 FragmentActivity act = (FragmentActivity) ctx;
                 EventDetailsFragment frag = EventDetailsFragment.newInstance(event.getEventId());
                 FragmentTransaction ft = act.getSupportFragmentManager().beginTransaction();
+                // NOTE: if your admin uses dashboard_container, change this ID:
                 ft.replace(R.id.fragment_container, frag);
                 ft.addToBackStack(null);
                 ft.commit();
@@ -142,11 +143,10 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
                                 @Override
                                 public void onSuccess() {
                                     Toast.makeText(ctx, "Event removed.", Toast.LENGTH_SHORT).show();
-                                    int pos = getBindingAdapterPosition();
-                                    if (pos != RecyclerView.NO_POSITION) {
-                                        events.remove(pos);
-                                        notifyItemRemoved(pos);
-                                    }
+                                    // IMPORTANT:
+                                    // Do NOT manually remove from 'events' here.
+                                    // The AdminEventManagementFragment snapshot listener
+                                    // will update the list from Firestore.
                                 }
 
                                 @Override

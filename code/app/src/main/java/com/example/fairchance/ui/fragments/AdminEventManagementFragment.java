@@ -59,7 +59,7 @@ public class AdminEventManagementFragment extends Fragment {
         recyclerView = view.findViewById(R.id.rvAdminEvents);
         progressBar = view.findViewById(R.id.progressBarEvents);
         tvEmpty = view.findViewById(R.id.tvEmptyEvents);
-        etSearch = view.findViewById(R.id.etSearchEvents); // make sure this ID exists in XML
+        etSearch = view.findViewById(R.id.etSearchEvents);
 
         adapter = new AdminEventAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -67,11 +67,11 @@ public class AdminEventManagementFragment extends Fragment {
 
         // Search / filter
         etSearch.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 applyFilter(s.toString());
             }
-            @Override public void afterTextChanged(Editable s) { }
+            @Override public void afterTextChanged(Editable s) {}
         });
 
         startListeningForEvents();
@@ -83,18 +83,20 @@ public class AdminEventManagementFragment extends Fragment {
             @Override
             public void onEventsChanged(List<Event> events) {
                 setLoading(false);
+
                 fullList.clear();
                 if (events != null) {
                     fullList.addAll(events);
                 }
+
                 applyFilter(etSearch.getText().toString());
             }
 
             @Override
             public void onError(String message) {
                 setLoading(false);
-                Toast.makeText(requireContext(), "Error loading events: " + message,
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(),
+                        "Error loading events: " + message, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -107,6 +109,7 @@ public class AdminEventManagementFragment extends Fragment {
             String name = safe(e.getName());
             String organizer = safe(e.getOrganizerId());
             String dateStr = "";
+
             if (e.getEventDate() != null) {
                 dateStr = dateFormat.format(e.getEventDate());
             }

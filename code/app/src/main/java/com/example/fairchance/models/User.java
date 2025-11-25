@@ -1,5 +1,6 @@
 package com.example.fairchance.models;
 
+import com.google.firebase.firestore.Exclude;
 import java.util.Map;
 
 /**
@@ -15,46 +16,64 @@ public class User {
     private Map<String, Boolean> notificationPreferences;
     private String fcmToken;
 
+    // NEW: account status ("ACTIVE", "DEACTIVATED")
+    private String status;
+
+    // NEW: Firestore document ID (not stored as a field in Firestore)
+    @Exclude
+    private String userId;
+
     /**
      * A public, no-argument constructor is required by Firestore
      * for deserialization.
      */
     public User() {}
 
-    /**
-     * Gets the user's full name.
-     * @return Full name string.
-     */
+    // --- Getters ---
+
     public String getName() { return name; }
 
-    /**
-     * Gets the user's email address.
-     * @return Email string.
-     */
     public String getEmail() { return email; }
 
-    /**
-     * Gets the user's optional phone number.
-     * @return Phone number string.
-     */
     public String getPhone() { return phone; }
 
     /**
      * Gets the user's role ("entrant", "organizer", "admin").
-     * @return Role string.
      */
     public String getRole() { return role; }
 
-    /**
-     * Gets the user's notification preferences.
-     * @return A Map where keys are notification types (e.g., "lotteryResults")
-     * and values are booleans.
-     */
     public Map<String, Boolean> getNotificationPreferences() { return notificationPreferences; }
 
-    /**
-     * Gets the user's unique Firebase Cloud Messaging (FCM) token for push notifications.
-     * @return FCM token string.
-     */
     public String getFcmToken() { return fcmToken; }
+
+    /**
+     * Gets the account status ("ACTIVE" or "DEACTIVATED").
+     */
+    public String getStatus() { return status; }
+
+    /**
+     * Gets the Firestore document ID for this user.
+     */
+    @Exclude
+    public String getUserId() { return userId; }
+
+    // --- Setters ---
+
+    public void setName(String name) { this.name = name; }
+
+    public void setEmail(String email) { this.email = email; }
+
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public void setRole(String role) { this.role = role; }
+
+    public void setNotificationPreferences(Map<String, Boolean> notificationPreferences) {
+        this.notificationPreferences = notificationPreferences;
+    }
+
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+
+    public void setStatus(String status) { this.status = status; }
+
+    public void setUserId(String userId) { this.userId = userId; }
 }

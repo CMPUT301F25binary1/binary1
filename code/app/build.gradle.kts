@@ -101,7 +101,3 @@ dependencies {
     implementation("com.google.android.gms:play-services-tasks:18.0.2")
 
 }
-
-
-
-}

@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:background="@android:color/white">
+    android:background="@android:color/white"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,20 +15,21 @@
         <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
+            android:layout_height="200dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="16dp">
 
             <ImageView
                 android:id="@+id/imageView2"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:src="@drawable/fairchance_logo_with_words___transparent"
+                android:layout_width="237dp"
+                android:layout_height="276dp"
+                android:layout_weight="1"
+                app:srcCompat="@drawable/fairchance_logo_with_words___transparent"
                 android:contentDescription="@string/app_logo" />
         </LinearLayout>
 
-        <!-- Dashboard Title -->
+        <!-- Title -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -83,7 +84,9 @@
                             android:layout_height="wrap_content"
                             android:text="@string/active_events"
                             android:textSize="14sp"
-                            android:textColor="@android:color/white" />
+                            android:textColor="@android:color/white"
+                            android:alpha="0.9"
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -117,7 +120,9 @@
                             android:layout_height="wrap_content"
                             android:text="@string/user_profiles"
                             android:textSize="14sp"
-                            android:textColor="@android:color/white" />
+                            android:textColor="@android:color/white"
+                            android:alpha="0.9"
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
@@ -192,7 +197,9 @@
                             android:layout_height="wrap_content"
                             android:text="@string/organizers"
                             android:textSize="14sp"
-                            android:textColor="@android:color/white" />
+                            android:textColor="@android:color/white"
+                            android:alpha="0.9"
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
             </LinearLayout>
@@ -205,17 +212,16 @@
             android:background="#E0E0E0"
             android:layout_marginBottom="32dp" />
 
-        <!-- Management Section Title -->
+        <!-- Management Section -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/management_section"
+            android:textColor="@color/text_primary"
             android:textSize="24sp"
             android:textStyle="bold"
-            android:textColor="@color/text_primary"
             android:layout_marginBottom="24dp" />
 
-        <!-- Management Cards -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -223,7 +229,7 @@
 
             <!-- Notifications -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/card_notifications"
+                android:id="@+id/cardNotifications"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -269,7 +275,7 @@
 
             <!-- Event Management -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/card_event_management"
+                android:id="@+id/cardEventManagement"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -299,10 +305,10 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginStart="16dp"
                         android:text="@string/event_management"
-                        android:textSize="18sp"
                         android:textColor="@color/text_primary"
-                        android:layout_marginStart="16dp" />
+                        android:textSize="18sp" />
 
                     <ImageView
                         android:layout_width="24dp"
@@ -315,7 +321,7 @@
 
             <!-- Profile Management -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/card_profile_management"
+                android:id="@+id/cardProfileManagement"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -361,7 +367,7 @@
 
             <!-- Image Management -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/card_image_management"
+                android:id="@+id/cardImageManagement"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clickable="true"
@@ -390,10 +396,10 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginStart="16dp"
                         android:text="@string/image_management"
-                        android:textSize="18sp"
                         android:textColor="@color/text_primary"
-                        android:layout_marginStart="16dp" />
+                        android:textSize="18sp" />
 
                     <ImageView
                         android:layout_width="24dp"

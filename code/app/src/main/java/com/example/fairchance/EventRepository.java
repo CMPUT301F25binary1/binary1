@@ -763,7 +763,38 @@ public class EventRepository {
                     callback.onError(e.getMessage());
                 });
     }
+    public interface AdminEventsListener {
+        void onEventsChanged(List<Event> events);
+        void onError(String message);
+    }
 
+    /**
+     * Real-time listener for all events, ordered by creation time.
+     * Used by the Admin Event Management screen.
+     */
+    public ListenerRegistration listenToAllEvents(final AdminEventsListener listener) {
+        return db.collection("events")
+                .orderBy("timeCreated", Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        listener.onError(error.getMessage());
+                        return;
+                    }
+                    if (value == null) {
+                        listener.onEventsChanged(new ArrayList<>());
+                        return;
+                    }
+
+                    List<Event> result = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : value) {
+                        Event event = doc.toObject(Event.class);
+                        // IMPORTANT: store the document ID into eventId
+                        event.setEventId(doc.getId());
+                        result.add(event);
+                    }
+                    listener.onEventsChanged(result);
+                });
+    }
     // TODO: We will add more methods here later, such as:
     // - runLottery(String eventId, int count, ...)
     // - getWaitingList(String eventId, ...)

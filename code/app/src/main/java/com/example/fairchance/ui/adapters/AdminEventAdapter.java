@@ -20,21 +20,23 @@ import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
 import com.example.fairchance.ui.fragments.EventDetailsFragment;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-/**
- * Adapter for the Admin Event Management list.
- * Shows each event with its poster, name, description,
- * and lets the admin view details or remove the event.
- */
 public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.AdminEventViewHolder> {
 
     private final List<Event> events = new ArrayList<>();
     private final EventRepository repo = new EventRepository();
 
-    /** Replace the entire list of events. */
+    // For looking up organizer names
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private final Map<String, String> organizerNameCache = new HashMap<>();
+
     public void setEvents(List<Event> newEvents) {
         events.clear();
         if (newEvents != null) {
@@ -64,7 +66,7 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
     class AdminEventViewHolder extends RecyclerView.ViewHolder {
 
         ImageView ivEventImage;
-        TextView tvEventName, tvEventDescription;
+        TextView tvEventName, tvEventDescription, tvOrganizer;
         Button btnViewDetails, btnRemoveEvent;
 
         AdminEventViewHolder(@NonNull View itemView) {
@@ -72,6 +74,7 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
             ivEventImage = itemView.findViewById(R.id.ivEventImage);
             tvEventName = itemView.findViewById(R.id.tvEventName);
             tvEventDescription = itemView.findViewById(R.id.tvEventDescription);
+            tvOrganizer = itemView.findViewById(R.id.tvOrganizer);
             btnViewDetails = itemView.findViewById(R.id.btnViewDetails);
             btnRemoveEvent = itemView.findViewById(R.id.btnRemoveEvent);
         }
@@ -79,24 +82,43 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
         void bind(Event event) {
             Context ctx = itemView.getContext();
 
-            // Basic text fields
             tvEventName.setText(
                     event.getName() != null ? event.getName() : "Untitled Event"
             );
             tvEventDescription.setText(
-                    event.getDescription() != null
-                            ? event.getDescription()
-                            : "No description provided"
+                    event.getDescription() != null ? event.getDescription() : "No description provided"
             );
 
-            // Load poster image from posterImageUrl (can be null)
+            // Load poster
             Glide.with(ctx)
                     .load(event.getPosterImageUrl())
                     .placeholder(R.drawable.fairchance_logo_with_words___transparent)
                     .error(R.drawable.fairchance_logo_with_words___transparent)
                     .into(ivEventImage);
 
-            // Open EventDetailsFragment
+            // Organizer name: look up from "users" collection and cache it
+            String organizerId = event.getOrganizerId();
+            if (organizerId == null || organizerId.isEmpty()) {
+                tvOrganizer.setText("Organizer: Unknown");
+            } else if (organizerNameCache.containsKey(organizerId)) {
+                tvOrganizer.setText("Organizer: " + organizerNameCache.get(organizerId));
+            } else {
+                tvOrganizer.setText("Organizer: loading…");
+                db.collection("users").document(organizerId).get()
+                        .addOnSuccessListener((DocumentSnapshot doc) -> {
+                            String name = doc.getString("name");
+                            if (name == null || name.trim().isEmpty()) {
+                                name = organizerId; // fall back to id
+                            }
+                            organizerNameCache.put(organizerId, name);
+                            tvOrganizer.setText("Organizer: " + name);
+                        })
+                        .addOnFailureListener(e -> {
+                            tvOrganizer.setText("Organizer: " + organizerId);
+                        });
+            }
+
+            // Open details
             View.OnClickListener openDetails = v -> {
                 if (!(ctx instanceof FragmentActivity)) return;
                 FragmentActivity act = (FragmentActivity) ctx;
@@ -110,7 +132,7 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
             btnViewDetails.setOnClickListener(openDetails);
             itemView.setOnClickListener(openDetails);
 
-            // Remove event (and associated data via repository)
+            // Remove event
             btnRemoveEvent.setOnClickListener(v -> {
                 new AlertDialog.Builder(ctx)
                         .setTitle("Remove Event")

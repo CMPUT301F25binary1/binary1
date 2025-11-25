@@ -31,8 +31,10 @@ import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
 import com.example.fairchance.models.User;
+import com.example.fairchance.ui.AuthActivity;
 import com.example.fairchance.ui.EventDetailsActivity;
 import com.example.fairchance.ui.adapters.EventAdapter;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
@@ -121,6 +123,9 @@ public class EntrantHomeFragment extends Fragment {
         btnArt = view.findViewById(R.id.button4);
         btnTech = view.findViewById(R.id.button5);
 
+        // 🔹 Logout button for entrant
+        Button btnEntrantLogout = view.findViewById(R.id.btnEntrantLogout);
+
         currentCategoryButton = btnAll;
         updateCategoryButtonAppearance(currentCategoryButton, true);
 
@@ -181,9 +186,21 @@ public class EntrantHomeFragment extends Fragment {
             qrCodeLauncher.launch(integrator.createScanIntent());
         });
 
+        // 🔹 Entrant Logout behavior
+        if (btnEntrantLogout != null) {
+            btnEntrantLogout.setOnClickListener(v -> {
+                FirebaseAuth.getInstance().signOut();
+
+                Intent intent = new Intent(requireContext(), AuthActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+
+                requireActivity().finish();
+            });
+        }
+
         // Fetch events from Firestore
         loadEvents();
-
     }
 
     /**
@@ -272,7 +289,6 @@ public class EntrantHomeFragment extends Fragment {
                     showEmptyView(true);
                 } else {
                     showEmptyView(false);
-
                     eventAdapter.updateBaseEventsAndRefilter(events);
                 }
             }

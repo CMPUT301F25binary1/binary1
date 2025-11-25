@@ -1,5 +1,6 @@
 package com.example.fairchance.ui.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,8 +12,9 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
-
 import com.example.fairchance.R;
+import com.example.fairchance.ui.AuthActivity;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class OrganizerDashboardFragment extends Fragment {
 
@@ -26,12 +28,36 @@ public class OrganizerDashboardFragment extends Fragment {
 
         Button btnCreateEvent = view.findViewById(R.id.btnCreateNewEvent);
         Button btnCurrentEvents = view.findViewById(R.id.btnCurrentEvents);
+        Button btnLottery = view.findViewById(R.id.btnLottery);
+        Button btnLogout = view.findViewById(R.id.btnLogout);
 
-        // open create new event screen
-        btnCreateEvent.setOnClickListener(v -> openFragment(new CreateNewEventFragment()));
+        // Open create new event screen
+        btnCreateEvent.setOnClickListener(v ->
+                openFragment(new CreateNewEventFragment())
+        );
 
-        // open ongoing events screen
-        btnCurrentEvents.setOnClickListener(v -> openFragment(new OngoingEventsFragment()));
+        // Open ongoing events screen
+        btnCurrentEvents.setOnClickListener(v ->
+                openFragment(new OngoingEventsFragment())
+        );
+
+        // (Optional) Lottery click – keep or wire later
+        btnLottery.setOnClickListener(v -> {
+            // TODO: Open your lottery screen here if you have one
+        });
+
+
+        // Logout: sign out and go back to AuthActivity (login/role selection)
+        btnLogout.setOnClickListener(v -> {
+            FirebaseAuth.getInstance().signOut();
+
+            Intent intent = new Intent(requireContext(), AuthActivity.class);
+            // Clear back stack so back button doesn't return to dashboard
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+
+            requireActivity().finish();
+        });
 
         return view;
     }

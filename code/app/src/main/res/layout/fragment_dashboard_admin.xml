@@ -14,7 +14,7 @@
         android:background="@color/purple_500"
         android:title="Organizers"
         android:titleTextColor="@android:color/white"
-        app:navigationIcon="@drawable/ic_arrow_back" />
+        app:navigationIcon="@drawable/ic_chevron_left" />
 
     <!-- Content -->
     <LinearLayout

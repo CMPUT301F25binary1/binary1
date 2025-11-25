@@ -13,7 +13,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.fairchance.R;
-import com.example.fairchance.ui.OrganizerManagementActivity;
 
 /**
  * Admin Dashboard Screen
@@ -64,7 +63,7 @@ public class AdminDashboardFragment extends Fragment {
         // NOTIFICATION LOGS → AdminNotificationLogsFragment
         if (cardNotifications != null) {
             cardNotifications.setOnClickListener(v ->
-                    openFragment(new AdminNotificationLogsFragment())
+                    openFragment(new AdminNotificationFragment())
             );
         }
 

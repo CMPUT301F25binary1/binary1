@@ -346,7 +346,6 @@
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:src="@drawable/ic_profile_nav"
-                        android:contentDescription="Profile Management"
                         android:background="@drawable/roundstyle"
                         android:backgroundTint="@color/card_green"
                         android:padding="8dp"

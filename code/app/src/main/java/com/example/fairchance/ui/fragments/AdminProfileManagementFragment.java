@@ -129,7 +129,7 @@ public class AdminProfileManagementFragment extends Fragment
         FragmentTransaction ft = requireActivity()
                 .getSupportFragmentManager()
                 .beginTransaction();
-        ft.replace(R.id.fragment_container, details);
+        ft.replace(R.id.dashboard_container, details);
         ft.addToBackStack(null);
         ft.commit();
     }

@@ -15,19 +15,36 @@ import com.example.fairchance.R;
 import java.util.List;
 
 /**
- * Adapter to display selected entrants in the Sampling and Replacement screen.
- * For US 02.05.02 we only need to show the user ID and event name.
+ * Re-usable card for:
+ *  - Selected participants on Sampling & Replacement screen
+ *  - Replacement pool entries on Sampling & Replacement screen
+ *  - Chosen entrants list (with button hidden if listener == null)
  */
 public class SelectedParticipantAdapter
-        extends RecyclerView.Adapter<SelectedParticipantAdapter.SelectedViewHolder> {
+        extends RecyclerView.Adapter<SelectedParticipantAdapter.ViewHolder> {
 
-    private final List<String> selectedIds;
-    private String eventName;   // will be set from the fragment
-
-    public SelectedParticipantAdapter(List<String> selectedIds) {
-        this.selectedIds = selectedIds;
+    public interface OnParticipantButtonClickListener {
+        void onParticipantButtonClick(String entrantId);
     }
 
+    private final List<String> participantIds;
+    private String eventName;
+    private String buttonText = "";
+    private final OnParticipantButtonClickListener listener;
+
+    public SelectedParticipantAdapter(List<String> participantIds,
+                                      String eventName,
+                                      String buttonText,
+                                      boolean showButton,
+                                      OnParticipantButtonClickListener listener)
+    {
+        this.participantIds = participantIds;
+        this.eventName = eventName;
+        this.buttonText = buttonText;
+        this.listener = listener;
+    }
+
+    /** Allow parent fragment to update the event name after it loads. */
     public void setEventName(String eventName) {
         this.eventName = eventName;
         notifyDataSetChanged();
@@ -35,42 +52,52 @@ public class SelectedParticipantAdapter
 
     @NonNull
     @Override
-    public SelectedViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_selected_participant, parent, false);
-        return new SelectedViewHolder(view);
+        return new ViewHolder(v);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull SelectedViewHolder holder, int position) {
-        String userId = selectedIds.get(position);
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        String id = participantIds.get(position);
 
-        holder.tvParticipantName.setText("User ID: " + userId);
+        // Simple display:
+        holder.tvParticipantName.setText("User ID: " + id);
 
         if (eventName != null && !eventName.isEmpty()) {
             holder.tvEventName.setText(eventName);
+            holder.tvEventName.setVisibility(View.VISIBLE);
         } else {
-            holder.tvEventName.setText("Name of Event");
+            holder.tvEventName.setText(eventName);
+            holder.tvEventName.setVisibility(View.VISIBLE);
         }
 
-        // Notify button will be wired for US 02.05.01, so no logic yet.
-        holder.btnNotifyEntrant.setOnClickListener(v -> {
-            // TODO for US 02.05.01 – Send notification to chosen entrants
-        });
+        if (listener != null) {
+            holder.btnNotifyEntrant.setVisibility(View.VISIBLE);
+            holder.btnNotifyEntrant.setText(buttonText);
+            holder.btnNotifyEntrant.setOnClickListener(v ->
+                    listener.onParticipantButtonClick(id));
+        } else {
+            // Used e.g. on ChosenEntrants screen where there is
+            // only the big "Send Notifications" button.
+            holder.btnNotifyEntrant.setVisibility(View.GONE);
+            holder.btnNotifyEntrant.setOnClickListener(null);
+        }
     }
 
     @Override
     public int getItemCount() {
-        return selectedIds.size();
+        return participantIds.size();
     }
 
-    static class SelectedViewHolder extends RecyclerView.ViewHolder {
+    static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView ivParticipantIcon;
         TextView tvParticipantName;
         TextView tvEventName;
         Button btnNotifyEntrant;
 
-        SelectedViewHolder(@NonNull View itemView) {
+        ViewHolder(@NonNull View itemView) {
             super(itemView);
             ivParticipantIcon = itemView.findViewById(R.id.ivParticipantIcon);
             tvParticipantName = itemView.findViewById(R.id.tvParticipantName);

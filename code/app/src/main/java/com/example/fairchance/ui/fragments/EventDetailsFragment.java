@@ -142,7 +142,7 @@ public class EventDetailsFragment extends Fragment {
         btnWaitingList.setOnClickListener(v -> openFragment(new EntrantsWaitingListFragment()));
         btnChosen.setOnClickListener(v -> {
             if (eventId != null && !eventId.isEmpty()) {
-                openFragment(ChosenEntrantsFragment.newInstance(eventId));
+                openFragment(ChosenEntrantsFragment.newInstance(eventId, loadedEvent.getName()));
             } else {
                 Toast.makeText(getContext(),
                         "No event ID available for chosen entrants.",

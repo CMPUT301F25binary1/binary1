@@ -1,6 +1,5 @@
 package com.example.fairchance.ui.fragments;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,7 +12,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.fairchance.R;
-import com.example.fairchance.ui.OrganizerManagementActivity;
 
 /**
  * Admin Dashboard Screen

@@ -683,31 +683,118 @@ public class EventRepository {
                 });
     }
     /**
-     * Marks all events created by a given organizer as DEACTIVATED.
+     * Admin: listen to ALL events (no registration-date filtering).
+     * Used by the Admin Event Management screen.
      */
-    public void deactivateEventsByOrganizer(String organizerId, EventTaskCallback callback) {
-        eventsRef.whereEqualTo("organizerId", organizerId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        // Nothing to update
+    public ListenerRegistration listenToAllEventsForAdmin(EventListCallback callback) {
+        return eventsRef.addSnapshotListener((value, error) -> {
+            if (error != null) {
+                Log.e(TAG, "Error getting all events for admin: ", error);
+                callback.onError(error.getMessage());
+                return;
+            }
+
+            if (value != null) {
+                List<Event> eventList = new ArrayList<>();
+                for (QueryDocumentSnapshot document : value) {
+                    Event event = document.toObject(Event.class);
+                    event.setEventId(document.getId());
+                    eventList.add(event);
+                }
+                callback.onSuccess(eventList);
+            }
+        });
+    }
+
+    /**
+     * Admin: delete an event and its known subcollections from Firestore.
+     * Subcollections removed: waitingList, selected, confirmedAttendees.
+     */
+    public void deleteEvent(String eventId, EventTaskCallback callback) {
+        DocumentReference eventDoc = eventsRef.document(eventId);
+
+        String[] subcollections = new String[] {
+                "waitingList",
+                "selected",
+                "confirmedAttendees"
+        };
+
+        deleteSubcollectionsThenEvent(eventDoc, subcollections, 0, callback);
+    }
+
+    // Helper: recursively delete subcollections then the parent event doc
+    private void deleteSubcollectionsThenEvent(
+            DocumentReference eventDoc,
+            String[] subcollections,
+            int index,
+            EventTaskCallback callback
+    ) {
+        if (index >= subcollections.length) {
+            // No more subcollections – delete event doc itself
+            eventDoc.delete()
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "Event deleted: " + eventDoc.getId());
                         callback.onSuccess();
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error deleting event document", e);
+                        callback.onError(e.getMessage());
+                    });
+            return;
+        }
+
+        String sub = subcollections[index];
+        eventDoc.collection(sub).get()
+                .addOnSuccessListener(snapshot -> {
+                    WriteBatch batch = db.batch();
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        batch.delete(doc.getReference());
+                    }
+                    batch.commit()
+                            .addOnSuccessListener(aVoid ->
+                                    deleteSubcollectionsThenEvent(eventDoc, subcollections, index + 1, callback))
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error deleting subcollection " + sub, e);
+                                callback.onError(e.getMessage());
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching subcollection " + sub, e);
+                    callback.onError(e.getMessage());
+                });
+    }
+    public interface AdminEventsListener {
+        void onEventsChanged(List<Event> events);
+        void onError(String message);
+    }
+
+    /**
+     * Real-time listener for all events, ordered by creation time.
+     * Used by the Admin Event Management screen.
+     */
+    public ListenerRegistration listenToAllEvents(final AdminEventsListener listener) {
+        return db.collection("events")
+                .orderBy("timeCreated", Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        listener.onError(error.getMessage());
+                        return;
+                    }
+                    if (value == null) {
+                        listener.onEventsChanged(new ArrayList<>());
                         return;
                     }
 
-                    WriteBatch batch = db.batch();
-                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        batch.update(doc.getReference(), "status", "DEACTIVATED");
+                    List<Event> result = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : value) {
+                        Event event = doc.toObject(Event.class);
+                        // IMPORTANT: store the document ID into eventId
+                        event.setEventId(doc.getId());
+                        result.add(event);
                     }
-
-                    batch.commit()
-                            .addOnSuccessListener(aVoid -> callback.onSuccess())
-                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
-                })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                    listener.onEventsChanged(result);
+                });
     }
-
-
     // TODO: We will add more methods here later, such as:
     // - runLottery(String eventId, int count, ...)
     // - getWaitingList(String eventId, ...)

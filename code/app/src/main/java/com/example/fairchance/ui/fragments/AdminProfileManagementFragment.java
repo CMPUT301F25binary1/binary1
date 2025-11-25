@@ -1,47 +1,50 @@
 package com.example.fairchance.ui.fragments;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
+import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
+import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.fairchance.AuthRepository;
 import com.example.fairchance.R;
+import com.example.fairchance.models.AdminUserItem;
 import com.example.fairchance.ui.adapters.AdminUserAdapter;
-import com.example.fairchance.AuthRepository.AdminUserSummary;
-
-import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class AdminProfileManagementFragment extends Fragment {
+public class AdminProfileManagementFragment extends Fragment
+        implements AdminUserAdapter.OnUserClickListener {
 
     private RecyclerView rvUsers;
     private ProgressBar progressBar;
-    private TextInputEditText etSearch;
-    private ImageButton btnBack;
+    private TextView tvEmpty;
+    private EditText etSearch;
 
     private AdminUserAdapter adapter;
-    private AuthRepository authRepository;
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.admin_profile_management, container, false);
+        return inflater.inflate(R.layout.fragment_admin_profile_management, container, false);
     }
 
     @Override
@@ -49,84 +52,85 @@ public class AdminProfileManagementFragment extends Fragment {
                               @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        authRepository = new AuthRepository();
-
+        View btnBack = view.findViewById(R.id.btnBack);
         rvUsers = view.findViewById(R.id.rvAdminUsers);
-        progressBar = view.findViewById(R.id.profile_mgmt_progress);
+        progressBar = view.findViewById(R.id.progressBarUsers);
+        tvEmpty = view.findViewById(R.id.tvEmptyUsers);
         etSearch = view.findViewById(R.id.etSearchUsers);
-        btnBack = view.findViewById(R.id.btnBackProfiles);
 
-        rvUsers.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new AdminUserAdapter(new ArrayList<>(), this::confirmDeleteUser);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v ->
+                    requireActivity().getOnBackPressedDispatcher().onBackPressed());
+        }
+
+        rvUsers.setLayoutManager(new LinearLayoutManager(requireContext()));
+        adapter = new AdminUserAdapter(this);
         rvUsers.setAdapter(adapter);
 
-        btnBack.setOnClickListener(v ->
-                NavHostFragment.findNavController(this).popBackStack()
-        );
-
-
-        etSearch.addTextChangedListener(new android.text.TextWatcher() {
+        etSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                adapter.getFilter().filter(s);
+                adapter.filter(s.toString());
             }
-            @Override public void afterTextChanged(android.text.Editable s) {}
+            @Override public void afterTextChanged(Editable s) {}
         });
 
         loadUsers();
     }
 
-    private void setLoading(boolean loading) {
-        if (progressBar == null) return;
-        progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
-        rvUsers.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
-    }
-
     private void loadUsers() {
         setLoading(true);
-        authRepository.fetchAllUsers(new AuthRepository.AdminUsersCallback() {
-            @Override
-            public void onSuccess(List<AdminUserSummary> users) {
-                setLoading(false);
-                adapter.setUsers(users);
-            }
+        db.collection("users")
+                .get()
+                .addOnSuccessListener(query -> {
+                    setLoading(false);
+                    List<AdminUserItem> list = new ArrayList<>();
+                    for (DocumentSnapshot doc : query) {
+                        String id = doc.getId();
+                        String name = doc.getString("name");
+                        String email = doc.getString("email");
+                        String role = doc.getString("role");
+                        // adjust the field name if your timestamp is different
+                        com.google.firebase.Timestamp createdAt =
+                                doc.getTimestamp("timeCreated");
 
-            @Override
-            public void onError(String message) {
-                setLoading(false);
-                Toast.makeText(getContext(), "Failed to load users: " + message,
-                        Toast.LENGTH_LONG).show();
-            }
-        });
+                        list.add(new AdminUserItem(id, name, email, role, createdAt));
+                    }
+
+                    if (list.isEmpty()) {
+                        tvEmpty.setVisibility(View.VISIBLE);
+                        rvUsers.setVisibility(View.GONE);
+                    } else {
+                        tvEmpty.setVisibility(View.GONE);
+                        rvUsers.setVisibility(View.VISIBLE);
+                    }
+
+                    adapter.submitList(list);
+                })
+                .addOnFailureListener(e -> {
+                    setLoading(false);
+                    tvEmpty.setVisibility(View.VISIBLE);
+                    rvUsers.setVisibility(View.GONE);
+                    Toast.makeText(requireContext(),
+                            "Error loading users: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                });
     }
 
-    private void confirmDeleteUser(AdminUserSummary user) {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Remove Profile")
-                .setMessage("You are about to delete the profile for:\n\n" +
-                        user.getName() + " (" + user.getEmail() + ")\n\n" +
-                        "This will permanently remove their data. Continue?")
-                .setPositiveButton("Delete", (dialog, which) -> deleteUser(user))
-                .setNegativeButton("Cancel", null)
-                .show();
+    private void setLoading(boolean loading) {
+        progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
+        rvUsers.setEnabled(!loading);
     }
 
-    private void deleteUser(AdminUserSummary user) {
-        setLoading(true);
-        authRepository.deleteUserProfileById(user.getUserId(), new AuthRepository.TaskCallback() {
-            @Override
-            public void onSuccess() {
-                setLoading(false);
-                Toast.makeText(getContext(), "Profile removed.", Toast.LENGTH_SHORT).show();
-                adapter.removeUser(user);
-            }
-
-            @Override
-            public void onError(String message) {
-                setLoading(false);
-                Toast.makeText(getContext(), "Delete failed: " + message,
-                        Toast.LENGTH_LONG).show();
-            }
-        });
+    @Override
+    public void onUserClick(AdminUserItem user) {
+        // Open a simple details fragment
+        Fragment details = AdminUserDetailsFragment.newInstance(user.getId());
+        FragmentTransaction ft = requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction();
+        ft.replace(R.id.fragment_container, details);
+        ft.addToBackStack(null);
+        ft.commit();
     }
 }

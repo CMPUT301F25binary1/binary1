@@ -3,51 +3,60 @@ package com.example.fairchance.ui.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import android.widget.Filter;
-import android.widget.Filterable;
 
-import com.example.fairchance.AuthRepository.AdminUserSummary;
 import com.example.fairchance.R;
+import com.example.fairchance.models.AdminUserItem;
+import com.google.firebase.Timestamp;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-public class AdminUserAdapter
-        extends RecyclerView.Adapter<AdminUserAdapter.UserViewHolder>
-        implements Filterable {
+public class AdminUserAdapter extends RecyclerView.Adapter<AdminUserAdapter.UserViewHolder> {
 
-    public interface OnDeleteClickListener {
-        void onDeleteClick(AdminUserSummary user);
+    public interface OnUserClickListener {
+        void onUserClick(AdminUserItem user);
     }
 
-    private final OnDeleteClickListener deleteClickListener;
-    private final List<AdminUserSummary> users = new ArrayList<>();
-    private final List<AdminUserSummary> allUsers = new ArrayList<>();
+    private final List<AdminUserItem> fullList = new ArrayList<>();
+    private final List<AdminUserItem> filteredList = new ArrayList<>();
+    private final OnUserClickListener listener;
+    private final SimpleDateFormat dateFormat =
+            new SimpleDateFormat("MMM d, yyyy", Locale.getDefault());
 
-    public AdminUserAdapter(List<AdminUserSummary> initial,
-                            OnDeleteClickListener deleteClickListener) {
-        this.deleteClickListener = deleteClickListener;
-        setUsers(initial);
+    public AdminUserAdapter(OnUserClickListener listener) {
+        this.listener = listener;
     }
 
-    public void setUsers(List<AdminUserSummary> list) {
-        users.clear();
-        allUsers.clear();
-        if (list != null) {
-            allUsers.addAll(list);
-            users.addAll(list);
+    public void submitList(List<AdminUserItem> users) {
+        fullList.clear();
+        filteredList.clear();
+        if (users != null) {
+            fullList.addAll(users);
+            filteredList.addAll(users);
         }
         notifyDataSetChanged();
     }
 
-    public void removeUser(AdminUserSummary user) {
-        allUsers.remove(user);
-        users.remove(user);
+    public void filter(String query) {
+        filteredList.clear();
+        if (query == null || query.trim().isEmpty()) {
+            filteredList.addAll(fullList);
+        } else {
+            String lower = query.toLowerCase(Locale.getDefault());
+            for (AdminUserItem u : fullList) {
+                if (u.getName().toLowerCase(Locale.getDefault()).contains(lower)
+                        || u.getEmail().toLowerCase(Locale.getDefault()).contains(lower)
+                        || u.getRole().toLowerCase(Locale.getDefault()).contains(lower)) {
+                    filteredList.add(u);
+                }
+            }
+        }
         notifyDataSetChanged();
     }
 
@@ -61,66 +70,43 @@ public class AdminUserAdapter
 
     @Override
     public void onBindViewHolder(@NonNull UserViewHolder holder, int position) {
-        AdminUserSummary u = users.get(position);
-        holder.tvName.setText(u.getName());
-        holder.tvEmail.setText(u.getEmail());
-        holder.tvRole.setText(u.getRole() != null ? u.getRole() : "Unknown");
-        holder.btnRemove.setOnClickListener(v -> deleteClickListener.onDeleteClick(u));
+        holder.bind(filteredList.get(position));
     }
 
     @Override
     public int getItemCount() {
-        return users.size();
+        return filteredList.size();
     }
 
-    @Override
-    public Filter getFilter() {
-        return filter;
-    }
+    class UserViewHolder extends RecyclerView.ViewHolder {
 
-    private final Filter filter = new Filter() {
-        @Override
-        protected FilterResults performFiltering(CharSequence constraint) {
-            List<AdminUserSummary> filtered = new ArrayList<>();
-            String query = constraint == null ? "" :
-                    constraint.toString().toLowerCase().trim();
-
-            if (query.isEmpty()) {
-                filtered.addAll(allUsers);
-            } else {
-                for (AdminUserSummary u : allUsers) {
-                    if ((u.getName() != null && u.getName().toLowerCase().contains(query)) ||
-                            (u.getEmail() != null && u.getEmail().toLowerCase().contains(query))) {
-                        filtered.add(u);
-                    }
-                }
-            }
-
-            FilterResults results = new FilterResults();
-            results.values = filtered;
-            return results;
-        }
-
-        @Override
-        protected void publishResults(CharSequence constraint, FilterResults results) {
-            users.clear();
-            //noinspection unchecked
-            users.addAll((List<AdminUserSummary>) results.values);
-            notifyDataSetChanged();
-        }
-    };
-
-    static class UserViewHolder extends RecyclerView.ViewHolder {
-
-        TextView tvName, tvEmail, tvRole;
-        Button btnRemove;
+        TextView tvName, tvRole, tvRegistered;
 
         UserViewHolder(@NonNull View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.tvUserName);
-            tvEmail = itemView.findViewById(R.id.tvUserEmail);
             tvRole = itemView.findViewById(R.id.tvUserRole);
-            btnRemove = itemView.findViewById(R.id.btnRemoveUser);
+            tvRegistered = itemView.findViewById(R.id.tvUserRegistered);
+        }
+
+        void bind(AdminUserItem user) {
+            tvName.setText(user.getName());
+            tvRole.setText(user.getRole().isEmpty()
+                    ? "Role: Unknown"
+                    : "Role: " + user.getRole());
+
+            Timestamp ts = user.getCreatedAt();
+            if (ts != null) {
+                tvRegistered.setText("Registered: " + dateFormat.format(ts.toDate()));
+            } else {
+                tvRegistered.setText("Registered: N/A");
+            }
+
+            itemView.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onUserClick(user);
+                }
+            });
         }
     }
 }

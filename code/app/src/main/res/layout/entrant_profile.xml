@@ -233,16 +233,5 @@
             android:text="Log Out"
             app:backgroundTint="@android:color/holo_orange_dark" />
 
-        <Button
-            android:id="@+id/btnEntrantLogout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Logout"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
-            android:background="#F44336"
-            android:layout_marginTop="24dp"
-            android:padding="12dp" />
-
     </LinearLayout>
 </ScrollView>

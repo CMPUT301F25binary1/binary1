@@ -123,8 +123,6 @@ public class EntrantHomeFragment extends Fragment {
         btnArt = view.findViewById(R.id.button4);
         btnTech = view.findViewById(R.id.button5);
 
-        // 🔹 Logout button for entrant
-        Button btnEntrantLogout = view.findViewById(R.id.btnEntrantLogout);
 
         currentCategoryButton = btnAll;
         updateCategoryButtonAppearance(currentCategoryButton, true);
@@ -186,18 +184,7 @@ public class EntrantHomeFragment extends Fragment {
             qrCodeLauncher.launch(integrator.createScanIntent());
         });
 
-        // 🔹 Entrant Logout behavior
-        if (btnEntrantLogout != null) {
-            btnEntrantLogout.setOnClickListener(v -> {
-                FirebaseAuth.getInstance().signOut();
 
-                Intent intent = new Intent(requireContext(), AuthActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-
-                requireActivity().finish();
-            });
-        }
 
         // Fetch events from Firestore
         loadEvents();

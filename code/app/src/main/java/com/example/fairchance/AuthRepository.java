@@ -15,6 +15,8 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.example.fairchance.EventRepository;
+
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -490,6 +492,91 @@ public class AuthRepository {
                 .addOnFailureListener(e ->
                         Log.w(TAG, "Failed to log removal", e));
     }
+
+    /**
+     * Soft-deactivates an organizer and all of their events.
+     * - Marks the user as inactive (isActive=false, roleActive=false)
+     * - Deactivates all events whose organizerId == this user
+     * - Logs the admin action in "adminActions"
+     */
+    public void deactivateOrganizerAndEvents(String organizerId,
+                                             String reason,
+                                             TaskCallback callback) {
+
+        FirebaseUser admin = auth.getCurrentUser();
+        String adminId = (admin != null) ? admin.getUid() : "unknown-admin";
+
+        // 1) Deactivate the organizer user document
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("isActive", false);
+        updates.put("roleActive", false);
+        updates.put("deactivatedAt", FieldValue.serverTimestamp());
+        updates.put("deactivatedByAdminId", adminId);
+        if (reason != null && !reason.trim().isEmpty()) {
+            updates.put("deactivationReason", reason.trim());
+        }
+
+        db.collection("users").document(organizerId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    // 2) Deactivate all events belonging to this organizer
+                    EventRepository eventRepo = new EventRepository();
+                    eventRepo.deactivateEventsByOrganizer(
+                            organizerId,
+                            adminId,
+                            new EventRepository.EventTaskCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    // 3) Log the admin action
+                                    logOrganizerDeactivation(organizerId, adminId, reason);
+                                    if (callback != null) {
+                                        callback.onSuccess();
+                                    }
+                                }
+
+                                @Override
+                                public void onError(String message) {
+                                    // Still log the action, but report partial failure
+                                    logOrganizerDeactivation(organizerId, adminId, reason);
+                                    if (callback != null) {
+                                        callback.onError(
+                                                "Organizer deactivated, but failed to deactivate some events: " + message
+                                        );
+                                    }
+                                }
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    /**
+     * Logs an admin's "removeOrganizer" action in the "adminActions" collection.
+     */
+    private void logOrganizerDeactivation(String organizerId,
+                                          String adminId,
+                                          String reason) {
+
+        Map<String, Object> log = new HashMap<>();
+        log.put("actionType", "removeOrganizer");
+        log.put("organizerId", organizerId);
+        log.put("adminId", adminId);
+        log.put("reason", (reason == null || reason.trim().isEmpty())
+                ? "No reason provided"
+                : reason.trim());
+        log.put("timestamp", FieldValue.serverTimestamp());
+
+        db.collection("adminActions")
+                .add(log)
+                .addOnSuccessListener(ref ->
+                        Log.d(TAG, "Admin removeOrganizer logged with id: " + ref.getId()))
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Failed to log removeOrganizer action", e));
+    }
+
 
     /**
      * Signs out the current user.

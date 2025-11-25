@@ -104,20 +104,48 @@ public class EventRepository {
      * Creates a new event in the 'events' collection.
      * Corresponds to US 02.01.01.
      *
+     * Also stores metadata used by the Admin Image browser:
+     *  - createdById
+     *  - createdByName
+     *  - createdAt
      * @param event    The Event object to be added.
      * @param callback Notifies of success or failure.
+     *
      */
     public void createEvent(Event event, EventTaskCallback callback) {
+
+        // Get current user to tag as creator/uploader
+        FirebaseUser user = auth.getCurrentUser();
+
         eventsRef.add(event)
                 .addOnSuccessListener(documentReference -> {
                     String eventId = documentReference.getId();
-                    documentReference.update("eventId", eventId)
+
+                    // Build metadata to merge into the event doc
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("eventId", eventId);
+                    updates.put("createdAt", com.google.firebase.Timestamp.now());
+
+                    if (user != null) {
+                        String uploaderName = user.getDisplayName();
+                        if (uploaderName == null || uploaderName.isEmpty()) {
+                            uploaderName = user.getEmail();
+                        }
+
+                        updates.put("createdById", user.getUid());
+                        if (uploaderName != null && !uploaderName.isEmpty()) {
+                            updates.put("createdByName", uploaderName);
+                        }
+                    }
+
+                    // Merge the metadata into the new event document
+                    documentReference.set(updates, SetOptions.merge())
                             .addOnSuccessListener(aVoid -> {
                                 Log.d(TAG, "Event created with ID: " + eventId);
                                 callback.onSuccess();
                             })
                             .addOnFailureListener(e -> {
-                                Log.e(TAG, "Error updating event with its ID", e);
+                                Log.e(TAG, "Error updating event with metadata", e);
                                 callback.onError(e.getMessage());
                             });
                 })
@@ -442,12 +470,14 @@ public class EventRepository {
 
     /**
      * Uploads an image to Firebase Storage and updates posterImageUrl on the event.
+     * Also records who uploaded the poster and when.
      */
     public void uploadPosterAndUpdate(String eventId, Uri imageUri, EventTaskCallback callback) {
         if (imageUri == null) {
             callback.onError("No image selected.");
             return;
         }
+
         String fileName = "poster_" + System.currentTimeMillis() + ".jpg";
         StorageReference ref = storage.getReference()
                 .child("event_posters")
@@ -457,8 +487,23 @@ public class EventRepository {
         ref.putFile(imageUri)
                 .addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl()
                         .addOnSuccessListener(uri -> {
+
                             Map<String, Object> updates = new HashMap<>();
                             updates.put("posterImageUrl", uri.toString());
+                            updates.put("posterUploadedAt", com.google.firebase.Timestamp.now());
+
+                            FirebaseUser user = auth.getCurrentUser();
+                            if (user != null) {
+                                String name = user.getDisplayName();
+                                if (name == null || name.isEmpty()) {
+                                    name = user.getEmail();
+                                }
+                                updates.put("posterUploadedById", user.getUid());
+                                if (name != null && !name.isEmpty()) {
+                                    updates.put("posterUploadedByName", name);
+                                }
+                            }
+
                             updateEventFields(eventId, updates, callback);
                         })
                         .addOnFailureListener(e -> callback.onError(e.getMessage())))
@@ -887,6 +932,66 @@ public class EventRepository {
                     listener.onEventsChanged(result);
                 });
     }
+
+    /**
+     * Admin: Deactivates all events that belong to a given organizer.
+     * Sets isActive=false and status="deactivated".
+     */
+    public void deactivateEventsByOrganizer(String organizerId,
+                                            String adminId,
+                                            EventTaskCallback callback) {
+
+        if (organizerId == null || organizerId.isEmpty()) {
+            if (callback != null) {
+                callback.onError("Organizer id is empty.");
+            }
+            return;
+        }
+
+        eventsRef.whereEqualTo("organizerId", organizerId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        if (callback != null) {
+                            callback.onSuccess();
+                        }
+                        return;
+                    }
+
+                    WriteBatch batch = db.batch();
+                    com.google.firebase.Timestamp now = com.google.firebase.Timestamp.now();
+
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("isActive", false);
+                        updates.put("status", "deactivated");
+                        updates.put("deactivatedAt", now);
+                        updates.put("deactivatedByAdminId", adminId);
+
+                        batch.set(doc.getReference(), updates, SetOptions.merge());
+                    }
+
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> {
+                                if (callback != null) {
+                                    callback.onSuccess();
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to deactivate events for organizer", e);
+                                if (callback != null) {
+                                    callback.onError(e.getMessage());
+                                }
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to query events for organizer", e);
+                    if (callback != null) {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
 
     // TODO: We will add more methods here later, such as:
     // - runLottery(String eventId, int count, ...)

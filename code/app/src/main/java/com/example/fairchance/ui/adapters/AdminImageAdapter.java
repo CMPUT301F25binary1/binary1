@@ -14,20 +14,23 @@ import com.bumptech.glide.Glide;
 import com.example.fairchance.R;
 import com.example.fairchance.models.AdminImageItem;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.ImageViewHolder> {
 
     private List<AdminImageItem> images = new ArrayList<>();
-    private final OnRemoveClickListener listener;
+    private final OnImageActionListener listener;
 
     /** Callback to the fragment */
-    public interface OnRemoveClickListener {
+    public interface OnImageActionListener {
+        void onPreview(AdminImageItem item);
         void onRemoveClicked(AdminImageItem item);
     }
 
-    public AdminImageAdapter(OnRemoveClickListener listener) {
+    public AdminImageAdapter(OnImageActionListener listener) {
         this.listener = listener;
     }
 
@@ -51,10 +54,37 @@ public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.Im
 
         holder.tvTitle.setText(item.getTitle());
 
+        String uploader = item.getUploaderName();
+        if (uploader == null || uploader.isEmpty()) {
+            holder.tvUploader.setText("Uploader: Unknown");
+        } else {
+            holder.tvUploader.setText("Uploader: " + uploader);
+        }
+
+        if (item.getUploadedAt() != null) {
+            Date date = item.getUploadedAt().toDate();
+            DateFormat df = DateFormat.getDateTimeInstance(
+                    DateFormat.MEDIUM, DateFormat.SHORT);
+            holder.tvUploadedAt.setText("Uploaded: " + df.format(date));
+        } else {
+            holder.tvUploadedAt.setText("Uploaded: No date");
+        }
+
         Glide.with(holder.itemView.getContext())
                 .load(item.getImageUrl())
                 .into(holder.ivPoster);
 
+
+        // Tap card or image -> preview
+        View.OnClickListener previewClick = v -> {
+            if (listener != null) {
+                listener.onPreview(item);
+            }
+        };
+        holder.itemView.setOnClickListener(previewClick);
+        holder.ivPoster.setOnClickListener(previewClick);
+
+        // Delete button
         holder.btnDelete.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onRemoveClicked(item);
@@ -71,12 +101,16 @@ public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.Im
 
         ImageView ivPoster;
         TextView tvTitle;
+        TextView tvUploader;
+        TextView tvUploadedAt;
         Button btnDelete;
 
         ImageViewHolder(@NonNull View itemView) {
             super(itemView);
             ivPoster = itemView.findViewById(R.id.ivPoster);
             tvTitle = itemView.findViewById(R.id.tvEventName);
+            tvUploader = itemView.findViewById(R.id.tvUploader);
+            tvUploadedAt = itemView.findViewById(R.id.tvUploadedAt);
             btnDelete = itemView.findViewById(R.id.btnDeleteImage);
         }
     }

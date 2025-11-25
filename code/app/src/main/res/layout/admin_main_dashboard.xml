@@ -163,7 +163,9 @@
                             android:layout_height="wrap_content"
                             android:text="@string/uploaded_images"
                             android:textSize="14sp"
-                            android:textColor="@android:color/white" />
+                            android:textColor="@android:color/white"
+                            android:alpha="0.9"
+                            android:layout_marginTop="4dp" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -233,9 +235,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
+                android:foreground="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp">
 
@@ -259,10 +261,9 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/notifications"
+                        android:text="Notifications"
                         android:textSize="18sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginStart="16dp" />
+                        android:textColor="@color/text_primary" />
 
                     <ImageView
                         android:layout_width="24dp"
@@ -304,6 +305,7 @@
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
                         android:layout_weight="1"
                         android:layout_marginStart="16dp"
                         android:text="@string/event_management"
@@ -314,8 +316,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_chevron_right"
-                        android:backgroundTint="#666666"
-                        android:contentDescription="@string/navigate" />
+                        android:backgroundTint="#666666" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -325,9 +326,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
+                android:foreground="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp">
 
@@ -350,18 +351,17 @@
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
                         android:layout_weight="1"
                         android:text="@string/profile_management"
                         android:textSize="18sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginStart="16dp" />
+                        android:textColor="@color/text_primary" />
 
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_chevron_right"
-                        android:backgroundTint="#666666"
-                        android:contentDescription="@string/navigate" />
+                        android:backgroundTint="#666666" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -395,6 +395,7 @@
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
                         android:layout_weight="1"
                         android:layout_marginStart="16dp"
                         android:text="@string/image_management"
@@ -405,8 +406,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_chevron_right"
-                        android:backgroundTint="#666666"
-                        android:contentDescription="@string/navigate" />
+                        android:backgroundTint="#666666" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

@@ -79,6 +79,11 @@ public class AuthRepository {
     }
     //endregion
 
+    public interface UserListCallback {
+        void onSuccess(java.util.List<com.example.fairchance.models.User> users);
+        void onError(String message);
+    }
+
     /**
      * Initializes the repository with instances of FirebaseAuth and FirebaseFirestore.
      */

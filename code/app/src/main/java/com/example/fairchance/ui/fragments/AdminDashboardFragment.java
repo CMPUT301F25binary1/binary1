@@ -62,7 +62,7 @@ public class AdminDashboardFragment extends Fragment {
         // NOTIFICATION LOGS → AdminNotificationLogsFragment
         if (cardNotifications != null) {
             cardNotifications.setOnClickListener(v ->
-                    openFragment(new AdminNotificationLogsFragment())
+                    openFragment(new AdminNotificationFragment())
             );
         }
 

@@ -5,10 +5,14 @@
     android:orientation="vertical"
     android:gravity="center">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Admin Dashboard"
-        android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
+    <!-- Top app bar with back arrow and title -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topAppBar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/purple_500"
+        android:title="Organizers"
+        android:titleTextColor="@android:color/white"
+        app:navigationIcon="@drawable/ic_chevron_left" />
 
 </LinearLayout>

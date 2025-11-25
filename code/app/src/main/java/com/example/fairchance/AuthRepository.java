@@ -429,6 +429,53 @@ public class AuthRepository {
                     callback.onError("Failed to save user profile: " + e.getMessage());
                 });
     }
+    /**
+     * Fetches all ACTIVE organizers from the 'users' collection.
+     */
+    public void getAllOrganizers(UserListCallback callback) {
+        db.collection("users")
+                .whereEqualTo("role", "organizer")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    java.util.List<User> organizers = new java.util.ArrayList<>();
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        User user = doc.toObject(User.class);
+                        if (user != null) {
+                            user.setUserId(doc.getId()); // store document ID
+                            // If status is null, treat as ACTIVE
+                            if (user.getStatus() == null || !"DEACTIVATED".equals(user.getStatus())) {
+                                organizers.add(user);
+                            }
+                        }
+                    }
+                    callback.onSuccess(organizers);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+    /**
+     * Marks an organizer account as DEACTIVATED (soft delete).
+     */
+    public void deactivateOrganizerAccount(String organizerId, TaskCallback callback) {
+        db.collection("users").document(organizerId)
+                .update("status", "DEACTIVATED")
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+    /**
+     * Logs an admin action (e.g., removing an organizer) into 'admin_logs' collection.
+     */
+    public void logAdminAction(String adminId, String organizerId, String reason) {
+        java.util.Map<String, Object> log = new java.util.HashMap<>();
+        log.put("adminId", adminId);
+        log.put("organizerId", organizerId);
+        log.put("action", "REMOVE_ORGANIZER");
+        log.put("reason", reason);
+        log.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+        db.collection("admin_logs").add(log)
+                .addOnSuccessListener(docRef -> Log.d(TAG, "Admin action logged: " + docRef.getId()))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to log admin action", e));
+    }
 
     /**
      * Fetches a lightweight list of all user profiles for the Admin UI.

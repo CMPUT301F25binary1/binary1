@@ -3,93 +3,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="top">
+    android:gravity="center">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Organizer Dashboard"
-        android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
-        android:layout_marginBottom="16dp" />
-
-    <CheckBox
-        android:id="@+id/checkbox_geolocation_required"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Require Geolocation for Entrants"
-        android:textSize="16sp"
-        android:padding="8dp" />
-
-    <Button
-        android:id="@+id/btnSaveGeoSetting"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Save Setting"
-        android:layout_marginTop="16dp" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#CCCCCC"
-        android:layout_marginVertical="20dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Set Optional Waiting List Limit"
-        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-        android:layout_marginBottom="8dp" />
-
-    <EditText
-        android:id="@+id/edit_waitlist_limit"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter max number of entrants (leave blank for unlimited)"
-        android:inputType="number"
-        android:padding="8dp"
-        android:background="@drawable/abc_edit_text_material" />
-
-    <Button
-        android:id="@+id/btnSaveWaitlistLimit"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Save Waitlist Limit"
-        android:layout_marginTop="12dp" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#CCCCCC"
-        android:layout_marginVertical="20dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Run Lottery (Sample N Attendees)"
-        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-        android:layout_marginBottom="8dp" />
-
-    <EditText
-        android:id="@+id/edit_event_id_for_sampling"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Event ID"
-        android:padding="8dp" />
-
-    <EditText
-        android:id="@+id/edit_sample_count"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Number to sample (N)"
-        android:inputType="number"
-        android:padding="8dp" />
-
-    <Button
-        android:id="@+id/btnRunSampling"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Run Lottery" />
-
+        android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
 
 </LinearLayout>

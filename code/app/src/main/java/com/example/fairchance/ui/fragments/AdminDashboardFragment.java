@@ -10,12 +10,18 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.example.fairchance.R;
 import com.example.fairchance.ui.AdminImageManagementActivity;
 
 /**
- * Main dashboard for the Admin role.
+ * Admin Dashboard Screen
+ * Allows navigation to:
+ *  - Event Management
+ *  - Profile Management
+ *  - Image Management
+ *  - Notification Logs
  */
 public class AdminDashboardFragment extends Fragment {
 
@@ -25,22 +31,55 @@ public class AdminDashboardFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
 
-        // Use your admin_main_dashboard layout (the big ScrollView with cards)
-        return inflater.inflate(R.layout.admin_main_dashboard, container, false);
-    }
+        // Inflate the admin dashboard layout (ScrollView with stats + management cards)
+        View root = inflater.inflate(R.layout.admin_main_dashboard, container, false);
 
-    @Override
-    public void onViewCreated(@NonNull View view,
-                              @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+        // Wire the cards (make sure XML has these IDs)
+        CardView cardProfile = root.findViewById(R.id.cardProfileManagement);
+        CardView cardEvent = root.findViewById(R.id.cardEventManagement);
+        CardView cardImage = root.findViewById(R.id.cardImageManagement);
+        CardView cardNotifications = root.findViewById(R.id.cardNotifications);
 
-        // Image Management card
-        CardView cardImageManagement = view.findViewById(R.id.cardImageManagement);
-        if (cardImageManagement != null) {
-            cardImageManagement.setOnClickListener(v -> {
+        // PROFILE MANAGEMENT → AdminProfileManagementFragment
+        if (cardProfile != null) {
+            cardProfile.setOnClickListener(v ->
+                    openFragment(new AdminProfileManagementFragment()));
+        }
+
+        // EVENT MANAGEMENT → AdminEventManagementFragment
+        if (cardEvent != null) {
+            cardEvent.setOnClickListener(v ->
+                    openFragment(new AdminEventManagementFragment()));
+        }
+
+        // IMAGE MANAGEMENT → AdminImageManagementActivity (from other branch)
+        if (cardImage != null) {
+            cardImage.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), AdminImageManagementActivity.class);
                 startActivity(intent);
             });
         }
+
+        // NOTIFICATION LOGS → AdminNotificationLogsFragment
+        if (cardNotifications != null) {
+            cardNotifications.setOnClickListener(v ->
+                    openFragment(new AdminNotificationLogsFragment()));
+        }
+
+        return root;
+    }
+
+    /**
+     * Helper method for clean fragment navigation.
+     */
+    private void openFragment(Fragment fragment) {
+        FragmentTransaction ft = requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction();
+
+        // Replace the same container that holds AdminDashboardFragment
+        ft.replace(R.id.dashboard_container, fragment);
+        ft.addToBackStack(null);
+        ft.commit();
     }
 }

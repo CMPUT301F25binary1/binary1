@@ -138,8 +138,18 @@ public class EventDetailsFragment extends Fragment {
             loadEventDetails(eventId);
         }
 
-        // Navigation buttons
-        btnWaitingList.setOnClickListener(v -> openFragment(new EntrantsWaitingListFragment()));
+        btnWaitingList.setOnClickListener(v -> {
+            if (eventId != null && !eventId.isEmpty() && loadedEvent != null) {
+                openFragment(EntrantsWaitingListFragment.newInstance(
+                        eventId,
+                        loadedEvent.getName()
+                ));
+            } else {
+                Toast.makeText(getContext(),
+                        "Event not loaded yet.",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
         btnChosen.setOnClickListener(v -> {
             if (eventId != null && !eventId.isEmpty()) {
                 openFragment(ChosenEntrantsFragment.newInstance(eventId, loadedEvent.getName()));

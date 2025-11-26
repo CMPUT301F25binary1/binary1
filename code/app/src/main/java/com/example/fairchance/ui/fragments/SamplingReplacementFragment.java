@@ -17,15 +17,19 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
-import com.example.fairchance.ui.adapters.ReplacementPoolAdapter;
 import com.example.fairchance.ui.adapters.SelectedParticipantAdapter;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.HttpsCallableResult;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Screen where the organizer can sample N attendees for a specific event
@@ -37,23 +41,27 @@ public class SamplingReplacementFragment extends Fragment {
 
     private EventRepository repository;
     private String eventId;
+    private String eventName = "Name of Event";
 
     private TextInputLayout tilSampleNumber;
     private TextInputEditText etSampleNumber;
     private Button btnSampleAttendees;
 
+    // Selected participants (top list)
     private RecyclerView rvSelectedParticipants;
     private SelectedParticipantAdapter selectedAdapter;
     private final List<String> selectedIds = new ArrayList<>();
 
+    // Replacement pool (cancelled entrants, bottom list)
     private RecyclerView rvReplacementPool;
-    private ReplacementPoolAdapter replacementAdapter;
-    private final List<String> cancelledIds = new ArrayList<>();
+    private SelectedParticipantAdapter replacementAdapter;
+    private final List<String> replacementIds = new ArrayList<>();
 
     private TextView tvSummary;
 
-    public SamplingReplacementFragment() {
-    }
+    private FirebaseFunctions functions;
+
+    public SamplingReplacementFragment() { }
 
     public static SamplingReplacementFragment newInstance(String eventId) {
         SamplingReplacementFragment fragment = new SamplingReplacementFragment();
@@ -77,6 +85,7 @@ public class SamplingReplacementFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         repository = new EventRepository();
+        functions = FirebaseFunctions.getInstance();
 
         if (getArguments() != null) {
             eventId = getArguments().getString(ARG_EVENT_ID);
@@ -87,27 +96,57 @@ public class SamplingReplacementFragment extends Fragment {
         btnSampleAttendees = view.findViewById(R.id.btnSampleAttendees);
         tvSummary = view.findViewById(R.id.tvSummary);
 
-        // Selected participants list
+        // Selected participants list (top, "Notify Entrant")
         rvSelectedParticipants = view.findViewById(R.id.rvSelectedParticipants);
         rvSelectedParticipants.setLayoutManager(new LinearLayoutManager(getContext()));
-        selectedAdapter = new SelectedParticipantAdapter(selectedIds);
+        selectedAdapter = new SelectedParticipantAdapter(
+                selectedIds,
+                eventName,
+                "Notify Entrant",
+                true,
+                entrantId -> notifySingleEntrant(entrantId)
+        );
         rvSelectedParticipants.setAdapter(selectedAdapter);
 
-        // Replacement pool list
+        // Replacement pool list (bottom, "Draw Replacement")
         rvReplacementPool = view.findViewById(R.id.rvReplacementPool);
         rvReplacementPool.setLayoutManager(new LinearLayoutManager(getContext()));
-        replacementAdapter = new ReplacementPoolAdapter(
-                cancelledIds,
-                this::onDrawReplacementClicked
+        replacementAdapter = new SelectedParticipantAdapter(
+                replacementIds,
+                eventName,
+                "Draw Replacement",
+                true,
+                entrantId -> onDrawReplacementClicked(entrantId)
         );
         rvReplacementPool.setAdapter(replacementAdapter);
 
         btnSampleAttendees.setOnClickListener(v -> onSampleClicked());
 
         if (eventId != null && !eventId.isEmpty()) {
+            loadEventName();
             loadSelectedParticipants(0);
             loadReplacementPool();
         }
+    }
+
+    /** Load the event's name so the cards can show it. */
+    private void loadEventName() {
+        if (eventId == null || eventId.isEmpty()) return;
+
+        FirebaseFirestore.getInstance()
+                .collection("events")
+                .document(eventId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        String name = doc.getString("name");
+                        if (name != null && !name.isEmpty()) {
+                            eventName = name;
+                            selectedAdapter.setEventName(eventName);
+                            replacementAdapter.setEventName(eventName);
+                        }
+                    }
+                });
     }
 
     private void onSampleClicked() {
@@ -161,6 +200,7 @@ public class SamplingReplacementFragment extends Fragment {
                 });
     }
 
+    /** Load all currently selected entrants (any status). */
     private void loadSelectedParticipants(int requested) {
         if (eventId == null || eventId.isEmpty()) return;
 
@@ -174,7 +214,7 @@ public class SamplingReplacementFragment extends Fragment {
 
                     selectedIds.clear();
                     for (DocumentSnapshot doc : query.getDocuments()) {
-                        selectedIds.add(doc.getId());
+                        selectedIds.add(doc.getId()); // doc ID is userId
                     }
                     selectedAdapter.notifyDataSetChanged();
 
@@ -197,6 +237,10 @@ public class SamplingReplacementFragment extends Fragment {
                 });
     }
 
+    /**
+     * Replacement pool = all entries in "selected" where status == "cancelled".
+     * These are the people who gave up their spot and need replacements.
+     */
     private void loadReplacementPool() {
         if (eventId == null || eventId.isEmpty()) return;
 
@@ -204,15 +248,20 @@ public class SamplingReplacementFragment extends Fragment {
                 .collection("events")
                 .document(eventId)
                 .collection("selected")
-                .whereEqualTo("status", "cancelled")
                 .get()
-                .addOnSuccessListener(query -> {
+                .addOnSuccessListener(snap -> {
                     if (getContext() == null) return;
 
-                    cancelledIds.clear();
-                    for (DocumentSnapshot doc : query.getDocuments()) {
-                        cancelledIds.add(doc.getId());
+                    replacementIds.clear();
+
+                    for (DocumentSnapshot doc : snap.getDocuments()) {
+                        String status = doc.getString("status");
+                        Boolean replacementDrawn = doc.getBoolean("replacementDrawn");
+                        if ("cancelled".equals(status) && (replacementDrawn == null || !replacementDrawn)) {
+                            replacementIds.add(doc.getId());
+                        }
                     }
+
                     replacementAdapter.notifyDataSetChanged();
                 })
                 .addOnFailureListener(e -> {
@@ -223,29 +272,107 @@ public class SamplingReplacementFragment extends Fragment {
                 });
     }
 
-    private void onDrawReplacementClicked(String cancelledUserId) {
-        if (eventId == null || eventId.isEmpty()) return;
-
-        repository.drawReplacement(eventId, new EventRepository.EventTaskCallback() {
-            @Override
-            public void onSuccess() {
-                if (getContext() == null) return;
-
+    /** Notify a single selected entrant using the Cloud Function. */
+    private void notifySingleEntrant(String entrantId) {
+        if (eventId == null || eventId.isEmpty()) {
+            if (getContext() != null) {
                 Toast.makeText(getContext(),
-                        "Replacement entrant selected.",
-                        Toast.LENGTH_LONG).show();
-
-                loadSelectedParticipants(0);
-                loadReplacementPool();
-            }
-
-            @Override
-            public void onError(String message) {
-                if (getContext() == null) return;
-                Toast.makeText(getContext(),
-                        "Replacement draw failed: " + message,
+                        "No event ID for notification.",
                         Toast.LENGTH_LONG).show();
             }
+            return;
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("eventId", eventId);
+        data.put("entrantId", entrantId);
+
+        Task<Object> task = functions
+                .getHttpsCallable("sendChosenNotifications")
+                .call(data)
+                .continueWith(t -> {
+                    HttpsCallableResult result = t.getResult();
+                    return result != null ? result.getData() : null;
+                });
+
+        task.addOnSuccessListener(resultObj -> {
+            if (getContext() == null) return;
+
+            long sent = 0;
+            long failed = 0;
+
+            if (resultObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> res = (Map<String, Object>) resultObj;
+                Object s = res.get("sentCount");
+                Object f = res.get("failureCount");
+                if (s instanceof Number) sent = ((Number) s).longValue();
+                if (f instanceof Number) failed = ((Number) f).longValue();
+            }
+
+            String msg = "Notification for " + entrantId +
+                    ": " + sent + " success, " + failed + " failed.";
+            Toast.makeText(getContext(), msg, Toast.LENGTH_LONG).show();
+
+            loadSelectedParticipants(0);
         });
+
+        task.addOnFailureListener(e -> {
+            if (getContext() == null) return;
+            Toast.makeText(getContext(),
+                    "Failed to notify entrant: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        });
+    }
+
+    private void onDrawReplacementClicked(String entrantId) {
+        Toast.makeText(getContext(), "Replace logic not added yet", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Called when the organizer taps "Draw Replacement" on a cancelled entrant.
+     * For now this simply calls sampleAttendees(eventId, 1) to fill the open spot,
+     * then hides this cancelled entry from the Replacement Pool.
+     */
+    private void drawReplacementForCancelled(String cancelledEntrantId) {
+        if (eventId == null || eventId.isEmpty()) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(),
+                        "No event ID for replacement.",
+                        Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
+
+        repository.sampleAttendees(eventId, 1,
+                new EventRepository.EventTaskCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (getContext() == null) return;
+
+                        // Mark this cancelled entrant as already handled so it disappears
+                        FirebaseFirestore.getInstance()
+                                .collection("events")
+                                .document(eventId)
+                                .collection("selected")
+                                .document(cancelledEntrantId)
+                                .update("replacementDrawn", true);
+
+                        Toast.makeText(getContext(),
+                                "Replacement drawn for cancelled entrant.",
+                                Toast.LENGTH_LONG).show();
+
+                        loadSelectedParticipants(0);
+                        loadReplacementPool();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        if (getContext() == null) return;
+                        Toast.makeText(getContext(),
+                                "Failed to draw replacement: " + message,
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 }

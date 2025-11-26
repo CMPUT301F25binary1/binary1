@@ -32,7 +32,7 @@
         android:id="@+id/btnSendNotification"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Send Notification to Entrants"
+        android:text="Notify Selected Entrants"
         android:textSize="14sp"
         android:textColor="#000000"
         android:background="#E0E0E0"

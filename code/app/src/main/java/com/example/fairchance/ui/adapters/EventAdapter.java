@@ -3,6 +3,7 @@ package com.example.fairchance.ui.adapters;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,8 +25,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
-import com.example.fairchance.models.Event;
+import com.example.fairchance.ui.EventDetailsActivity;
 import com.example.fairchance.ui.fragments.EventDetailsFragment;
+import com.example.fairchance.models.Event;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 
@@ -44,9 +46,16 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     private String currentDateFilter = "ALL";
     private final EventRepository repo = new EventRepository();
 
+    private boolean openOrganizerView = false;
+
     public EventAdapter(List<Event> eventList) {
         this.eventList = eventList;
         this.eventListFull = new ArrayList<>(eventList);
+    }
+    public EventAdapter(List<Event> eventList, boolean openOrganizerView) {
+        this.eventList = eventList;
+        this.eventListFull = new ArrayList<>(eventList);
+        this.openOrganizerView = openOrganizerView;
     }
 
     @NonNull
@@ -175,13 +184,21 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             Context context = itemView.getContext();
 
             View.OnClickListener openDetails = v -> {
-                EventDetailsFragment fragment = EventDetailsFragment.newInstance(event.getEventId());
-                FragmentTransaction transaction = ((AppCompatActivity) context)
-                        .getSupportFragmentManager()
-                        .beginTransaction();
-                transaction.replace(R.id.fragment_container, fragment);
-                transaction.addToBackStack(null);
-                transaction.commit();
+                if (openOrganizerView) {
+                    // Organizer view: open the purple fragment with QR + buttons
+                    EventDetailsFragment fragment = EventDetailsFragment.newInstance(event.getEventId());
+                    FragmentTransaction transaction = ((AppCompatActivity) context)
+                            .getSupportFragmentManager()
+                            .beginTransaction();
+                    transaction.replace(R.id.fragment_container, fragment);
+                    transaction.addToBackStack(null);
+                    transaction.commit();
+                } else {
+                    // Entrant view: open the green JOIN WAITLIST activity
+                    Intent intent = new Intent(context, EventDetailsActivity.class);
+                    intent.putExtra("EVENT_ID", event.getEventId());
+                    context.startActivity(intent);
+                }
             };
 
             buttonDetails.setOnClickListener(openDetails);

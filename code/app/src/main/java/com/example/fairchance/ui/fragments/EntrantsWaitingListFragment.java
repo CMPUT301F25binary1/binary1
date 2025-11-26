@@ -34,7 +34,7 @@ public class EntrantsWaitingListFragment extends Fragment {
 
     private RecyclerView rvWaitingList;
     private Button btnSendNotification;
-    private Button btnViewWaitingListMap;   // for later user story
+    private Button btnViewWaitingListMap;
 
     private SelectedParticipantAdapter adapter;
     private final List<String> waitingIds = new ArrayList<>();
@@ -92,7 +92,26 @@ public class EntrantsWaitingListFragment extends Fragment {
 
         btnSendNotification.setOnClickListener(v -> showWaitingNotificationDialog());
 
-        // btnViewWaitingListMap will be wired up for the map user story later
+        btnViewWaitingListMap.setOnClickListener(v -> {
+            if (eventId == null || eventId.isEmpty()) {
+                Toast.makeText(getContext(),
+                        "Event not loaded.",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Open full-screen fragment with map + no-location list
+            WaitingListMapFragment fragment =
+                    WaitingListMapFragment.newInstance(eventId, eventName);
+
+            requireActivity()
+                    .getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, fragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
+
     }
 
     /**

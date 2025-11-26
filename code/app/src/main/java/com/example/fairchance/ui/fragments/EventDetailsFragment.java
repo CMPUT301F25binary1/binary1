@@ -20,6 +20,7 @@ import androidx.fragment.app.FragmentTransaction;
 import com.bumptech.glide.Glide;
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
+import com.example.fairchance.ui.fragments.FinalEntrantsFragment;
 import com.example.fairchance.models.Event;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.MultiFormatWriter;
@@ -168,7 +169,21 @@ public class EventDetailsFragment extends Fragment {
                         Toast.LENGTH_LONG).show();
             }
         });
-        btnFinal.setOnClickListener(v -> openFragment(new FinalEntrantsFragment()));
+        btnFinal.setOnClickListener(v -> {
+            if (eventId != null && !eventId.isEmpty()) {
+                String name = (loadedEvent != null && loadedEvent.getName() != null)
+                        ? loadedEvent.getName()
+                        : "";
+
+                openFragment(FinalEntrantsFragment.newInstance(eventId, name));
+            } else {
+                Toast.makeText(
+                        getContext(),
+                        "No event ID available for final entrants.",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
+        });;
 
         // NEW: Sampling & Replacement button logic
         if (btnSamplingReplacement != null) {

@@ -69,8 +69,8 @@ public class SelectedParticipantAdapter
             holder.tvEventName.setText(eventName);
             holder.tvEventName.setVisibility(View.VISIBLE);
         } else {
-            holder.tvEventName.setText(eventName);
-            holder.tvEventName.setVisibility(View.VISIBLE);
+            holder.tvEventName.setText("");
+            holder.tvEventName.setVisibility(View.GONE);
         }
 
         if (listener != null) {

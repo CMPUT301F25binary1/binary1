@@ -26,7 +26,21 @@
         app:layout_constraintTop_toBottomOf="@id/tvCancelledEntrantsTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigation" />
+        app:layout_constraintBottom_toTopOf="@id/btnNotifyCancelledEntrants" />
+
+    <Button
+        android:id="@+id/btnNotifyCancelledEntrants"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Notify Cancelled Entrants"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        android:background="#E0E0E0"
+        android:padding="12dp"
+        android:layout_margin="16dp"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"

@@ -159,7 +159,15 @@ public class EventDetailsFragment extends Fragment {
                         Toast.LENGTH_LONG).show();
             }
         });
-        btnCancelled.setOnClickListener(v -> openFragment(new CancelledEntrantsFragment()));
+        btnCancelled.setOnClickListener(v -> {
+            if (eventId != null && !eventId.isEmpty()) {
+                openFragment(CancelledEntrantsFragment.newInstance(eventId));
+            } else {
+                Toast.makeText(getContext(),
+                        "No event ID available for cancelled entrants.",
+                        Toast.LENGTH_LONG).show();
+            }
+        });
         btnFinal.setOnClickListener(v -> openFragment(new FinalEntrantsFragment()));
 
         // NEW: Sampling & Replacement button logic

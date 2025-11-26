@@ -43,7 +43,7 @@ public class OngoingEventsFragment extends Fragment {
         rvOngoingEvents = view.findViewById(R.id.rvOngoingEvents);
         rvOngoingEvents.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        adapter = new EventAdapter(new ArrayList<>());
+        adapter = new EventAdapter(new ArrayList<>(), true);
         rvOngoingEvents.setAdapter(adapter);
 
         repository = new EventRepository();

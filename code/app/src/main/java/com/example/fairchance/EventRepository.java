@@ -875,6 +875,45 @@ public class EventRepository {
                 });
     }
 
+    public void sendCancelledNotifications(String eventId,
+                                                   String message,
+                                                   NotificationCallback callback) {
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("eventId", eventId);
+        data.put("message", message);
+
+        FirebaseFunctions.getInstance()
+                .getHttpsCallable("sendCancelledNotifications")
+                .call(data)
+                .addOnSuccessListener(result -> {
+                    int sentCount = 0;
+                    int failureCount = 0;
+
+                    Object raw = result.getData();
+                    if (raw instanceof Map) {
+                        Map<?, ?> map = (Map<?, ?>) raw;
+                        Object s = map.get("sentCount");
+                        Object f = map.get("failureCount");
+                        if (s instanceof Number) {
+                            sentCount = ((Number) s).intValue();
+                        }
+                        if (f instanceof Number) {
+                            failureCount = ((Number) f).intValue();
+                        }
+                    }
+
+                    if (callback != null) {
+                        callback.onSuccess(sentCount, failureCount);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
     /**
      * Removes the poster image for a given event:
      * 1) Deletes the file from Firebase Storage (if possible).

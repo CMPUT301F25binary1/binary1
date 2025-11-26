@@ -25,6 +25,8 @@ import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.HttpsCallableResult;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -89,6 +91,11 @@ public class EventRepository {
 
     public interface SampleAttendeesCallback {
         void onSuccess(int selectedCount);
+        void onError(String message);
+    }
+
+    public interface NotificationCallback {
+        void onSuccess(int sentCount, int failureCount);
         void onError(String message);
     }
 
@@ -827,6 +834,45 @@ public class EventRepository {
                     }
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void sendWaitingListNotifications(String eventId,
+                                             String message,
+                                             NotificationCallback callback) {
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("eventId", eventId);
+        data.put("message", message);
+
+        FirebaseFunctions.getInstance()
+                .getHttpsCallable("sendWaitingListNotifications")
+                .call(data)
+                .addOnSuccessListener(result -> {
+                    int sentCount = 0;
+                    int failureCount = 0;
+
+                    Object raw = result.getData();
+                    if (raw instanceof Map) {
+                        Map<?, ?> map = (Map<?, ?>) raw;
+                        Object s = map.get("sentCount");
+                        Object f = map.get("failureCount");
+                        if (s instanceof Number) {
+                            sentCount = ((Number) s).intValue();
+                        }
+                        if (f instanceof Number) {
+                            failureCount = ((Number) f).intValue();
+                        }
+                    }
+
+                    if (callback != null) {
+                        callback.onSuccess(sentCount, failureCount);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     /**

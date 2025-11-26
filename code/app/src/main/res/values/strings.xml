@@ -67,4 +67,5 @@
 
     <!-- From main branch -->
     <string name="back">Back</string>
+    <string name="google_maps_key">AIzaSyB6R37B7f_uoNM9aRYkJPhc3fcWbyG1xNc</string>
 </resources>

@@ -42,7 +42,7 @@
             android:id="@+id/btnViewWaitingListMap"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="View Waiting List Map"
+            android:text="View Entrant Locations"
             android:textSize="14sp"
             android:textColor="#000000"
             android:background="#E0E0E0"

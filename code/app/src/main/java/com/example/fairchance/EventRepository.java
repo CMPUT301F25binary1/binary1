@@ -958,27 +958,20 @@ public class EventRepository {
     }
 
     /**
-     * Admin: Deactivates all events that belong to a given organizer.
-     * Sets isActive=false and status="deactivated".
+     * Marks all events created by the given organizer as inactive.
+     * We assume each event document has an "organizerId" field.
      */
-    public void deactivateEventsByOrganizer(String organizerId,
-                                            String adminId,
-                                            EventTaskCallback callback) {
-
-        if (organizerId == null || organizerId.isEmpty()) {
-            if (callback != null) {
-                callback.onError("Organizer id is empty.");
-            }
-            return;
-        }
+    public void deactivateEventsByOrganizer(@NonNull String organizerId,
+                                            @NonNull String adminId,
+                                            @NonNull String reason,
+                                            @NonNull EventTaskCallback callback) {
 
         eventsRef.whereEqualTo("organizerId", organizerId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (querySnapshot.isEmpty()) {
-                        if (callback != null) {
-                            callback.onSuccess();
-                        }
+                        // No events; treat as success
+                        callback.onSuccess();
                         return;
                     }
 
@@ -988,33 +981,19 @@ public class EventRepository {
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         Map<String, Object> updates = new HashMap<>();
                         updates.put("isActive", false);
-                        updates.put("status", "deactivated");
                         updates.put("deactivatedAt", now);
                         updates.put("deactivatedByAdminId", adminId);
-
+                        updates.put("deactivationReason", reason);
                         batch.set(doc.getReference(), updates, SetOptions.merge());
                     }
 
                     batch.commit()
-                            .addOnSuccessListener(aVoid -> {
-                                if (callback != null) {
-                                    callback.onSuccess();
-                                }
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e(TAG, "Failed to deactivate events for organizer", e);
-                                if (callback != null) {
-                                    callback.onError(e.getMessage());
-                                }
-                            });
+                            .addOnSuccessListener(aVoid -> callback.onSuccess())
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to query events for organizer", e);
-                    if (callback != null) {
-                        callback.onError(e.getMessage());
-                    }
-                });
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
+
 
     /**
      * Draws a single replacement entrant for an event.

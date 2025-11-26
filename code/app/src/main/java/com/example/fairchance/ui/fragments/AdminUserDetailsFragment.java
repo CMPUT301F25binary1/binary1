@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,7 +44,6 @@ public class AdminUserDetailsFragment extends Fragment {
     private View btnRemoveUser;
 
     private String userId;
-    private String userRole; // track the role so we only remove organizers
 
     @Nullable
     @Override
@@ -95,6 +93,7 @@ public class AdminUserDetailsFragment extends Fragment {
 
     private void bindUser(DocumentSnapshot doc) {
         progressBar.setVisibility(View.GONE);
+
         if (!doc.exists()) {
             Toast.makeText(requireContext(), "User not found", Toast.LENGTH_LONG).show();
             requireActivity().getOnBackPressedDispatcher().onBackPressed();
@@ -105,8 +104,6 @@ public class AdminUserDetailsFragment extends Fragment {
         String email = doc.getString("email");
         String role = doc.getString("role");
         String phone = doc.getString("phone");
-
-        userRole = role; // store role for later checks
 
         tvName.setText(name != null ? name : "N/A");
         tvEmail.setText(email != null ? "Email: " + email : "Email: N/A");
@@ -119,67 +116,41 @@ public class AdminUserDetailsFragment extends Fragment {
         } else {
             tvCreated.setText("Registered: N/A");
         }
-
-        // Only allow removal if this user is an organizer
-        if (role != null && role.equalsIgnoreCase("organizer")) {
-            btnRemoveUser.setVisibility(View.VISIBLE);
-        } else {
-            btnRemoveUser.setVisibility(View.GONE);
-        }
     }
 
     private void confirmRemoveUser() {
         if (userId == null) return;
 
-        // Safety: only organizers should be removed here
-        if (userRole == null || !userRole.equalsIgnoreCase("organizer")) {
-            Toast.makeText(requireContext(),
-                    "Only organizers can be removed with this action.",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        // Simple dialog with optional "reason" field
-        final EditText input = new EditText(requireContext());
-        input.setHint("Reason for removal (optional)");
-
         new AlertDialog.Builder(requireContext())
-                .setTitle("Remove Organizer")
-                .setMessage("Are you sure you want to deactivate this organizer and their events?")
-                .setView(input)
+                .setTitle("Remove profile")
+                .setMessage("Are you sure you want to remove this user profile?")
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Remove", (dialog, which) -> {
-                    String reason = input.getText() != null
-                            ? input.getText().toString()
-                            : "";
-                    deactivateOrganizer(reason);
-                })
+                .setPositiveButton("Remove", (dialog, which) -> performRemoval())
                 .show();
     }
 
-    private void deactivateOrganizer(String reason) {
+    private void performRemoval() {
         progressBar.setVisibility(View.VISIBLE);
         btnRemoveUser.setEnabled(false);
 
-        authRepository.deactivateOrganizerAndEvents(userId, reason,
-                new AuthRepository.TaskCallback() {
-                    @Override
-                    public void onSuccess() {
-                        progressBar.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(),
-                                "Organizer removed and events deactivated.",
-                                Toast.LENGTH_SHORT).show();
-                        requireActivity().getOnBackPressedDispatcher().onBackPressed();
-                    }
+        authRepository.deleteUserProfileById(userId, new AuthRepository.TaskCallback() {
+            @Override
+            public void onSuccess() {
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(),
+                        "Profile removed.",
+                        Toast.LENGTH_SHORT).show();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
+            }
 
-                    @Override
-                    public void onError(String message) {
-                        progressBar.setVisibility(View.GONE);
-                        btnRemoveUser.setEnabled(true);
-                        Toast.makeText(requireContext(),
-                                "Error removing organizer: " + message,
-                                Toast.LENGTH_LONG).show();
-                    }
-                });
+            @Override
+            public void onError(String message) {
+                progressBar.setVisibility(View.GONE);
+                btnRemoveUser.setEnabled(true);
+                Toast.makeText(requireContext(),
+                        "Error removing profile: " + message,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 }

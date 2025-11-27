@@ -24,6 +24,10 @@ public class Event {
     private long waitingListLimit;
     private String guidelines;
     private String category;
+    private String location;
+    @Exclude
+    private String organizerName;   // not stored in Firestore, just for UI
+
 
     @Exclude
     private String eventId;
@@ -144,6 +148,24 @@ public class Event {
     public void setCategory(String category) {
         this.category = category;
     }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    @Exclude
+    public String getOrganizerName() {
+        return organizerName;
+    }
+
+    public void setOrganizerName(String organizerName) {
+        this.organizerName = organizerName;
+    }
+
 
     /**
      * Gets the event's unique Document ID.

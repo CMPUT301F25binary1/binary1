@@ -134,15 +134,37 @@ public class ProfileFragment extends Fragment {
 
         // Build the notification preferences map
         Map<String, Object> notificationPrefs = new HashMap<>();
-        notificationPrefs.put("lotteryResults", switchLotteryResults.isChecked());
-        notificationPrefs.put("organizerUpdates", switchOrganizerUpdates.isChecked());
+        boolean lotteryResultsEnabled = switchLotteryResults.isChecked();
+        boolean organizerUpdatesEnabled = switchOrganizerUpdates.isChecked();
+
+        notificationPrefs.put("lotteryResults", lotteryResultsEnabled);
+        notificationPrefs.put("organizerUpdates", organizerUpdatesEnabled);
+
+        // FIX: Determine overall opt-out status (US 01.04.03 Criterion 2)
+        // Notifications are globally enabled if AT LEAST ONE switch is ON.
+        boolean notificationsGloballyEnabled = lotteryResultsEnabled || organizerUpdatesEnabled;
+
 
         setLoading(true);
+        // Step 1: Update basic profile details and preferences
         authRepository.updateUserProfile(name, email, phone, notificationPrefs, new AuthRepository.TaskCallback() {
             @Override
             public void onSuccess() {
-                setLoading(false);
-                Toast.makeText(getContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show();
+                // Step 2: Update FCM token based on preference (opt-out mechanism)
+                authRepository.updateNotificationStatus(notificationsGloballyEnabled, new AuthRepository.TaskCallback() {
+                    @Override
+                    public void onSuccess() {
+                        setLoading(false);
+                        Toast.makeText(getContext(), "Profile updated successfully!", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        setLoading(false);
+                        Log.e(TAG, "Error updating notification status/token: " + message);
+                        Toast.makeText(getContext(), "Profile updated, but notification status failed: " + message, Toast.LENGTH_LONG).show();
+                    }
+                });
             }
 
             @Override

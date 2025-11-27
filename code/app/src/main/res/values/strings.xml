@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">Fair Chance</string>
     <string name="step_3_lottery_selection_response">Once the registration period ends, the system performs a random selection process (the lottery) to choose the required number of participants from the Waiting List. All participants who are selected receive an invitation notification.</string>
     <string name="step_4_confirmation_and_replacements">Step 4: Confirmation and Replacements</string>
     <string name="step_4_confirmation_and_replacements_response">Selected entrants have a limited time to accept the invitation (Sign Up). If a selected spot is declined or expires, the system automatically draws a replacement from the remaining Waiting List entrants to maintain fairness and fill the event capacity.</string>
@@ -20,6 +19,7 @@
     <string name="don_t_have_an_account">Don\'t have an account?</string>
     <string name="login_now">Login Now</string>
     <string name="register">Register</string>
+    <string name="app_name">FairChance</string>
     <string name="search">Search</string>
     <string name="what_type_of_account_do_you_want_to_make">What type of account do you want to make?</string>
     <string name="how_it_works">How it Works</string>
@@ -48,4 +48,24 @@
     <string name="event_title">Event Title</string>
     <string name="join_waitlist">Join Waitlist</string>
     <string name="details">Details</string>
+
+    <!-- Admin dashboard + stats -->
+    <string name="app_logo">App Logo</string>
+    <string name="admin_dashboard">Admin Dashboard</string>
+    <string name="active_events">Active Events</string>
+    <string name="user_profiles">User Profiles</string>
+    <string name="uploaded_images">Uploaded Images</string>
+    <string name="organizers">Organizers</string>
+    <string name="management_section">Management Section</string>
+    <string name="notifications">Notifications</string>
+    <string name="stat_active_events">42</string>
+    <string name="stat_user_profiles">1,254</string>
+    <string name="stat_uploaded_images">876</string>
+    <string name="stat_organizers">38</string>
+    <string name="profile_management">Profile Management</string>
+    <string name="image_management">Image Management</string>
+
+    <!-- From main branch -->
+    <string name="back">Back</string>
+    <string name="google_maps_key">AIzaSyB6R37B7f_uoNM9aRYkJPhc3fcWbyG1xNc</string>
 </resources>

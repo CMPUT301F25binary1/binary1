@@ -47,6 +47,17 @@ public class MainActivity extends AppCompatActivity {
                         // If entrant, show the nav bar and set it up
                         bottomNav.setVisibility(View.VISIBLE);
                         setupEntrantNavigation();
+
+                        // [FIX] Check for navigation intent from notification (US 01.04.01)
+                        if (getIntent().hasExtra("NAV_TO_INVITATIONS")) {
+                            loadDashboardFragment(new InvitationsFragment());
+                            bottomNav.setSelectedItemId(R.id.nav_invitations);
+                        } else {
+                            // Load the default "Home" fragment only if no special navigation is requested
+                            loadDashboardFragment(new EntrantHomeFragment());
+                            bottomNav.setSelectedItemId(R.id.nav_home);
+                        }
+
                         break;
                     case "organizer":
                         // If organizer, hide nav bar and load their simple dashboard
@@ -62,6 +73,11 @@ public class MainActivity extends AppCompatActivity {
                         Log.e("MainActivity", "Unknown role, defaulting to entrant.");
                         bottomNav.setVisibility(View.VISIBLE);
                         setupEntrantNavigation();
+
+                        // Default load
+                        loadDashboardFragment(new EntrantHomeFragment());
+                        bottomNav.setSelectedItemId(R.id.nav_home);
+
                         break;
                 }
             }
@@ -82,10 +98,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupEntrantNavigation() {
         bottomNav.inflateMenu(R.menu.entrant_nav_menu);
 
-        // Load the default "Home" fragment
-        loadDashboardFragment(new EntrantHomeFragment());
-        // Set "Home" as selected in the menu
-        bottomNav.setSelectedItemId(R.id.nav_home);
+        // [FIX] Removed default load/selection. Now handled in onCreate.
 
         // Set the listener for navigation
         bottomNav.setOnItemSelectedListener(item -> {

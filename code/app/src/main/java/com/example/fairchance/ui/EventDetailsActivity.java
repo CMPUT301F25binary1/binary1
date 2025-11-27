@@ -44,7 +44,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private ImageView eventPosterImage;
     private ProgressBar progressBar;
     private LinearLayout eventDetailsContent;
-    private TextView tvEventName, tvEventDate, tvEventDescription, tvEventGuidelines, tvEventWaitlistCount;
+    private TextView tvEventName, tvEventDate, tvEventLocation, tvEventDescription, tvEventGuidelines, tvEventWaitlistCount;
     private Button btnJoinWaitlist;
     private ProgressBar joinProgressBar;
 
@@ -69,6 +69,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         eventDetailsContent = findViewById(R.id.event_details_content);
         tvEventName = findViewById(R.id.event_name_text);
         tvEventDate = findViewById(R.id.event_date_text);
+        tvEventLocation = findViewById(R.id.event_location_text);
         tvEventDescription = findViewById(R.id.event_description_text);
         tvEventGuidelines = findViewById(R.id.event_guidelines_text);
         tvEventWaitlistCount = findViewById(R.id.event_waitlist_count_text);
@@ -211,6 +212,12 @@ public class EventDetailsActivity extends AppCompatActivity {
     private void populateUi(Event event) {
         tvEventName.setText(event.getName());
         tvEventDescription.setText(event.getDescription());
+
+        if (event.getLocation() != null && !event.getLocation().isEmpty()) {
+            tvEventLocation.setText(event.getLocation());
+        } else {
+            tvEventLocation.setText("Location not specified");
+        }
 
         if (event.getEventDate() != null) {
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyY 'at' hh:mm a", Locale.getDefault());

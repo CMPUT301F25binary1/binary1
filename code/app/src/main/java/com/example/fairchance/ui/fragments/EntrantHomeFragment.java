@@ -20,6 +20,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -30,8 +31,11 @@ import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
 import com.example.fairchance.models.User;
+import com.example.fairchance.ui.AuthActivity;
 import com.example.fairchance.ui.EventDetailsActivity;
 import com.example.fairchance.ui.adapters.EventAdapter;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
@@ -52,6 +56,7 @@ public class EntrantHomeFragment extends Fragment {
     private List<Event> eventList = new ArrayList<>();
     private EventRepository eventRepository;
     private AuthRepository authRepository;
+    private ListenerRegistration eventListenerRegistration;
 
     private ProgressBar progressBar;
     private TextView emptyView;
@@ -60,6 +65,9 @@ public class EntrantHomeFragment extends Fragment {
     private ImageButton scanButton;
     private Button btnAll, btnMusic, btnDance, btnArt, btnTech;
     private Button btnHowItWorks;
+    private Button btnFilterToday;
+    private Button currentCategoryButton;
+    private boolean isTodayFilterActive = false;
 
     /**
      * ActivityResultLauncher for the QR code scanning intent.
@@ -107,12 +115,17 @@ public class EntrantHomeFragment extends Fragment {
         searchEditText = view.findViewById(R.id.editText);
         scanButton = view.findViewById(R.id.imageButton);
         btnHowItWorks = view.findViewById(R.id.btn_how_it_works);
+        btnFilterToday = view.findViewById(R.id.btn_filter_today);
 
         btnAll = view.findViewById(R.id.button);
         btnMusic = view.findViewById(R.id.button2);
         btnDance = view.findViewById(R.id.button3);
         btnArt = view.findViewById(R.id.button4);
         btnTech = view.findViewById(R.id.button5);
+
+
+        currentCategoryButton = btnAll;
+        updateCategoryButtonAppearance(currentCategoryButton, true);
 
         // Setup RecyclerView
         eventsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -137,18 +150,15 @@ public class EntrantHomeFragment extends Fragment {
         });
 
         View.OnClickListener categoryClickListener = v -> {
-            String category = "All"; // Default to "All"
-            int id = v.getId();
+            Button clickedButton = (Button) v;
+            String category = clickedButton.getText().toString();
 
-            if (id == R.id.button2) {
-                category = "Music";
-            } else if (id == R.id.button3) {
-                category = "Dance";
-            } else if (id == R.id.button4) {
-                category = "Art";
-            } else if (id == R.id.button5) {
-                category = "Tech";
+            if (currentCategoryButton != null) {
+                updateCategoryButtonAppearance(currentCategoryButton, false);
             }
+
+            currentCategoryButton = clickedButton;
+            updateCategoryButtonAppearance(currentCategoryButton, true);
 
             eventAdapter.setCategory(category);
         };
@@ -159,6 +169,8 @@ public class EntrantHomeFragment extends Fragment {
         btnTech.setOnClickListener(categoryClickListener);
 
         btnHowItWorks.setOnClickListener(v -> navigateToGuidelines());
+
+        btnFilterToday.setOnClickListener(v -> toggleDateFilter());
 
         // Setup Scan Button
         scanButton.setOnClickListener(v -> {
@@ -172,9 +184,46 @@ public class EntrantHomeFragment extends Fragment {
             qrCodeLauncher.launch(integrator.createScanIntent());
         });
 
+
+
         // Fetch events from Firestore
         loadEvents();
+    }
 
+    /**
+     * Implements the toggle logic for the "Today's Events" date filter.
+     * Toggles the filter state and updates the button's appearance.
+     */
+    private void toggleDateFilter() {
+        if (getContext() == null) return;
+        isTodayFilterActive = !isTodayFilterActive;
+
+        if (isTodayFilterActive) {
+            btnFilterToday.setText("Show All Dates");
+            btnFilterToday.setTextColor(ContextCompat.getColor(getContext(), R.color.white));
+            btnFilterToday.setBackgroundTintList(ContextCompat.getColorStateList(getContext(), R.color.FCblue));
+            eventAdapter.setDateFilter("TODAY");
+        } else {
+            btnFilterToday.setText("Today's Events");
+            btnFilterToday.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
+            btnFilterToday.setBackgroundTintList(ContextCompat.getColorStateList(getContext(), android.R.color.transparent));
+            eventAdapter.setDateFilter("ALL");
+        }
+    }
+
+    /**
+     * Helper method to update the appearance of a category button for visual feedback.
+     */
+    private void updateCategoryButtonAppearance(Button button, boolean isSelected) {
+        if (getContext() == null || button == null) return;
+
+        if (isSelected) {
+            button.setTextColor(ContextCompat.getColor(getContext(), R.color.white));
+            button.setBackgroundTintList(ContextCompat.getColorStateList(getContext(), R.color.FCblue));
+        } else {
+            button.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
+            button.setBackgroundTintList(ContextCompat.getColorStateList(getContext(), android.R.color.transparent));
+        }
     }
 
     /**
@@ -214,11 +263,12 @@ public class EntrantHomeFragment extends Fragment {
 
     /**
      * Fetches the list of all available events from the EventRepository
-     * and populates the RecyclerView.
+     * and populates the RecyclerView. (Now uses a real-time listener for US 01.01.03)
      */
     private void loadEvents() {
         showLoading(true);
-        eventRepository.getAllEvents(new EventRepository.EventListCallback() {
+
+        eventListenerRegistration = eventRepository.getAllEvents(new EventRepository.EventListCallback() {
             @Override
             public void onSuccess(List<Event> events) {
                 showLoading(false);
@@ -226,7 +276,7 @@ public class EntrantHomeFragment extends Fragment {
                     showEmptyView(true);
                 } else {
                     showEmptyView(false);
-                    eventAdapter.setEvents(events);
+                    eventAdapter.updateBaseEventsAndRefilter(events);
                 }
             }
 
@@ -237,6 +287,18 @@ public class EntrantHomeFragment extends Fragment {
                 Toast.makeText(getContext(), "Failed to load events", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /**
+     * Lifecycle method to remove the real-time listener when the view is destroyed.
+     */
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (eventListenerRegistration != null) {
+            eventListenerRegistration.remove();
+            Log.d(TAG, "Firestore listener removed.");
+        }
     }
 
     /**

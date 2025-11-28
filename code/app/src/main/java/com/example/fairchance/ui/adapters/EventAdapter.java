@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -209,10 +211,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                 public void onSuccess(String status) {
                     if (status != null) {
                         buttonJoin.setText("Leave Waiting List");
-                        buttonJoin.setBackgroundTintList(context.getResources().getColorStateList(R.color.FCgreen));
+                        // User has joined: Set color to RED
+                        buttonJoin.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
                     } else {
                         buttonJoin.setText("Join Waiting List");
-                        buttonJoin.setBackgroundTintList(context.getResources().getColorStateList(R.color.gray));
+                        // User has NOT joined: Set color to GREEN
+                        buttonJoin.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(context, R.color.FCgreen)));
                     }
                 }
 
@@ -256,7 +260,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                                                 public void onSuccess() {
                                                     Toast.makeText(context, "Joined with location.", Toast.LENGTH_SHORT).show();
                                                     buttonJoin.setText("Leave Waiting List");
-                                                    buttonJoin.setBackgroundTintList(context.getResources().getColorStateList(R.color.FCgreen));
+                                                    // JOINED -> RED
+                                                    buttonJoin.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
                                                 }
 
                                                 @Override
@@ -276,7 +281,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                             public void onSuccess() {
                                 Toast.makeText(context, "Joined waiting list!", Toast.LENGTH_SHORT).show();
                                 buttonJoin.setText("Leave Waiting List");
-                                buttonJoin.setBackgroundTintList(context.getResources().getColorStateList(R.color.FCgreen));
+                                // JOINED -> RED
+                                buttonJoin.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
                             }
 
                             @Override
@@ -291,7 +297,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                         public void onSuccess() {
                             Toast.makeText(context, "Left waiting list.", Toast.LENGTH_SHORT).show();
                             buttonJoin.setText("Join Waiting List");
-                            buttonJoin.setBackgroundTintList(context.getResources().getColorStateList(R.color.gray));
+                            // LEFT -> GREEN
+                            buttonJoin.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(context, R.color.FCgreen)));
                         }
 
                         @Override

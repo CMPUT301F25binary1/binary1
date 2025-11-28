@@ -19,6 +19,7 @@ import com.bumptech.glide.Glide;
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -27,7 +28,7 @@ import java.util.Locale;
  * This Activity displays the detailed information for a single event.
  * It is responsible for:
  * 1. Loading all event data (name, description, poster, etc.) from Firestore.
- * 2. Loading the current waitlist count for the event.
+ * 2. Loading the current waitlist count for the event (now in Real-time).
  * 3. Checking the current user's status for this event (e.g., "Waiting", "Confirmed", or null).
  * 4. Providing the logic for the "Join Waitlist" / "Leave Waitlist" button.
  */
@@ -39,6 +40,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private String currentEventId;
     private Event currentEvent;
     private String currentEventStatus = null;
+    private ListenerRegistration waitlistListener;
 
     // UI Components
     private ImageView eventPosterImage;
@@ -88,6 +90,14 @@ public class EventDetailsActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (waitlistListener != null) {
+            waitlistListener.remove();
+        }
+    }
+
     /**
      * Kicks off the data loading chain.
      * 1. Fetches main Event data.
@@ -114,11 +124,15 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Fetches the total number of users on the waitlist for this event.
+     * Fetches the total number of users on the waitlist for this event using a REAL-TIME listener.
      * Updates the UI to show spots taken/left if a limit is set.
      */
     private void loadWaitlistCount() {
-        eventRepository.getWaitingListCount(currentEventId, new EventRepository.WaitlistCountCallback() {
+        if (waitlistListener != null) {
+            waitlistListener.remove();
+        }
+
+        waitlistListener = eventRepository.listenToWaitingListCount(currentEventId, new EventRepository.WaitlistCountCallback() {
             @Override
             public void onSuccess(int count) {
                 if (currentEvent != null && currentEvent.getWaitingListLimit() > 0) {
@@ -178,7 +192,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 currentEventStatus = "Waiting";
                 updateJoinButtonUI();
                 Toast.makeText(EventDetailsActivity.this, "Joined waitlist!", Toast.LENGTH_SHORT).show();
-                loadWaitlistCount(); // Refresh count
+                // Count updates automatically via listener
             }
 
             @Override
@@ -202,7 +216,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                 currentEventStatus = null;
                 updateJoinButtonUI();
                 Toast.makeText(EventDetailsActivity.this, "Left waitlist.", Toast.LENGTH_SHORT).show();
-                loadWaitlistCount(); // Refresh count
+                // Count updates automatically via listener
             }
 
             @Override

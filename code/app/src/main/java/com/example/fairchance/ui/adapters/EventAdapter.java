@@ -209,14 +209,21 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             repo.checkEventHistoryStatus(event.getEventId(), new EventRepository.EventHistoryCheckCallback() {
                 @Override
                 public void onSuccess(String status) {
-                    if (status != null) {
+                    if (status == null) {
+                        buttonJoin.setText("Join Waiting List");
+                        buttonJoin.setEnabled(true);
+                        // User has NOT joined: Set color to GREEN
+                        buttonJoin.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(context, R.color.FCgreen)));
+                    } else if ("Waiting".equals(status)) {
                         buttonJoin.setText("Leave Waiting List");
+                        buttonJoin.setEnabled(true);
                         // User has joined: Set color to RED
                         buttonJoin.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
                     } else {
-                        buttonJoin.setText("Join Waiting List");
-                        // User has NOT joined: Set color to GREEN
-                        buttonJoin.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(context, R.color.FCgreen)));
+                        // User is Selected, Confirmed, Declined, etc. -> Disable button
+                        buttonJoin.setText(status);
+                        buttonJoin.setEnabled(false);
+                        buttonJoin.setBackgroundTintList(ColorStateList.valueOf(Color.GRAY));
                     }
                 }
 
@@ -226,6 +233,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
             buttonJoin.setOnClickListener(v -> {
                 String label = buttonJoin.getText().toString();
+                // This will only run if button is enabled
                 if (label.contains("Join")) {
                     if (event.isGeolocationRequired()) {
                         Activity activity = (Activity) context;
@@ -292,6 +300,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                         });
                     }
                 } else {
+                    // Logic for "Leave Waiting List"
                     repo.leaveWaitingList(event.getEventId(), new EventRepository.EventTaskCallback() {
                         @Override
                         public void onSuccess() {

@@ -1,7 +1,9 @@
 package com.example.fairchance.ui.adapters;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -107,7 +109,48 @@ public class InvitationAdapter extends RecyclerView.Adapter<InvitationAdapter.In
             }
 
             btnAccept.setOnClickListener(v -> handleResponse(item, position, true));
-            btnDecline.setOnClickListener(v -> handleResponse(item, position, false));
+
+            // CHANGED: Show confirmation dialog instead of declining immediately
+            btnDecline.setOnClickListener(v -> showDeclineConfirmationDialog(item, position));
+        }
+
+        /**
+         * Shows a dialog to confirm the user wants to decline the invitation.
+         * Uses the custom layout dialog_confirm_action.xml.
+         */
+        private void showDeclineConfirmationDialog(Invitation item, int position) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            LayoutInflater inflater = LayoutInflater.from(context);
+            View dialogView = inflater.inflate(R.layout.dialog_confirm_action, null);
+            builder.setView(dialogView);
+
+            AlertDialog dialog = builder.create();
+            // Set transparent background to respect the custom XML layout's background/margins
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            }
+
+            TextView title = dialogView.findViewById(R.id.tvDialogTitle);
+            TextView message = dialogView.findViewById(R.id.tvDialogMessage);
+            Button btnConfirm = dialogView.findViewById(R.id.btnConfirm);
+            Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+
+            // Customize text for declining
+            title.setText("Decline Invitation");
+            message.setText("Are you sure you want to decline this invitation? This action cannot be undone.");
+
+            // Set the confirm button to "Decline" and make it Red to indicate a destructive action
+            btnConfirm.setText("Decline");
+            btnConfirm.setBackgroundColor(Color.RED);
+
+            btnConfirm.setOnClickListener(v -> {
+                handleResponse(item, position, false);
+                dialog.dismiss();
+            });
+
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+            dialog.show();
         }
 
         /**

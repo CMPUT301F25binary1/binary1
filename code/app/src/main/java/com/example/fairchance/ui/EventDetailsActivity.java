@@ -115,12 +115,21 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     /**
      * Fetches the total number of users on the waitlist for this event.
+     * Updates the UI to show spots taken/left if a limit is set.
      */
     private void loadWaitlistCount() {
         eventRepository.getWaitingListCount(currentEventId, new EventRepository.WaitlistCountCallback() {
             @Override
             public void onSuccess(int count) {
-                tvEventWaitlistCount.setText(count + " people");
+                if (currentEvent != null && currentEvent.getWaitingListLimit() > 0) {
+                    // Limit exists: Show "Taken / Limit (Left)"
+                    long limit = currentEvent.getWaitingListLimit();
+                    long left = Math.max(0, limit - count);
+                    tvEventWaitlistCount.setText("Waitlist: " + count + " / " + limit + " (" + left + " spots left)");
+                } else {
+                    // No limit: Show just the count
+                    tvEventWaitlistCount.setText(count + " people on waitlist");
+                }
             }
 
             @Override

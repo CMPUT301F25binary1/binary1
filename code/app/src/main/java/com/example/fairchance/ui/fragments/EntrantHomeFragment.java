@@ -191,6 +191,20 @@ public class EntrantHomeFragment extends Fragment {
     }
 
     /**
+     * Called when the fragment is visible to the user.
+     * Refreshing the adapter here ensures that if the user joined a waitlist
+     * in the EventDetailsActivity and then pressed "Back", the button state
+     * (Green/Red) on the home screen updates immediately.
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (eventAdapter != null) {
+            eventAdapter.notifyDataSetChanged();
+        }
+    }
+
+    /**
      * Implements the toggle logic for the "Today's Events" date filter.
      * Toggles the filter state and updates the button's appearance.
      */

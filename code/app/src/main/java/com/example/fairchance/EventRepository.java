@@ -117,9 +117,9 @@ public class EventRepository {
      * Corresponds to US 02.01.01.
      *
      * Also stores metadata used by the Admin Image browser:
-     *  - createdById
-     *  - createdByName
-     *  - createdAt
+     * - createdById
+     * - createdByName
+     * - createdAt
      * @param event    The Event object to be added.
      * @param callback Notifies of success or failure.
      *
@@ -747,7 +747,29 @@ public class EventRepository {
         batch.commit()
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "User " + userId + " responded to invitation for " + eventId);
-                    callback.onSuccess();
+
+                    // AUTO-REPLACEMENT LOGIC:
+                    // If user declined (!accepted), try to draw 1 replacement from waitlist.
+                    if (!accepted) {
+                        sampleAttendees(eventId, 1, new SampleAttendeesCallback() {
+                            @Override
+                            public void onSuccess(int selectedCount) {
+                                Log.d(TAG, "Automatic replacement found: " + selectedCount + " user(s).");
+                                callback.onSuccess(); // Still report success to the UI
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                Log.w(TAG, "Failed to auto-replace entrant: " + message);
+                                // We still call onSuccess because the *user's* decline action was successful.
+                                // The system failure to find a replacement shouldn't block the UI.
+                                callback.onSuccess();
+                            }
+                        });
+                    } else {
+                        // User accepted; no replacement needed.
+                        callback.onSuccess();
+                    }
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to respond to invitation", e);
@@ -876,8 +898,8 @@ public class EventRepository {
     }
 
     public void sendCancelledNotifications(String eventId,
-                                                   String message,
-                                                   NotificationCallback callback) {
+                                           String message,
+                                           NotificationCallback callback) {
 
         Map<String, Object> data = new HashMap<>();
         data.put("eventId", eventId);
@@ -1087,9 +1109,4 @@ public class EventRepository {
     public void drawReplacement(String eventId, EventTaskCallback callback) {
         sampleAttendees(eventId, 1, callback);
     }
-
-
-    // TODO: We will add more methods here later, such as:
-    // - runLottery(String eventId, int count, ...)
-    // - getWaitingList(String eventId, ...)
 }

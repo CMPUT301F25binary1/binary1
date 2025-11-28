@@ -14,13 +14,14 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.Group;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.bumptech.glide.Glide;
+import com.example.fairchance.AuthRepository;
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
-import com.example.fairchance.ui.fragments.FinalEntrantsFragment;
 import com.example.fairchance.models.Event;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.MultiFormatWriter;
@@ -40,12 +41,16 @@ public class EventDetailsFragment extends Fragment {
     private TextView tvGeolocationRequiredLabel, tvGeolocationRequiredValue;
     private Button btnUpdatePoster, btnEditEvent;
 
-    // NEW BUTTON (Sampling & Replacement)
+    // Sampling & Replacement button
     private Button btnSamplingReplacement;
+
+    // Group that wraps all organizer-only actions (anything below the QR)
+    private Group groupOrganizerActions;
 
     private String eventId;
     private EventRepository repository;
     private Event loadedEvent;
+    private AuthRepository authRepository;
 
     // Image picker for Update Poster
     private final ActivityResultLauncher<String> pickImage =
@@ -93,6 +98,7 @@ public class EventDetailsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         repository = new EventRepository();
+        authRepository = new AuthRepository();
 
         ivEventPoster = view.findViewById(R.id.ivEventPoster);
         ivQRCode = view.findViewById(R.id.ivQRCode);
@@ -106,15 +112,34 @@ public class EventDetailsFragment extends Fragment {
         btnChosen = view.findViewById(R.id.btnChosenEntrants);
         btnCancelled = view.findViewById(R.id.btnCancelledEntrants);
         btnFinal = view.findViewById(R.id.btnFinalEntrants);
-
-        // NEW: Find Sampling & Replacement Button
         btnSamplingReplacement = view.findViewById(R.id.btnSamplingReplacement);
+
+        // Organizer-only group (everything below the QR code)
+        groupOrganizerActions = view.findViewById(R.id.groupOrganizerActions);
 
         // Optional new views if added in layout
         tvGeolocationRequiredLabel = view.findViewById(R.id.tvGeolocationRequiredLabel);
         tvGeolocationRequiredValue = view.findViewById(R.id.tvGeolocationRequiredValue);
         btnUpdatePoster = view.findViewById(R.id.btnUpdatePoster);
         btnEditEvent = view.findViewById(R.id.btnEditEvent);
+
+        // === ROLE CHECK: hide organizer actions for admins ===
+        if (groupOrganizerActions != null) {
+            authRepository.getUserRole(new AuthRepository.RoleCallback() {
+                @Override
+                public void onRoleFetched(String role) {
+                    if ("admin".equalsIgnoreCase(role)) {
+                        // Admins are read-only: hide update/edit + entrants + sampling buttons
+                        groupOrganizerActions.setVisibility(View.GONE);
+                    }
+                }
+
+                @Override
+                public void onError(String message) {
+                    // If role lookup fails, do nothing – organizers keep full access.
+                }
+            });
+        }
 
         if (btnUpdatePoster != null) {
             btnUpdatePoster.setOnClickListener(v -> {
@@ -151,8 +176,9 @@ public class EventDetailsFragment extends Fragment {
                         Toast.LENGTH_SHORT).show();
             }
         });
+
         btnChosen.setOnClickListener(v -> {
-            if (eventId != null && !eventId.isEmpty()) {
+            if (eventId != null && !eventId.isEmpty() && loadedEvent != null) {
                 openFragment(ChosenEntrantsFragment.newInstance(eventId, loadedEvent.getName()));
             } else {
                 Toast.makeText(getContext(),
@@ -160,6 +186,7 @@ public class EventDetailsFragment extends Fragment {
                         Toast.LENGTH_LONG).show();
             }
         });
+
         btnCancelled.setOnClickListener(v -> {
             if (eventId != null && !eventId.isEmpty()) {
                 openFragment(CancelledEntrantsFragment.newInstance(eventId));
@@ -169,12 +196,12 @@ public class EventDetailsFragment extends Fragment {
                         Toast.LENGTH_LONG).show();
             }
         });
+
         btnFinal.setOnClickListener(v -> {
             if (eventId != null && !eventId.isEmpty()) {
                 String name = (loadedEvent != null && loadedEvent.getName() != null)
                         ? loadedEvent.getName()
                         : "";
-
                 openFragment(FinalEntrantsFragment.newInstance(eventId, name));
             } else {
                 Toast.makeText(
@@ -183,9 +210,8 @@ public class EventDetailsFragment extends Fragment {
                         Toast.LENGTH_LONG
                 ).show();
             }
-        });;
+        });
 
-        // NEW: Sampling & Replacement button logic
         if (btnSamplingReplacement != null) {
             btnSamplingReplacement.setOnClickListener(v -> {
                 if (loadedEvent == null) {

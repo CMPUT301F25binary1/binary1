@@ -1,4 +1,10 @@
-package models;
+package com.example.fairchance;
+
+import com.example.fairchance.models.User;
+
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 import com.example.fairchance.models.User;
 import org.junit.Before;

@@ -1,13 +1,16 @@
 package com.example.fairchance;
 
-import org.junit.Before;
-import org.junit.Test;
-import java.util.Date;
-import static org.junit.Assert.*;
-
 import com.example.fairchance.models.EventHistoryItem;
 
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.Date;
+
+import static org.junit.Assert.*;
+
 public class EventHistoryItemTest {
+
     private EventHistoryItem historyItem;
     private Date eventDate;
 
@@ -27,5 +30,19 @@ public class EventHistoryItemTest {
         assertEquals(eventDate, historyItem.getEventDate());
         assertEquals("Completed", historyItem.getStatus());
         assertEquals("E001", historyItem.getEventId());
+    }
+
+    @Test
+    public void allowsNullDate() {
+        EventHistoryItem item = new EventHistoryItem();
+        item.setEventName("No Date Event");
+        item.setEventDate(null);
+        item.setStatus("Selected");
+        item.setEventId("E002");
+
+        assertEquals("No Date Event", item.getEventName());
+        assertNull(item.getEventDate());
+        assertEquals("Selected", item.getStatus());
+        assertEquals("E002", item.getEventId());
     }
 }

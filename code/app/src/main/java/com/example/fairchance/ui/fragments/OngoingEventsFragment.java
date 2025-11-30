@@ -17,6 +17,8 @@ import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
 import com.example.fairchance.ui.adapters.EventAdapter;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +51,17 @@ public class OngoingEventsFragment extends Fragment {
         repository = new EventRepository();
 
         // 🔹 Listen to Firestore for real-time updates
-        registration = repository.getAllEvents(new EventRepository.EventListCallback() {
+        String organizerId = null;
+        if (com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null) {
+            organizerId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();
+        }
+
+        if (organizerId == null) {
+            Toast.makeText(getContext(), "Not logged in as organizer.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        registration = repository.getEventsForOrganizer(organizerId, new EventRepository.EventListCallback() {
             @Override
             public void onSuccess(List<Event> events) {
                 adapter.setEvents(events);

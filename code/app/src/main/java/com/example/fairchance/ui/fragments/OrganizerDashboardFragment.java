@@ -51,7 +51,7 @@ public class OrganizerDashboardFragment extends Fragment {
         btnLogout.setOnClickListener(v -> {
             FirebaseAuth.getInstance().signOut();
 
-            Intent intent = new Intent(requireContext(), AuthActivity.class);
+            Intent intent = new Intent(requireContext(), com.example.fairchance.ui.RoleSelectionActivity.class);
             // Clear back stack so back button doesn't return to dashboard
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);

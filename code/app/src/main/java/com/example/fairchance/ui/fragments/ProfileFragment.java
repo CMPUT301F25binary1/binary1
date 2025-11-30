@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -42,6 +43,7 @@ public class ProfileFragment extends Fragment {
     private Button btnSaveChanges, btnLogout, btnDeleteProfile;
     private ProgressBar progressBar;
     private SwitchCompat switchLotteryResults, switchOrganizerUpdates;
+    private TextView tvNotificationPreferences;
 
     @Nullable
     @Override
@@ -70,6 +72,10 @@ public class ProfileFragment extends Fragment {
         etRole.setEnabled(false);
         loadUserProfile();
 
+        switchLotteryResults = view.findViewById(R.id.switch_lottery_results);
+        switchOrganizerUpdates = view.findViewById(R.id.switch_organizer_updates);
+        tvNotificationPreferences = view.findViewById(R.id.tv_notification_preferences);
+
         // Set up button listeners
         btnLogout.setOnClickListener(v -> logout());
         btnSaveChanges.setOnClickListener(v -> saveChanges());
@@ -89,11 +95,38 @@ public class ProfileFragment extends Fragment {
                 etEmail.setText(user.getEmail());
                 etPhoneNumber.setText(user.getPhone());
 
+
+
                 String role = user.getRole();
                 if (role != null && !role.isEmpty()) {
                     String capitalizedRole = role.substring(0, 1).toUpperCase() + role.substring(1);
                     etRole.setText(capitalizedRole);
                 }
+
+                // Hide notification preferences for organizers
+                if ("Organizer".equalsIgnoreCase(user.getRole())) {
+                    if (tvNotificationPreferences != null) {
+                        tvNotificationPreferences.setVisibility(View.GONE);
+                    }
+                    if (switchLotteryResults != null) {
+                        switchLotteryResults.setVisibility(View.GONE);
+                    }
+                    if (switchOrganizerUpdates != null) {
+                        switchOrganizerUpdates.setVisibility(View.GONE);
+                    }
+                } else {
+                    // Entrant (or any other role) – show them
+                    if (tvNotificationPreferences != null) {
+                        tvNotificationPreferences.setVisibility(View.VISIBLE);
+                    }
+                    if (switchLotteryResults != null) {
+                        switchLotteryResults.setVisibility(View.VISIBLE);
+                    }
+                    if (switchOrganizerUpdates != null) {
+                        switchOrganizerUpdates.setVisibility(View.VISIBLE);
+                    }
+                }
+
 
                 // Load switch preferences
                 if (user.getNotificationPreferences() != null) {

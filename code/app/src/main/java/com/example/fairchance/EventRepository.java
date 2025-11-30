@@ -234,6 +234,34 @@ public class EventRepository {
         });
     }
 
+    // Organizer: listen only to events created by this organizer.
+    // Shows all of their events (no registration window filtering).
+    public ListenerRegistration getEventsForOrganizer(String organizerId,
+                                                      EventListCallback callback) {
+
+        return eventsRef
+                .whereEqualTo("organizerId", organizerId)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error getting organizer events in real-time: ", error);
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (value != null) {
+                        List<Event> eventList = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : value) {
+                            Event event = document.toObject(Event.class);
+                            event.setEventId(document.getId());
+                            eventList.add(event);
+                        }
+                        callback.onSuccess(eventList);
+                    }
+                });
+    }
+
+
+
     /**
      * Gets the current number of users on a specific event's waiting list (One-time fetch).
      *
@@ -462,6 +490,8 @@ public class EventRepository {
                 });
     }
 
+
+
     /**
      * Updates one or more fields on an event document.
      */
@@ -579,6 +609,7 @@ public class EventRepository {
                     }
                 });
     }
+
 
     /**
      * Checks the user's history for a specific event to see their status.

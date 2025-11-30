@@ -67,7 +67,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("com.google.android.gms:play-services-tasks:18.0.2")
 
-
+    // --- QR / SCANNING ---
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
@@ -87,9 +87,6 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("androidx.test.espresso:espresso-intents:3.5.1")
     androidTestImplementation("org.mockito:mockito-android:5.10.0")
-    androidTestImplementation ("androidx.test.espresso:espresso-intents:3.5.1")
     androidTestImplementation("androidx.fragment:fragment-testing:1.6.2")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
-
-
 }

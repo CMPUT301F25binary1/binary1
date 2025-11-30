@@ -13,10 +13,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-/**
- * Instrumented test for SplashActivity.
- * Ensures the splash screen correctly routes to RoleSelectionActivity when the user is logged out.
- */
+
 @RunWith(AndroidJUnit4.class)
 public class SplashActivityTest {
 

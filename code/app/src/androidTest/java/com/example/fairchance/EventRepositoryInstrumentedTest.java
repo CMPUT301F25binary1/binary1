@@ -30,7 +30,7 @@ public class EventRepositoryInstrumentedTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new EventRepository(); // use default constructor
+        repository = new EventRepository();
     }
 
     @Test

@@ -64,6 +64,11 @@
             android:stateNotNeeded="true"
             tools:replace="android:screenOrientation" />
 
+        <activity
+            android:name=".NotificationLogDetailsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
         <service
             android:name=".MyFirebaseMessagingService"
             android:exported="false">

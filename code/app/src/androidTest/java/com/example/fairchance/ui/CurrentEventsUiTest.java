@@ -15,6 +15,7 @@ import com.example.fairchance.ui.fragments.OngoingEventsFragment;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+
 @RunWith(AndroidJUnit4.class)
 public class CurrentEventsUiTest {
 
@@ -30,6 +31,8 @@ public class CurrentEventsUiTest {
     @Test
     public void currentEventsFragment_launchesWithoutCrash() {
         launchCurrentEvents();
+
+        // Smoke assertion: the root of the view hierarchy is displayed
         onView(isRoot()).check(matches(isDisplayed()));
     }
 }

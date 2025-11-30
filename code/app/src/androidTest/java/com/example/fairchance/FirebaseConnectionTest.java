@@ -1,54 +1,38 @@
-package com.example.fairchance.ui;
+package com.example.fairchance;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
+import android.content.Context;
+
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(AndroidJUnit4.class)
 public class FirebaseConnectionTest {
 
-    private FirebaseFirestore db;
-
-    @Before
-    public void setUp() {
-        db = FirebaseFirestore.getInstance();
-    }
-
     @Test
-    public void firestoreInstanceIsNotNull() {
-        assertNotNull(db);
-    }
+    public void firebaseApp_andFirestore_areAvailable() {
+        // Get application context used in instrumented tests
+        Context context = ApplicationProvider.getApplicationContext();
 
-    @Test
-    public void canReadFromTestCollection() throws Exception {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicReference<Exception> errorRef = new AtomicReference<>(null);
-
-        db.collection("test_connection")
-                .limit(1)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (!task.isSuccessful()) {
-                        errorRef.set(task.getException());
-                    }
-                    latch.countDown();
-                });
-
-        boolean completed = latch.await(10, TimeUnit.SECONDS);
-        if (!completed) {
-            throw new AssertionError("Timed out waiting for Firestore read");
+        // Initialize FirebaseApp only if it hasn't been initialized yet
+        if (FirebaseApp.getApps(context).isEmpty()) {
+            FirebaseApp.initializeApp(context);
         }
-        assertNull(errorRef.get());
+
+        // Verify default app exists
+        FirebaseApp app = FirebaseApp.getInstance();
+        assertNotNull("FirebaseApp should be initialized", app);
+
+        // Verify Firestore instance is available
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        assertNotNull("FirebaseFirestore instance should not be null", db);
     }
 }

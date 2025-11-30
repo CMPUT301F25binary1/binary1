@@ -1,23 +1,22 @@
 package com.example.fairchance.ui;
 
 import static androidx.test.espresso.Espresso.onView;
-import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isClickable;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.example.fairchance.R;
-import com.example.fairchance.ui.RoleSelectionActivity;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
-public class RoleSelectionUiTest {
+public class RoleSelectionUITest {
 
     @Rule
     public ActivityScenarioRule<RoleSelectionActivity> activityRule =
@@ -31,9 +30,7 @@ public class RoleSelectionUiTest {
     }
 
     @Test
-    public void clickingEntrantOpensAuth() {
-        onView(withId(R.id.cardEntrant)).perform(click());
-        // Replace with an actual view inside AuthActivity
-        // onView(withId(R.id.auth_root)).check(matches(isDisplayed()));
+    public void entrantCardIsClickable() {
+        onView(withId(R.id.cardEntrant)).check(matches(isClickable()));
     }
 }

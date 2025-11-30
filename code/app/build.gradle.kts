@@ -5,8 +5,9 @@ plugins {
 
 android {
     namespace = "com.example.fairchance"
-    compileSdk = 36
-
+    compileSdk {
+        version = release(36)
+    }
     defaultConfig {
         applicationId = "com.example.fairchance"
         minSdk = 24
@@ -35,13 +36,11 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
-            it.useJUnitPlatform()
+            it.useJUnitPlatform() // allows Gradle to detect the test engine
         }
     }
 }
-
 dependencies {
-
     // --- ANDROIDX UI ---
     implementation(libs.appcompat)
     implementation(libs.material)
@@ -53,7 +52,7 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment:2.7.6")
     implementation("androidx.navigation:navigation-ui:2.7.6")
 
-    // --- FIREBASE ---
+    // --- FIREBASE via BOM (no explicit versions) ---
     implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
@@ -62,16 +61,14 @@ dependencies {
     implementation("com.google.firebase:firebase-functions")
     implementation("com.google.firebase:firebase-messaging")
 
-    // --- GOOGLE SERVICES ---
+    // --- GOOGLE PLAY SERVICES ---
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("com.google.android.gms:play-services-tasks:18.0.2")
 
-    // --- QR / SCANNING ---
+    // --- QR / IMAGING / UI HELPERS ---
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-
-    // --- GLIDE ---
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
     // --- UNIT TESTS ---
@@ -89,4 +86,5 @@ dependencies {
     androidTestImplementation("org.mockito:mockito-android:5.10.0")
     androidTestImplementation("androidx.fragment:fragment-testing:1.6.2")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
+
 }

@@ -1,13 +1,16 @@
 package com.example.fairchance;
 
-import org.junit.Before;
-import org.junit.Test;
-import java.util.Date;
-import static org.junit.Assert.*;
-
 import com.example.fairchance.models.Invitation;
 
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.Date;
+
+import static org.junit.Assert.*;
+
 public class InvitationTest {
+
     private Invitation invitation;
     private Date date;
 
@@ -28,4 +31,29 @@ public class InvitationTest {
         assertEquals("Selected", invitation.getStatus());
         assertEquals("event123", invitation.getEventId());
     }
+
+    @Test
+    public void invitation_allowsEmptyStringsAndNullDate() {
+        Invitation inv = new Invitation();
+
+        inv.setEventName("");
+        inv.setEventDate(null);
+        inv.setStatus("");
+        inv.setEventId("");
+
+        assertEquals("", inv.getEventName());
+        assertNull(inv.getEventDate());
+        assertEquals("", inv.getStatus());
+        assertEquals("", inv.getEventId());
+    }
+
+    @Test
+    public void invitation_defaultConstructor_setsNullFields() {
+        Invitation inv = new Invitation();
+        assertNull(inv.getEventName());
+        assertNull(inv.getEventDate());
+        assertNull(inv.getStatus());
+        assertNull(inv.getEventId());
+    }
+
 }

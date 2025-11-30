@@ -33,7 +33,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    // ✅ Make sure JUnit 4 is used for unit tests
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
@@ -50,21 +49,16 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
 
-    // ✅ JUnit for unit tests
     testImplementation("junit:junit:4.13.2")
 
-    // ✅ Mockito for mocking
     testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
 
 
-    // ✅ AndroidX Test core (needed for some instrumentation-like helpers)
     testImplementation("androidx.test:core:1.5.0")
 
-    // ✅ Robolectric to simulate Android SDK in unit tests
     testImplementation("org.robolectric:robolectric:4.11.1")
 
-    // ✅ (Optional but fixes the “No TestEngine” issue on some Gradle 8 setups)
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.10.2")
 
     // Android instrumented tests

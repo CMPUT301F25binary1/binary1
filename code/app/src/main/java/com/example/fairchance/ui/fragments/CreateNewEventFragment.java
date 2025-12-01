@@ -104,6 +104,10 @@ public class CreateNewEventFragment extends Fragment {
         etCategory            = view.findViewById(R.id.etCategory);
         etGuidelines          = view.findViewById(R.id.etGuidelines);
 
+        // [FIX] Explicitly uncheck the limit box by default (No Limit)
+        cbWaitlistLimit.setChecked(false);
+        waitlistLimit = null;
+
         // Poster picker
         ivEventPoster.setOnClickListener(v -> pickImage.launch("image/*"));
 
@@ -117,8 +121,12 @@ public class CreateNewEventFragment extends Fragment {
 
         // Waitlist limit dialog when toggled on
         cbWaitlistLimit.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) showWaitlistLimitDialog();
-            else waitlistLimit = null;
+            if (isChecked) {
+                showWaitlistLimitDialog();
+            } else {
+                // If unchecked, remove limit (null means infinite/default 0 logic)
+                waitlistLimit = null;
+            }
         });
 
         // QR – you can hook real QR after event is created (has ID)
@@ -230,6 +238,7 @@ public class CreateNewEventFragment extends Fragment {
                 .setView(picker)
                 .setPositiveButton("Set", (d, w) -> waitlistLimit = (long) picker.getValue())
                 .setNegativeButton("Cancel", (d, w) -> {
+                    // If they cancel, uncheck the box (meaning "No Limit")
                     cbWaitlistLimit.setChecked(false);
                     waitlistLimit = null;
                 })
@@ -303,6 +312,9 @@ public class CreateNewEventFragment extends Fragment {
         if (!TextUtils.isEmpty(guidelines)) {
             event.setGuidelines(guidelines);
         }
+
+        // Only set limit if checkbox is checked AND value is present.
+        // Otherwise, it defaults to 0 (No Limit).
         if (cbWaitlistLimit.isChecked() && waitlistLimit != null) {
             event.setWaitingListLimit(waitlistLimit);
         }
@@ -377,6 +389,7 @@ public class CreateNewEventFragment extends Fragment {
         eventDate = null;
         eventDateCal.setTime(new Date());
         cbGeolocation.setChecked(true);
+        // Reset limit checkbox to unchecked (No limit)
         cbWaitlistLimit.setChecked(false);
         waitlistLimit = null;
         regStartCal.setTime(new Date());

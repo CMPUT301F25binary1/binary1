@@ -31,7 +31,7 @@ import java.util.Map;
  * It allows the user to:
  * 1. Update their profile information (US 01.02.02).
  * 2. Update their notification preferences (US 01.04.03).
- * 3. Log out of the application.
+ * 3. Log out of the application (Organizers/Admins only).
  * 4. Delete their profile and all associated data (US 01.02.04).
  */
 public class ProfileFragment extends Fragment {
@@ -68,13 +68,10 @@ public class ProfileFragment extends Fragment {
         progressBar = view.findViewById(R.id.profile_progress_bar);
         switchLotteryResults = view.findViewById(R.id.switch_lottery_results);
         switchOrganizerUpdates = view.findViewById(R.id.switch_organizer_updates);
+        tvNotificationPreferences = view.findViewById(R.id.tv_notification_preferences);
 
         etRole.setEnabled(false);
         loadUserProfile();
-
-        switchLotteryResults = view.findViewById(R.id.switch_lottery_results);
-        switchOrganizerUpdates = view.findViewById(R.id.switch_organizer_updates);
-        tvNotificationPreferences = view.findViewById(R.id.tv_notification_preferences);
 
         // Set up button listeners
         btnLogout.setOnClickListener(v -> logout());
@@ -95,38 +92,31 @@ public class ProfileFragment extends Fragment {
                 etEmail.setText(user.getEmail());
                 etPhoneNumber.setText(user.getPhone());
 
-
-
                 String role = user.getRole();
                 if (role != null && !role.isEmpty()) {
                     String capitalizedRole = role.substring(0, 1).toUpperCase() + role.substring(1);
                     etRole.setText(capitalizedRole);
                 }
 
-                // Hide notification preferences for organizers
-                if ("Organizer".equalsIgnoreCase(user.getRole())) {
-                    if (tvNotificationPreferences != null) {
-                        tvNotificationPreferences.setVisibility(View.GONE);
-                    }
-                    if (switchLotteryResults != null) {
-                        switchLotteryResults.setVisibility(View.GONE);
-                    }
-                    if (switchOrganizerUpdates != null) {
-                        switchOrganizerUpdates.setVisibility(View.GONE);
-                    }
-                } else {
-                    // Entrant (or any other role) – show them
-                    if (tvNotificationPreferences != null) {
-                        tvNotificationPreferences.setVisibility(View.VISIBLE);
-                    }
-                    if (switchLotteryResults != null) {
-                        switchLotteryResults.setVisibility(View.VISIBLE);
-                    }
-                    if (switchOrganizerUpdates != null) {
-                        switchOrganizerUpdates.setVisibility(View.VISIBLE);
-                    }
-                }
+                // ROLE-BASED UI ADJUSTMENTS
+                if ("entrant".equalsIgnoreCase(role)) {
+                    // Entrants are anonymous/persistent users. They should NOT see a logout button.
+                    btnLogout.setVisibility(View.GONE);
 
+                    // Show notification preferences for Entrants
+                    if (tvNotificationPreferences != null) tvNotificationPreferences.setVisibility(View.VISIBLE);
+                    if (switchLotteryResults != null) switchLotteryResults.setVisibility(View.VISIBLE);
+                    if (switchOrganizerUpdates != null) switchOrganizerUpdates.setVisibility(View.VISIBLE);
+
+                } else {
+                    // Organizers/Admins MUST be able to logout.
+                    btnLogout.setVisibility(View.VISIBLE);
+
+                    // Hide notification preferences for Organizers (not relevant to them)
+                    if (tvNotificationPreferences != null) tvNotificationPreferences.setVisibility(View.GONE);
+                    if (switchLotteryResults != null) switchLotteryResults.setVisibility(View.GONE);
+                    if (switchOrganizerUpdates != null) switchOrganizerUpdates.setVisibility(View.GONE);
+                }
 
                 // Load switch preferences
                 if (user.getNotificationPreferences() != null) {

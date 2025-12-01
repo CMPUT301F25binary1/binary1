@@ -1,12 +1,18 @@
 package com.example.fairchance;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -30,6 +36,17 @@ public class MainActivity extends AppCompatActivity {
     private AuthRepository authRepository;
     private BottomNavigationView bottomNav;
 
+    // FIX: Launcher for requesting notification permissions on Android 13+
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    Log.d("MainActivity", "Notification permission granted");
+                } else {
+                    Log.w("MainActivity", "Notification permission denied");
+                    Toast.makeText(this, "Notifications disabled. You may miss event invites.", Toast.LENGTH_LONG).show();
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,6 +54,9 @@ public class MainActivity extends AppCompatActivity {
 
         authRepository = new AuthRepository();
         bottomNav = findViewById(R.id.bottom_navigation);
+
+        // FIX: Request Notification Permission immediately on startup
+        askNotificationPermission();
 
         // Fetch the user's role to determine which UI to show
         authRepository.getUserRole(new AuthRepository.RoleCallback() {
@@ -48,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
                         bottomNav.setVisibility(View.VISIBLE);
                         setupEntrantNavigation();
 
-                        // [FIX] Check for navigation intent from notification (US 01.04.01)
+                        // Check for navigation intent from notification (US 01.04.01)
                         if (getIntent().hasExtra("NAV_TO_INVITATIONS")) {
                             loadDashboardFragment(new InvitationsFragment());
                             bottomNav.setSelectedItemId(R.id.nav_invitations);
@@ -94,14 +114,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Checks and requests POST_NOTIFICATIONS permission for Android 13+ (API 33).
+     */
+    private void askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
+
+    /**
      * Sets up the BottomNavigationView for the Entrant role,
      * inflates its menu, and handles navigation item clicks.
      */
     private void setupEntrantNavigation() {
         bottomNav.getMenu().clear();
         bottomNav.inflateMenu(R.menu.entrant_nav_menu);
-
-        // [FIX] Removed default load/selection. Now handled in onCreate.
 
         // Set the listener for navigation
         bottomNav.setOnItemSelectedListener(item -> {

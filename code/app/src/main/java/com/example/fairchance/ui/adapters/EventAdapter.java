@@ -245,24 +245,23 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                     if (event.isGeolocationRequired()) {
                         Activity activity = (Activity) context;
 
-                        boolean fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-                        boolean coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-
-                        if (!fine && !coarse) {
+                        // Check permissions
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                             ActivityCompat.requestPermissions(
                                     activity,
-                                    new String[]{ Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION },
+                                    new String[]{ Manifest.permission.ACCESS_FINE_LOCATION },
                                     1001
                             );
-                            Toast.makeText(context, "Grant location permission then tap Join again.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(context, "Location permission required. Grant it and tap Join again.", Toast.LENGTH_LONG).show();
                             return;
                         }
 
+                        // Permission granted, get location
                         FusedLocationProviderClient fused = LocationServices.getFusedLocationProviderClient(context);
-                        fused.getCurrentLocation(com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                        fused.getLastLocation()
                                 .addOnSuccessListener(loc -> {
                                     if (loc == null) {
-                                        Toast.makeText(context, "Could not get location. Try again.", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(context, "Unable to get location. Try opening Event Details.", Toast.LENGTH_LONG).show();
                                         return;
                                     }
                                     repo.joinWaitingListWithLocation(
@@ -275,7 +274,6 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                                                 public void onSuccess() {
                                                     Toast.makeText(context, "Joined with location.", Toast.LENGTH_SHORT).show();
                                                     buttonJoin.setText("Leave Waiting List");
-                                                    // JOINED -> RED
                                                     buttonJoin.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
                                                 }
 
@@ -291,12 +289,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                                 );
 
                     } else {
+                        // No Geolocation required
                         repo.joinWaitingList(event.getEventId(), event, new EventRepository.EventTaskCallback() {
                             @Override
                             public void onSuccess() {
                                 Toast.makeText(context, "Joined waiting list!", Toast.LENGTH_SHORT).show();
                                 buttonJoin.setText("Leave Waiting List");
-                                // JOINED -> RED
                                 buttonJoin.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
                             }
 

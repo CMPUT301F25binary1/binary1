@@ -1,7 +1,10 @@
 package com.example.fairchance.ui;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -12,13 +15,18 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.SimpleDateFormat;
@@ -30,17 +38,19 @@ import java.util.Locale;
  * 1. Loading all event data (name, description, poster, etc.) from Firestore.
  * 2. Loading the current waitlist count for the event (now in Real-time).
  * 3. Checking the current user's status for this event (e.g., "Waiting", "Confirmed", or null).
- * 4. Providing the logic for the "Join Waitlist" / "Leave Waitlist" button.
+ * 4. Providing the logic for the "Join Waitlist" / "Leave Waitlist" button, including Geolocation handling.
  */
 public class EventDetailsActivity extends AppCompatActivity {
 
     private static final String TAG = "EventDetailsActivity";
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
     private EventRepository eventRepository;
     private String currentEventId;
     private Event currentEvent;
     private String currentEventStatus = null;
     private ListenerRegistration waitlistListener;
+    private FusedLocationProviderClient fusedLocationClient;
 
     // UI Components
     private ImageView eventPosterImage;
@@ -56,6 +66,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_event_details);
 
         eventRepository = new EventRepository();
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         currentEventId = getIntent().getStringExtra("EVENT_ID");
         if (currentEventId == null) {
@@ -83,7 +94,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         // Set the main action button listener
         btnJoinWaitlist.setOnClickListener(v -> {
             if (currentEventStatus == null) {
-                joinWaitlist();
+                initiateJoinProcess();
             } else if ("Waiting".equals(currentEventStatus)) {
                 leaveWaitlist();
             }
@@ -176,16 +187,90 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Called when the user clicks the "Join Waitlist" button.
-     * Calls the repository to perform an atomic write.
+     * Starts the process to join the waitlist.
+     * Checks if geolocation is required and branches accordingly.
      */
-    private void joinWaitlist() {
+    private void initiateJoinProcess() {
         if (currentEvent == null) {
             Toast.makeText(this, "Event data not loaded yet.", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        if (currentEvent.isGeolocationRequired()) {
+            checkLocationPermissionAndJoin();
+        } else {
+            // No location required, join normally
+            performJoin(null, null);
+        }
+    }
+
+    /**
+     * Checks for location permissions. If granted, fetches location.
+     * If denied, requests them.
+     */
+    private void checkLocationPermissionAndJoin() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Request permission
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+        } else {
+            // Permission already granted
+            fetchLocation();
+        }
+    }
+
+    /**
+     * Fetches the last known location and then joins the waitlist.
+     */
+    private void fetchLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        setButtonLoading(true); // Show loading while fetching location
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    if (location != null) {
+                        performJoin(location.getLatitude(), location.getLongitude());
+                    } else {
+                        setButtonLoading(false);
+                        Toast.makeText(EventDetailsActivity.this, "Unable to verify location. Ensure GPS is on.", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    setButtonLoading(false);
+                    Log.e(TAG, "Error fetching location", e);
+                    Toast.makeText(EventDetailsActivity.this, "Error fetching location: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    /**
+     * Handles the callback from the permission request.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                fetchLocation();
+            } else {
+                Toast.makeText(this, "Location permission is required to join this event.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    /**
+     * Performs the actual repository call to join the waiting list.
+     *
+     * @param lat Latitude (nullable)
+     * @param lng Longitude (nullable)
+     */
+    private void performJoin(@Nullable Double lat, @Nullable Double lng) {
         setButtonLoading(true);
-        eventRepository.joinWaitingList(currentEventId, currentEvent, new EventRepository.EventTaskCallback() {
+
+        EventRepository.EventTaskCallback callback = new EventRepository.EventTaskCallback() {
             @Override
             public void onSuccess() {
                 setButtonLoading(false);
@@ -200,7 +285,13 @@ public class EventDetailsActivity extends AppCompatActivity {
                 setButtonLoading(false);
                 Toast.makeText(EventDetailsActivity.this, "Failed to join: " + message, Toast.LENGTH_SHORT).show();
             }
-        });
+        };
+
+        if (lat != null && lng != null) {
+            eventRepository.joinWaitingListWithLocation(currentEventId, currentEvent, lat, lng, callback);
+        } else {
+            eventRepository.joinWaitingList(currentEventId, currentEvent, callback);
+        }
     }
 
     /**
@@ -243,7 +334,8 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
 
         if (event.getEventDate() != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyY 'at' hh:mm a", Locale.getDefault());
+            // FIX: Changed yyyY to yyyy to prevent double year display
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
             tvEventDate.setText(sdf.format(event.getEventDate()));
         } else {
             tvEventDate.setText("Date not set");

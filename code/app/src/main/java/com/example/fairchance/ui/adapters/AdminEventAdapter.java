@@ -28,6 +28,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Adapter for the Admin Event Management interface.
+ * Allows Administrators to browse all events in the system (US 03.04.01) and
+ * remove them if necessary (US 03.01.01).
+ */
 public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.AdminEventViewHolder> {
 
     private final List<Event> events = new ArrayList<>();
@@ -89,14 +94,13 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
                     event.getDescription() != null ? event.getDescription() : "No description provided"
             );
 
-            // Load poster
             Glide.with(ctx)
                     .load(event.getPosterImageUrl())
                     .placeholder(R.drawable.fairchance_logo_with_words___transparent)
                     .error(R.drawable.fairchance_logo_with_words___transparent)
                     .into(ivEventImage);
 
-            // Organizer name: look up from "users" collection and cache it
+            // Organizer name lookup
             String organizerId = event.getOrganizerId();
             if (organizerId == null || organizerId.isEmpty()) {
                 tvOrganizer.setText("Organizer: Unknown");
@@ -118,7 +122,6 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
                         });
             }
 
-            // Open details
             View.OnClickListener openDetails = v -> {
                 if (!(ctx instanceof FragmentActivity)) return;
                 FragmentActivity act = (FragmentActivity) ctx;
@@ -133,7 +136,6 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
             btnViewDetails.setOnClickListener(openDetails);
             itemView.setOnClickListener(openDetails);
 
-            // Remove event
             btnRemoveEvent.setOnClickListener(v -> {
                 new AlertDialog.Builder(ctx)
                         .setTitle("Remove Event")
@@ -143,10 +145,6 @@ public class AdminEventAdapter extends RecyclerView.Adapter<AdminEventAdapter.Ad
                                 @Override
                                 public void onSuccess() {
                                     Toast.makeText(ctx, "Event removed.", Toast.LENGTH_SHORT).show();
-                                    // IMPORTANT:
-                                    // Do NOT manually remove from 'events' here.
-                                    // The AdminEventManagementFragment snapshot listener
-                                    // will update the list from Firestore.
                                 }
 
                                 @Override

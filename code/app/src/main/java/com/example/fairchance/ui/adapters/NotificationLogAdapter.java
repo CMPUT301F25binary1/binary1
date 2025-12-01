@@ -15,6 +15,11 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adapter for displaying the audit log of system notifications.
+ * Used primarily by the Admin interface to review communication history between
+ * organizers and entrants (US 03.08.01).
+ */
 public class NotificationLogAdapter extends RecyclerView.Adapter<NotificationLogAdapter.LogViewHolder> {
 
     public interface OnLogClickListener {

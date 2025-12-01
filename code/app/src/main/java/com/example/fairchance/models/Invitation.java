@@ -3,9 +3,9 @@ package com.example.fairchance.models;
 import java.util.Date;
 
 /**
- * Model class for an item in the user's invitation list.
- * This POJO is used to display data from 'users/{UserID}/eventHistory'
- * that has a "Selected" status.
+ * Represents a specific event invitation status for a user.
+ * This DTO retrieves data from the 'eventHistory' sub-collection where the status indicates
+ * the user has been selected, facilitating the UI display for accepting or declining invitations.
  */
 public class Invitation {
     private String eventName;
@@ -13,13 +13,8 @@ public class Invitation {
     private String status;
     private String eventId;
 
-    /**
-     * A public, no-argument constructor is required by Firestore
-     * for deserialization.
-     */
-    public Invitation() {}
-
-    // --- Getters and Setters ---
+    public Invitation() {
+    }
 
     public String getEventName() {
         return eventName;

@@ -3,9 +3,9 @@ package com.example.fairchance.models;
 import java.util.Date;
 
 /**
- * Model class for an item in the user's event history.
- * This is a POJO (Plain Old Java Object) used by Firebase Firestore to retrieve data from the
- * 'users/{UserID}/eventHistory' sub-collection.
+ * Represents a historical record of an event interaction for a user.
+ * This model maps to items in the 'users/{UserID}/eventHistory' sub-collection,
+ * tracking the user's journey through different lottery states (e.g., Joined, Selected, Cancelled).
  */
 public class EventHistoryItem {
     private String eventName;
@@ -13,13 +13,8 @@ public class EventHistoryItem {
     private String status;
     private String eventId;
 
-    /**
-     * A public, no-argument constructor is required by Firestore
-     * for deserialization.
-     */
-    public EventHistoryItem() {}
-
-    // --- Getters and Setters ---
+    public EventHistoryItem() {
+    }
 
     public String getEventName() {
         return eventName;

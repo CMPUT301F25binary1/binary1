@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -25,6 +26,7 @@ import com.bumptech.glide.Glide;
 import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
+import com.example.fairchance.ui.fragments.GuidelinesFragment;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -39,6 +41,7 @@ import java.util.Locale;
  * 2. Loading the current waitlist count for the event (now in Real-time).
  * 3. Checking the current user's status for this event (e.g., "Waiting", "Confirmed", or null).
  * 4. Providing the logic for the "Join Waitlist" / "Leave Waitlist" button, including Geolocation handling.
+ * 5. Displaying the comprehensive guidelines logic.
  */
 public class EventDetailsActivity extends AppCompatActivity {
 
@@ -59,6 +62,8 @@ public class EventDetailsActivity extends AppCompatActivity {
     private TextView tvEventName, tvEventDate, tvEventLocation, tvEventDescription, tvEventGuidelines, tvEventWaitlistCount;
     private Button btnJoinWaitlist;
     private ProgressBar joinProgressBar;
+    private TextView tvSeeFullGuidelines;
+    private FrameLayout guidelinesContainer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +93,8 @@ public class EventDetailsActivity extends AppCompatActivity {
         tvEventWaitlistCount = findViewById(R.id.event_waitlist_count_text);
         btnJoinWaitlist = findViewById(R.id.join_waitlist_button);
         joinProgressBar = findViewById(R.id.join_progress);
+        tvSeeFullGuidelines = findViewById(R.id.tv_see_full_guidelines);
+        guidelinesContainer = findViewById(R.id.guidelines_container);
 
         loadEventDetails();
 
@@ -97,6 +104,33 @@ public class EventDetailsActivity extends AppCompatActivity {
                 initiateJoinProcess();
             } else if ("Waiting".equals(currentEventStatus)) {
                 leaveWaitlist();
+            }
+        });
+
+        // Set listener for "See full guidelines" link
+        tvSeeFullGuidelines.setOnClickListener(v -> {
+            if (guidelinesContainer != null) {
+                // Get the actual text from the current event object (default to empty if null)
+                String rules = (currentEvent != null && currentEvent.getGuidelines() != null)
+                        ? currentEvent.getGuidelines()
+                        : "No specific guidelines provided by the organizer.";
+
+                guidelinesContainer.setVisibility(View.VISIBLE);
+
+                // Use newInstance to pass the specific guidelines data
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.guidelines_container, GuidelinesFragment.newInstance(rules))
+                        .addToBackStack("guidelines")
+                        .commit();
+            }
+        });
+
+        // Listen for back stack changes to hide the container when empty
+        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
+            if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+                if (guidelinesContainer != null) {
+                    guidelinesContainer.setVisibility(View.GONE);
+                }
             }
         });
     }
@@ -334,7 +368,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
 
         if (event.getEventDate() != null) {
-            // FIX: Changed yyyY to yyyy to prevent double year display
+            // Fix for double year display (changed yyyY to yyyy)
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
             tvEventDate.setText(sdf.format(event.getEventDate()));
         } else {

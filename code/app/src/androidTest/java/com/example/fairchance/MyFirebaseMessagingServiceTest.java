@@ -13,11 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-/**
- * Smoke test for MyFirebaseMessagingService.
- * Does NOT depend on RemoteMessage or Firebase internals.
- * Verifies service and context are accessible.
- */
+
 @RunWith(AndroidJUnit4.class)
 public class MyFirebaseMessagingServiceTest {
 

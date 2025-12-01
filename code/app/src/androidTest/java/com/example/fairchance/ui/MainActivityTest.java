@@ -30,10 +30,8 @@ public class MainActivityTest {
 
     @Test
     public void testMainActivityLaunchesSuccessfully() {
-        // Give time for Firebase callbacks and layout inflation
         SystemClock.sleep(2000);
 
-        // Just verify the activity starts by checking that the main root view exists
         onView(withId(android.R.id.content)).check(matches(isDisplayed()));
     }
 }

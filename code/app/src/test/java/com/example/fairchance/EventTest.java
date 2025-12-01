@@ -1,5 +1,10 @@
-package models;
+package com.example.fairchance;
 
+import com.example.fairchance.models.Event;
+
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 import org.junit.Before;
 import org.junit.Test;

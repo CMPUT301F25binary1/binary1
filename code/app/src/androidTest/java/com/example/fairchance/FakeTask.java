@@ -13,10 +13,6 @@ import com.google.android.gms.tasks.Task;
 
 import java.util.concurrent.Executor;
 
-/**
- * Synchronous, version-safe fake Task<T> for tests.
- * Implements core, Activity, and Executor listener overloads found in recent Play Services.
- */
 public class FakeTask<T> extends Task<T> {
 
     private final boolean success;
@@ -123,7 +119,6 @@ public class FakeTask<T> extends Task<T> {
         return addOnCompleteListener(listener);
     }
 
-    // ---------- Executor overloads (required by your SDK) ----------
     @NonNull
     @Override
     public Task<T> addOnSuccessListener(@NonNull Executor executor,

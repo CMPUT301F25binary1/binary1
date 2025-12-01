@@ -91,6 +91,7 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
         mapView = view.findViewById(R.id.mapWaitingList);
         tvNoLocationList = view.findViewById(R.id.tvNoLocationList);
 
+        // MapView lifecycle
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
 
@@ -102,6 +103,7 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
         googleMap = map;
         googleMap.getUiSettings().setZoomControlsEnabled(true);
 
+        // If we already have data loaded, render it now
         if (!cachedWaitingListDocs.isEmpty()) {
             renderFromWaitingListDocs(cachedWaitingListDocs);
         }
@@ -148,6 +150,8 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
         mapView.onLowMemory();
     }
 
+    // --- Firestore listening ---
+
     private void startListeningToWaitingList() {
         if (eventId == null || eventId.isEmpty()) {
             Toast.makeText(getContext(),
@@ -189,6 +193,9 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
                 });
     }
 
+    /**
+     * Render pins on the map + update "No Location" list from the given docs.
+     */
     private void renderFromWaitingListDocs(List<DocumentSnapshot> docs) {
         if (googleMap == null) return;
 
@@ -250,6 +257,13 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
         }
     }
 
+    /**
+     * Loads user's display name from users/{userId} and adds a marker.
+     * The marker's title = display name (or userId fallback)
+     * The marker's snippet = joined timestamp text.
+     *
+     * Tapping a pin shows this info in the standard Google Maps info window.
+     */
     private void fetchUserDisplayNameAndAddMarker(
             String userId,
             LatLng position,

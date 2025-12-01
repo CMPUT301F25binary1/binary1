@@ -107,6 +107,7 @@ public class EntrantHomeFragment extends Fragment {
         eventRepository = new EventRepository();
         authRepository = new AuthRepository();
 
+        // Find views
         eventsRecyclerView = view.findViewById(R.id.events_recycler_view);
         progressBar = view.findViewById(R.id.progress_bar);
         emptyView = view.findViewById(R.id.empty_view);
@@ -121,17 +122,20 @@ public class EntrantHomeFragment extends Fragment {
         btnDance = view.findViewById(R.id.button3);
         btnArt = view.findViewById(R.id.button4);
         btnTech = view.findViewById(R.id.button5);
-        btnSports = view.findViewById(R.id.button_sports);
+        btnSports = view.findViewById(R.id.button_sports); // ADDED initialization
 
         currentCategoryButton = btnAll;
         updateCategoryButtonAppearance(currentCategoryButton, true);
 
+        // Setup RecyclerView
         eventsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         eventAdapter = new EventAdapter(eventList);
         eventsRecyclerView.setAdapter(eventAdapter);
 
+        // Load User's Name for Welcome Message
         loadUserProfile();
 
+        // Setup Search Bar
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -163,12 +167,13 @@ public class EntrantHomeFragment extends Fragment {
         btnDance.setOnClickListener(categoryClickListener);
         btnArt.setOnClickListener(categoryClickListener);
         btnTech.setOnClickListener(categoryClickListener);
-        btnSports.setOnClickListener(categoryClickListener);
+        btnSports.setOnClickListener(categoryClickListener); // ADDED listener
 
         btnHowItWorks.setOnClickListener(v -> navigateToGuidelines());
 
         btnFilterToday.setOnClickListener(v -> toggleDateFilter());
 
+        // Setup Scan Button
         scanButton.setOnClickListener(v -> {
             IntentIntegrator integrator = new IntentIntegrator(requireActivity());
             integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE);
@@ -180,6 +185,7 @@ public class EntrantHomeFragment extends Fragment {
             qrCodeLauncher.launch(integrator.createScanIntent());
         });
 
+        // Fetch events from Firestore
         loadEvents();
     }
 

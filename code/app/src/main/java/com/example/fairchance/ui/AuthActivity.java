@@ -30,6 +30,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
     private String currentRole;
     private boolean isRegisterMode = false;
 
+    // UI Components
     private TextView authTitle;
     private TextInputLayout passwordLayout, firstNameLayout, lastNameLayout, phoneLayout;
     private TextInputEditText emailEditText, passwordEditText, firstNameEditText, lastNameEditText, phoneEditText;
@@ -47,6 +48,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
             currentRole = "entrant";
         }
 
+        // Find all UI views
         authTitle = findViewById(R.id.auth_title);
         passwordLayout = findViewById(R.id.password_layout);
         emailEditText = findViewById(R.id.edit_text_email);
@@ -134,6 +136,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
         String lastName = lastNameEditText.getText().toString().trim();
         String phone = phoneEditText.getText().toString().trim();
 
+        // Validation
         if (email.isEmpty()) {
             emailEditText.setError("Email is required");
             return;
@@ -157,6 +160,7 @@ public class AuthActivity extends AppCompatActivity implements AuthRepository.Au
 
         setLoading(true);
 
+        // Call appropriate repository method
         if (isRegisterMode) {
             if (currentRole.equals("entrant")) {
                 authRepository.registerAndLoginEntrant(email, firstName, lastName, phone, this);

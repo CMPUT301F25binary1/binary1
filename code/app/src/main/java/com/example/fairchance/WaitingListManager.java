@@ -3,10 +3,6 @@ package com.example.fairchance;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Utility class for managing a list of user IDs in a waiting list context.
- * Handles joining, leaving, and drawing replacements.
- */
 public class WaitingListManager {
 
     private final List<String> waitingList;

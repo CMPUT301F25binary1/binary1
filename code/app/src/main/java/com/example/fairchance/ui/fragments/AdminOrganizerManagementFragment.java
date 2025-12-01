@@ -27,9 +27,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Fragment for administrators to list and search for organizer accounts.
- */
 public class AdminOrganizerManagementFragment extends Fragment
         implements AdminUserAdapter.OnUserClickListener {
 
@@ -93,10 +90,12 @@ public class AdminOrganizerManagementFragment extends Fragment
                         String email = doc.getString("email");
                         String role = doc.getString("role");
 
+                        // Only organizers
                         if (role == null || !role.equalsIgnoreCase("organizer")) {
                             continue;
                         }
 
+                        // Optional: respect soft deactivate flags
                         Boolean isActive = doc.getBoolean("isActive");
                         Boolean roleActive = doc.getBoolean("roleActive");
                         if (isActive != null && !isActive) continue;

@@ -24,10 +24,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Fragment for organizers to view the current waiting list for an event.
- * Supports viewing entrants on a map and sending notifications.
- */
 public class EntrantsWaitingListFragment extends Fragment {
 
     private static final String ARG_EVENT_ID = "EVENT_ID";
@@ -82,6 +78,7 @@ public class EntrantsWaitingListFragment extends Fragment {
 
         rvWaitingList.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        // Reuse SelectedParticipantAdapter, with no per-entrant button
         adapter = new SelectedParticipantAdapter(
                 waitingIds,
                 eventName,

@@ -1,9 +1,5 @@
 package com.example.fairchance;
 
-/**
- * Utility class to validate event creation parameters such as name, capacity,
- * and date ranges.
- */
 public class EventCreationValidator {
 
     public static boolean isValid(

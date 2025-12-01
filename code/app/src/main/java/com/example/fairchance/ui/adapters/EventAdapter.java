@@ -39,11 +39,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Main adapter for displaying a list of events.
- * Used in EntrantHomeFragment and OngoingEventsFragment.
- * Supports filtering by category, search text, and date.
- */
 public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> implements Filterable {
 
     private List<Event> eventList;
@@ -192,14 +187,17 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
             View.OnClickListener openDetails = v -> {
                 if (openOrganizerView) {
+                    // Organizer view: open the purple fragment with QR + buttons
                     EventDetailsFragment fragment = EventDetailsFragment.newInstance(event.getEventId());
                     FragmentTransaction transaction = ((AppCompatActivity) context)
                             .getSupportFragmentManager()
                             .beginTransaction();
+                    // FIX: Use dashboard_container to ensure clean replacement (no overlap)
                     transaction.replace(R.id.dashboard_container, fragment);
                     transaction.addToBackStack(null);
                     transaction.commit();
                 } else {
+                    // Entrant view: open the green JOIN WAITLIST activity
                     Intent intent = new Intent(context, EventDetailsActivity.class);
                     intent.putExtra("EVENT_ID", event.getEventId());
                     context.startActivity(intent);
@@ -210,6 +208,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             itemView.setOnClickListener(openDetails);
 
             if (openOrganizerView) {
+                // Organizer view: hide the join button completely
                 buttonJoin.setVisibility(View.GONE);
             } else {
                 buttonJoin.setVisibility(View.VISIBLE);
@@ -221,10 +220,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                     if (status == null) {
                         buttonJoin.setText("Join Waiting List");
                         buttonJoin.setEnabled(true);
+                        // User has NOT joined: Set color to GREEN
                         buttonJoin.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(context, R.color.FCgreen)));
                     } else if ("Waiting".equals(status)) {
                         buttonJoin.setText("Leave Waiting List");
                         buttonJoin.setEnabled(true);
+                        // User has joined: Set color to RED
                         buttonJoin.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
                     } else {
                         // User is Selected, Confirmed, Declined, etc. -> Disable button
@@ -240,10 +241,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
             buttonJoin.setOnClickListener(v -> {
                 String label = buttonJoin.getText().toString();
+                // This will only run if button is enabled
                 if (label.contains("Join")) {
                     if (event.isGeolocationRequired()) {
                         Activity activity = (Activity) context;
 
+                        // Check permissions
                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                             ActivityCompat.requestPermissions(
                                     activity,
@@ -254,6 +257,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                             return;
                         }
 
+                        // Permission granted, get location
                         FusedLocationProviderClient fused = LocationServices.getFusedLocationProviderClient(context);
                         fused.getLastLocation()
                                 .addOnSuccessListener(loc -> {
@@ -286,6 +290,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                                 );
 
                     } else {
+                        // No Geolocation required
                         repo.joinWaitingList(event.getEventId(), event, new EventRepository.EventTaskCallback() {
                             @Override
                             public void onSuccess() {
@@ -301,11 +306,13 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                         });
                     }
                 } else {
+                    // Logic for "Leave Waiting List"
                     repo.leaveWaitingList(event.getEventId(), new EventRepository.EventTaskCallback() {
                         @Override
                         public void onSuccess() {
                             Toast.makeText(context, "Left waiting list.", Toast.LENGTH_SHORT).show();
                             buttonJoin.setText("Join Waiting List");
+                            // LEFT -> GREEN
                             buttonJoin.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(context, R.color.FCgreen)));
                         }
 

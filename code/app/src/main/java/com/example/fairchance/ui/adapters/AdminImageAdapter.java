@@ -19,15 +19,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Adapter for displaying images in the Admin Image Management grid.
- * Handles image preview and deletion actions.
- */
 public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.ImageViewHolder> {
 
     private List<AdminImageItem> images = new ArrayList<>();
     private final OnImageActionListener listener;
 
+    /** Callback to the fragment */
     public interface OnImageActionListener {
         void onPreview(AdminImageItem item);
         void onRemoveClicked(AdminImageItem item);
@@ -37,6 +34,7 @@ public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.Im
         this.listener = listener;
     }
 
+    /** Replace entire list */
     public void submitList(List<AdminImageItem> newList) {
         this.images = newList != null ? newList : new ArrayList<>();
         notifyDataSetChanged();
@@ -77,6 +75,7 @@ public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.Im
                 .into(holder.ivPoster);
 
 
+        // Tap card or image -> preview
         View.OnClickListener previewClick = v -> {
             if (listener != null) {
                 listener.onPreview(item);
@@ -85,6 +84,7 @@ public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.Im
         holder.itemView.setOnClickListener(previewClick);
         holder.ivPoster.setOnClickListener(previewClick);
 
+        // Delete button
         holder.btnDelete.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onRemoveClicked(item);

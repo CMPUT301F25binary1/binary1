@@ -96,6 +96,7 @@ public class SamplingReplacementFragment extends Fragment {
         btnSampleAttendees = view.findViewById(R.id.btnSampleAttendees);
         tvSummary = view.findViewById(R.id.tvSummary);
 
+        // Selected participants list (top, "Notify Entrant")
         rvSelectedParticipants = view.findViewById(R.id.rvSelectedParticipants);
         rvSelectedParticipants.setLayoutManager(new LinearLayoutManager(getContext()));
         selectedAdapter = new SelectedParticipantAdapter(
@@ -107,6 +108,7 @@ public class SamplingReplacementFragment extends Fragment {
         );
         rvSelectedParticipants.setAdapter(selectedAdapter);
 
+        // Replacement pool list (bottom, "Draw Replacement")
         rvReplacementPool = view.findViewById(R.id.rvReplacementPool);
         rvReplacementPool.setLayoutManager(new LinearLayoutManager(getContext()));
         replacementAdapter = new SelectedParticipantAdapter(
@@ -127,6 +129,7 @@ public class SamplingReplacementFragment extends Fragment {
         }
     }
 
+    /** Load the event's name so the cards can show it. */
     private void loadEventName() {
         if (eventId == null || eventId.isEmpty()) return;
 
@@ -197,6 +200,7 @@ public class SamplingReplacementFragment extends Fragment {
                 });
     }
 
+    /** Load all currently selected entrants (any status). */
     private void loadSelectedParticipants(int requested) {
         if (eventId == null || eventId.isEmpty()) return;
 
@@ -210,7 +214,7 @@ public class SamplingReplacementFragment extends Fragment {
 
                     selectedIds.clear();
                     for (DocumentSnapshot doc : query.getDocuments()) {
-                        selectedIds.add(doc.getId());
+                        selectedIds.add(doc.getId()); // doc ID is userId
                     }
                     selectedAdapter.notifyDataSetChanged();
 
@@ -233,6 +237,10 @@ public class SamplingReplacementFragment extends Fragment {
                 });
     }
 
+    /**
+     * Replacement pool = all entries in "selected" where status == "cancelled".
+     * These are the people who gave up their spot and need replacements.
+     */
     private void loadReplacementPool() {
         if (eventId == null || eventId.isEmpty()) return;
 
@@ -264,6 +272,7 @@ public class SamplingReplacementFragment extends Fragment {
                 });
     }
 
+    /** Notify a single selected entrant using the Cloud Function. */
     private void notifySingleEntrant(String entrantId) {
         if (eventId == null || eventId.isEmpty()) {
             if (getContext() != null) {
@@ -317,9 +326,15 @@ public class SamplingReplacementFragment extends Fragment {
     }
 
     private void onDrawReplacementClicked(String entrantId) {
+        // [FIX] Now correctly calls the replacement logic instead of showing a placeholder toast
         drawReplacementForCancelled(entrantId);
     }
 
+    /**
+     * Called when the organizer taps "Draw Replacement" on a cancelled entrant.
+     * For now this simply calls sampleAttendees(eventId, 1) to fill the open spot,
+     * then hides this cancelled entry from the Replacement Pool.
+     */
     private void drawReplacementForCancelled(String cancelledEntrantId) {
         if (eventId == null || eventId.isEmpty()) {
             if (getContext() != null) {

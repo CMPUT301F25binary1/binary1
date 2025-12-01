@@ -44,6 +44,7 @@ public class SelectedParticipantAdapter
         this.listener = listener;
     }
 
+    /** Allow parent fragment to update the event name after it loads. */
     public void setEventName(String eventName) {
         this.eventName = eventName;
         notifyDataSetChanged();
@@ -61,6 +62,7 @@ public class SelectedParticipantAdapter
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         String id = participantIds.get(position);
 
+        // Simple display:
         holder.tvParticipantName.setText("User ID: " + id);
 
         if (eventName != null && !eventName.isEmpty()) {
@@ -77,6 +79,8 @@ public class SelectedParticipantAdapter
             holder.btnNotifyEntrant.setOnClickListener(v ->
                     listener.onParticipantButtonClick(id));
         } else {
+            // Used e.g. on ChosenEntrants screen where there is
+            // only the big "Send Notifications" button.
             holder.btnNotifyEntrant.setVisibility(View.GONE);
             holder.btnNotifyEntrant.setOnClickListener(null);
         }

@@ -106,6 +106,7 @@ public class EventHistoryAdapter extends RecyclerView.Adapter<EventHistoryAdapte
                     break;
             }
 
+            // FIX: Add click listener to launch EventDetailsActivity (US 01.02.03, Criterion 5)
             itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(context, EventDetailsActivity.class);
                 intent.putExtra("EVENT_ID", item.getEventId());

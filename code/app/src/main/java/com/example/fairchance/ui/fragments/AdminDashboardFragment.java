@@ -21,10 +21,6 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
-/**
- * Main dashboard fragment for Administrators.
- * Displays overview statistics and provides navigation to admin management features.
- */
 public class AdminDashboardFragment extends Fragment {
 
     private TextView tvActiveEventsCount;
@@ -70,6 +66,7 @@ public class AdminDashboardFragment extends Fragment {
 
         Button btnLogout = root.findViewById(R.id.btnLogout);
 
+        // ---- Navigation cards ----
         if (cardProfile != null) {
             cardProfile.setOnClickListener(v ->
                     openFragment(new AdminProfileManagementFragment()));
@@ -95,6 +92,7 @@ public class AdminDashboardFragment extends Fragment {
                     openFragment(new AdminOrganizerManagementFragment()));
         }
 
+        // ---- Logout button (safe if it's missing from layout) ----
         if (btnLogout != null) {
             btnLogout.setOnClickListener(v -> {
                 // Sign out current user
@@ -109,10 +107,12 @@ public class AdminDashboardFragment extends Fragment {
             });
         }
 
+        // Start Firestore listeners for the tiles
         startDashboardListeners();
     }
 
     private void startDashboardListeners() {
+        // EVENTS (counts all events where isActive == null or true)
         eventsListener = db.collection("events")
                 .addSnapshotListener((value, error) -> {
                     if (error != null) return;
@@ -131,6 +131,7 @@ public class AdminDashboardFragment extends Fragment {
                     }
                 });
 
+        // USER PROFILES
         usersListener = db.collection("users")
                 .addSnapshotListener((value, error) -> {
                     if (error != null) return;
@@ -141,6 +142,7 @@ public class AdminDashboardFragment extends Fragment {
                     }
                 });
 
+        // UPLOADED IMAGES
         imagesListener = db.collection("events")
                 .addSnapshotListener((value, error) -> {
                     if (error != null) return;
@@ -160,6 +162,7 @@ public class AdminDashboardFragment extends Fragment {
                     }
                 });
 
+        // ORGANIZERS
         organizersListener = db.collection("users")
                 .whereEqualTo("role", "organizer")
                 .addSnapshotListener((value, error) -> {

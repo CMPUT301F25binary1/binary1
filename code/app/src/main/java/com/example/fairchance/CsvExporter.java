@@ -2,10 +2,6 @@ package com.example.fairchance;
 
 import java.util.List;
 
-/**
- * Utility class for generating CSV strings from data models.
- * Used for exporting lists like final entrants.
- */
 public class CsvExporter {
 
     public static class EntrantRow {

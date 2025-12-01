@@ -29,9 +29,6 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Fragment for administrators to browse and remove uploaded images (posters).
- */
 public class AdminImageManagementFragment extends Fragment
         implements AdminImageAdapter.OnImageActionListener {
 
@@ -103,6 +100,8 @@ public class AdminImageManagementFragment extends Fragment
         });
     }
 
+    // === Callbacks from adapter ===
+
     @Override
     public void onPreview(AdminImageItem item) {
         showPreviewDialog(item);
@@ -117,6 +116,8 @@ public class AdminImageManagementFragment extends Fragment
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
+    // === Moderation actions ===
 
     private void deleteImage(AdminImageItem item) {
         setLoading(true);

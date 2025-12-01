@@ -129,16 +129,31 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
                 : "";
 
         List<NotificationLog> filtered = new ArrayList<>();
+
         for (NotificationLog log : allLogs) {
             Date ts = log.getTimestamp();
-            if (startDateFilter != null && (ts == null || ts.before(startDateFilter))) continue;
-            if (endDateFilter != null && (ts == null || ts.after(endDateFilter))) continue;
 
+            // 1) Date filters
+            if (startDateFilter != null && (ts == null || ts.before(startDateFilter))) {
+                continue;
+            }
+            if (endDateFilter != null && (ts == null || ts.after(endDateFilter))) {
+                continue;
+            }
+
+            // 2) Event filter – match on BOTH event name and event ID (more forgiving)
             if (!eventQuery.isEmpty()) {
                 String eventName = log.getEventName() != null
                         ? log.getEventName().toLowerCase()
                         : "";
-                if (!eventName.contains(eventQuery)) continue;
+                String eventId = log.getEventId() != null
+                        ? log.getEventId().toLowerCase()
+                        : "";
+
+                // If the query isn’t contained in either, skip this log
+                if (!eventName.contains(eventQuery) && !eventId.contains(eventQuery)) {
+                    continue;
+                }
             }
 
             filtered.add(log);
@@ -147,6 +162,8 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
         adapter.setLogs(filtered);
         tvEmptyState.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
     }
+
+
 
     @Override
     public void onLogClick(NotificationLog log) {

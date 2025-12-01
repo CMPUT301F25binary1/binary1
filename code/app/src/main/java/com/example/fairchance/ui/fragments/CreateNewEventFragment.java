@@ -42,7 +42,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class CreateNewEventFragment extends Fragment {
+public class
+CreateNewEventFragment extends Fragment {
 
     // Views (IDs match your XML)
     private ImageView ivEventPoster;

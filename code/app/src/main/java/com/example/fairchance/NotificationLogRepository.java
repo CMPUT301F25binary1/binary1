@@ -2,10 +2,7 @@ package com.example.fairchance;
 
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-
 import com.example.fairchance.models.NotificationLog;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -17,8 +14,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Repository for reading/writing notification logs in Firestore.
- * Collection: "notificationLogs"
+ * Repository for Firestore notification logs (collection: "notificationLogs").
  */
 public class NotificationLogRepository {
 
@@ -70,7 +66,7 @@ public class NotificationLogRepository {
     }
 
     /**
-     * Fetch all logs ordered by newest first.
+     * Fetches all logs ordered by newest first.
      */
     public void fetchAllLogs(LogListCallback callback) {
         logsRef.orderBy("timestamp", Query.Direction.DESCENDING)
@@ -79,8 +75,11 @@ public class NotificationLogRepository {
     }
 
     /**
-     * Fetch logs, optionally filtered by date range and/or eventId.
-     * Pass null for any filter you don't want to use.
+     * Fetches logs optionally filtered by date range and event ID.
+     *
+     * @param from    start date (inclusive) or null
+     * @param to      end date (inclusive) or null
+     * @param eventId event ID filter or null/empty for any
      */
     public void fetchLogsFiltered(Date from, Date to, String eventId, LogListCallback callback) {
         Query query = logsRef;

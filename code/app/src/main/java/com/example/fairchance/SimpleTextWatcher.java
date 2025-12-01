@@ -4,7 +4,7 @@ import android.text.Editable;
 import android.text.TextWatcher;
 
 /**
- * Simple TextWatcher where you only care about onTextChanged.
+ * TextWatcher that triggers a callback only during onTextChanged().
  */
 public class SimpleTextWatcher implements TextWatcher {
 

@@ -34,6 +34,7 @@ public class AuthRepository {
     private final FirebaseAuth auth;
     private final FirebaseFirestore db;
 
+    //region Callback Interfaces
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
         void onError(String message);
@@ -78,6 +79,7 @@ public class AuthRepository {
         void onSuccess(List<AdminUserSummary> users);
         void onError(String message);
     }
+    //endregion
 
     public interface UserListCallback {
         void onSuccess(java.util.List<com.example.fairchance.models.User> users);

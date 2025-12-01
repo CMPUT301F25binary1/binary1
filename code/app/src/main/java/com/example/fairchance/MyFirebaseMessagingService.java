@@ -49,22 +49,26 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         String title = null;
         String body = null;
-        String navTarget = null;
+        String navTarget = null; // Variable to hold navigation intent extra
 
+        // Check if message contains a data payload for a status update
         if (remoteMessage.getData().size() > 0) {
             String eventId = remoteMessage.getData().get("eventId");
             String status = remoteMessage.getData().get("status");
 
+            // Default to data payload values if present
             title = remoteMessage.getData().get("title");
             body = remoteMessage.getData().get("body");
 
 
             if (eventId != null && status != null) {
+                // If it's a status update (like 'Not selected' or 'Selected')
                 Log.d(TAG, "Handling status update for event: " + eventId + " to " + status);
 
                 AuthRepository authRepository = new AuthRepository();
                 if (authRepository.getCurrentUser() != null) {
                     EventRepository eventRepository = new EventRepository();
+                    // Update the user's history in Firestore first
                     eventRepository.updateEventHistoryStatus(eventId, status, new EventRepository.EventTaskCallback() {
                         @Override
                         public void onSuccess() {
@@ -78,34 +82,41 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     });
                 }
 
+                // Check status to set navigation target for US 01.04.01 Criterion 2
                 if ("Selected".equalsIgnoreCase(status)) {
                     navTarget = "NAV_TO_INVITATIONS";
                 }
             }
 
+            // Determine content for system notification
             if (remoteMessage.getNotification() != null) {
+                // Use default notification payload if available
                 title = remoteMessage.getNotification().getTitle();
                 body = remoteMessage.getNotification().getBody();
             } else if (title == null || body == null) {
+                // Use a generic default if no explicit notification payload exists
                 title = remoteMessage.getData().getOrDefault("title", "FairChance Update");
                 body = remoteMessage.getData().getOrDefault("body", "You have a new status update.");
             }
 
+            // Add prompt to action for Selected status (US 01.04.01 Criterion 2)
             if ("NAV_TO_INVITATIONS".equals(navTarget)) {
                 body = (body != null ? body : "") + " Tap to review and confirm your spot!";
-            } else if ("Not selected".equalsIgnoreCase(status)) {
+            } else if ("Not selected".equalsIgnoreCase(status)) { // [FIX] Add encouragement for 'Not selected' status (US 01.04.02 Criterion 2)
                 body = (body != null ? body : "") + " Check back soon for future events and lottery draws!";
             }
 
-            sendNotification(title, body, navTarget);
+            // Always show a system notification
+            sendNotification(title, body, navTarget); // Pass navTarget
 
         } else if (remoteMessage.getNotification() != null) {
+            // Standard case: just a notification payload without data
             title = remoteMessage.getNotification().getTitle();
             body = remoteMessage.getNotification().getBody();
             Log.d(TAG, "Notification Title: " + title);
             Log.d(TAG, "Notification Body: " + body);
 
-            sendNotification(title, body, null);
+            sendNotification(title, body, null); // Pass null navTarget
         }
     }
 
@@ -120,11 +131,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
+        // Add navigation extra if a target is specified
         if (navTarget != null) {
             intent.putExtra(navTarget, true);
         }
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent,
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
                 PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Builder notificationBuilder =
@@ -139,6 +151,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
+        // Since Android 8.0 (API 26), notification channels are required.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
                     "FairChance Notifications",
@@ -146,6 +159,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             notificationManager.createNotificationChannel(channel);
         }
 
-        notificationManager.notify(0, notificationBuilder.build());
+        notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
     }
 }

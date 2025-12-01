@@ -26,9 +26,6 @@ import com.google.android.material.textfield.TextInputEditText;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Fragment for organizers to update an existing event's details.
- */
 public class UpdateEventFragment extends Fragment {
 
     private static final String ARG_EVENT_ID = "EVENT_ID";
@@ -129,6 +126,7 @@ public class UpdateEventFragment extends Fragment {
         updates.put("location", String.valueOf(etTimeLoc.getText()).trim());
         updates.put("geolocationRequired", cbGeo.isChecked());
 
+        // Update fields first
         repo.updateEventFields(eventId, updates, new EventRepository.EventTaskCallback() {
             @Override public void onSuccess() {
                 // Then upload poster if a new one was chosen

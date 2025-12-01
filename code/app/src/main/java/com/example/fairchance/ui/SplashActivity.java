@@ -42,6 +42,7 @@ public class SplashActivity extends AppCompatActivity {
         new Handler().postDelayed(() -> {
             FirebaseUser currentUser = authRepository.getCurrentUser();
             if (currentUser != null) {
+                // User is logged in, get/save token
                 getAndSaveFcmToken();
                 goToMainApp();
             } else {
@@ -59,6 +60,7 @@ public class SplashActivity extends AppCompatActivity {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
                     PackageManager.PERMISSION_GRANTED) {
 
+                // Request the permission
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
             }

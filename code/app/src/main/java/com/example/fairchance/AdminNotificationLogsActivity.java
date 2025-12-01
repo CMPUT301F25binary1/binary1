@@ -23,10 +23,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-/**
- * Activity for administrators to view system-wide notification logs.
- * Supports filtering by date range and event name/ID.
- */
 public class AdminNotificationLogsActivity extends AppCompatActivity
         implements NotificationLogAdapter.OnLogClickListener {
 
@@ -137,6 +133,7 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
         for (NotificationLog log : allLogs) {
             Date ts = log.getTimestamp();
 
+            // 1) Date filters
             if (startDateFilter != null && (ts == null || ts.before(startDateFilter))) {
                 continue;
             }
@@ -144,6 +141,7 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
                 continue;
             }
 
+            // 2) Event filter – match on BOTH event name and event ID (more forgiving)
             if (!eventQuery.isEmpty()) {
                 String eventName = log.getEventName() != null
                         ? log.getEventName().toLowerCase()
@@ -152,6 +150,7 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
                         ? log.getEventId().toLowerCase()
                         : "";
 
+                // If the query isn’t contained in either, skip this log
                 if (!eventName.contains(eventQuery) && !eventId.contains(eventQuery)) {
                     continue;
                 }

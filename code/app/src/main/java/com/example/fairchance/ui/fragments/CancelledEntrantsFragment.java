@@ -25,9 +25,6 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Fragment for organizers to view the list of entrants who cancelled or were cancelled.
- */
 public class CancelledEntrantsFragment extends Fragment {
 
     private static final String ARG_EVENT_ID = "EVENT_ID";
@@ -69,6 +66,7 @@ public class CancelledEntrantsFragment extends Fragment {
         rvCancelledEntrants = view.findViewById(R.id.rvCancelledEntrants);
         rvCancelledEntrants.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        // Re-use SelectedParticipantAdapter with no per-row button
         adapter = new SelectedParticipantAdapter(
                 cancelledIds,
                 "",          // event name not needed here
@@ -85,10 +83,12 @@ public class CancelledEntrantsFragment extends Fragment {
         if (eventId == null || eventId.isEmpty()) {
             Toast.makeText(getContext(), "Missing event id.", Toast.LENGTH_SHORT).show();
         } else {
-            loadEventMeta();
-            loadCancelledEntrants();
+            loadEventMeta();          // NEW – loads event name
+            loadCancelledEntrants();  // already there
         }
 
+        // Make sure your layout has a Button with this id:
+        // @+id/btnNotifyCancelledEntrants
         Button btnNotify = view.findViewById(R.id.btnNotifyCancelledEntrants);
         if (btnNotify != null) {
             btnNotify.setOnClickListener(v -> {
@@ -105,6 +105,7 @@ public class CancelledEntrantsFragment extends Fragment {
         repository.getEvent(eventId, new EventRepository.EventCallback() {
             @Override
             public void onSuccess(Event event) {
+                // Set list title to include event name (optional)
                 View root = getView();
                 if (root != null) {
                     android.widget.TextView title = root.findViewById(R.id.tvCancelledEntrantsTitle);
@@ -113,6 +114,7 @@ public class CancelledEntrantsFragment extends Fragment {
                     }
                 }
 
+                // Tell the adapter so each card shows the event name
                 if (event.getName() != null) {
                     adapter.setEventName(event.getName());
                 }
@@ -136,6 +138,7 @@ public class CancelledEntrantsFragment extends Fragment {
                 .addOnSuccessListener(snapshot -> {
                     cancelledIds.clear();
                     for (QueryDocumentSnapshot doc : snapshot) {
+                        // doc ID is the userId
                         cancelledIds.add(doc.getId());
                     }
                     adapter.notifyDataSetChanged();

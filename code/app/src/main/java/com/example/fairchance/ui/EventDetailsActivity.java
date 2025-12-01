@@ -55,6 +55,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private ListenerRegistration waitlistListener;
     private FusedLocationProviderClient fusedLocationClient;
 
+    // UI Components
     private ImageView eventPosterImage;
     private ProgressBar progressBar;
     private LinearLayout eventDetailsContent;
@@ -80,6 +81,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
 
+        // Find Views
         eventPosterImage = findViewById(R.id.event_poster_image);
         progressBar = findViewById(R.id.event_details_progress);
         eventDetailsContent = findViewById(R.id.event_details_content);
@@ -96,6 +98,7 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         loadEventDetails();
 
+        // Set the main action button listener
         btnJoinWaitlist.setOnClickListener(v -> {
             if (currentEventStatus == null) {
                 initiateJoinProcess();
@@ -104,6 +107,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             }
         });
 
+        // Set listener for "See full guidelines" link
         tvSeeFullGuidelines.setOnClickListener(v -> {
             if (guidelinesContainer != null) {
                 // Get the actual text from the current event object (default to empty if null)
@@ -229,6 +233,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         if (currentEvent.isGeolocationRequired()) {
             checkLocationPermissionAndJoin();
         } else {
+            // No location required, join normally
             performJoin(null, null);
         }
     }
@@ -240,10 +245,12 @@ public class EventDetailsActivity extends AppCompatActivity {
     private void checkLocationPermissionAndJoin() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
+            // Request permission
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
         } else {
+            // Permission already granted
             fetchLocation();
         }
     }
@@ -256,7 +263,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
 
-        setButtonLoading(true);
+        setButtonLoading(true); // Show loading while fetching location
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, location -> {
                     if (location != null) {
@@ -361,6 +368,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
 
         if (event.getEventDate() != null) {
+            // Fix for double year display (changed yyyY to yyyy)
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
             tvEventDate.setText(sdf.format(event.getEventDate()));
         } else {
@@ -373,6 +381,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             tvEventGuidelines.setText("No specific guidelines provided.");
         }
 
+        // Load poster image with Glide
         Glide.with(this)
                 .load(event.getPosterImageUrl())
                 .placeholder(R.drawable.fairchance_logo_with_words___transparent)

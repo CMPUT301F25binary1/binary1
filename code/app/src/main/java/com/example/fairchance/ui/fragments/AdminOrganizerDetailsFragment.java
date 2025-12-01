@@ -26,10 +26,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
-/**
- * Fragment displaying details of a specific organizer for admin review.
- * Allows removal/deactivation of the organizer and their events.
- */
 public class AdminOrganizerDetailsFragment extends Fragment {
 
     private static final String ARG_ORGANIZER_ID = "organizer_id";
@@ -74,9 +70,11 @@ public class AdminOrganizerDetailsFragment extends Fragment {
             return;
         }
 
+        // Init repositories
         authRepository = new AuthRepository();
         eventRepository = new EventRepository();
 
+        // UI
         tvName = view.findViewById(R.id.tvDetailName);
         tvEmail = view.findViewById(R.id.tvDetailEmail);
         tvPhone = view.findViewById(R.id.tvDetailPhone);

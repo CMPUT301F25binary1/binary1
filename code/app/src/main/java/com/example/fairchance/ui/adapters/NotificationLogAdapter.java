@@ -15,9 +15,6 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Adapter for displaying notification logs in the Admin Notification Log list.
- */
 public class NotificationLogAdapter extends RecyclerView.Adapter<NotificationLogAdapter.LogViewHolder> {
 
     public interface OnLogClickListener {

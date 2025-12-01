@@ -31,20 +31,17 @@ import com.journeyapps.barcodescanner.BarcodeEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
-/**
- * Fragment to display details of an event.
- * Used by Organizers to manage their event (view lists, update poster, etc.)
- * and by Admins to view event info.
- */
 public class EventDetailsFragment extends Fragment {
 
     private TextView tvEventName, tvEventDescription, tvEventTimeLocation, tvRegistrationDates, tvRegistrationTimes;
     private ImageView ivEventPoster, ivQRCode;
     private Button btnWaitingList, btnChosen, btnCancelled, btnFinal;
 
+    // Optional views for the two user stories
     private TextView tvGeolocationRequiredLabel, tvGeolocationRequiredValue;
     private Button btnUpdatePoster, btnEditEvent;
 
+    // Sampling & Replacement button
     private Button btnSamplingReplacement;
 
     // Group that wraps all organizer-only actions (anything below the QR)
@@ -55,6 +52,7 @@ public class EventDetailsFragment extends Fragment {
     private Event loadedEvent;
     private AuthRepository authRepository;
 
+    // Image picker for Update Poster
     private final ActivityResultLauncher<String> pickImage =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 if (uri != null && loadedEvent != null) {
@@ -116,8 +114,10 @@ public class EventDetailsFragment extends Fragment {
         btnFinal = view.findViewById(R.id.btnFinalEntrants);
         btnSamplingReplacement = view.findViewById(R.id.btnSamplingReplacement);
 
+        // Organizer-only group (everything below the QR code)
         groupOrganizerActions = view.findViewById(R.id.groupOrganizerActions);
 
+        // Optional new views if added in layout
         tvGeolocationRequiredLabel = view.findViewById(R.id.tvGeolocationRequiredLabel);
         tvGeolocationRequiredValue = view.findViewById(R.id.tvGeolocationRequiredValue);
         btnUpdatePoster = view.findViewById(R.id.btnUpdatePoster);
@@ -152,6 +152,7 @@ public class EventDetailsFragment extends Fragment {
             btnEditEvent.setOnClickListener(v1 -> {
                 if (eventId != null) {
                     FragmentTransaction ft = requireActivity().getSupportFragmentManager().beginTransaction();
+                    // FIX: Use dashboard_container
                     ft.replace(R.id.dashboard_container, UpdateEventFragment.newInstance(eventId));
                     ft.addToBackStack(null);
                     ft.commit();
@@ -223,6 +224,7 @@ public class EventDetailsFragment extends Fragment {
                         .getSupportFragmentManager()
                         .beginTransaction();
 
+                // FIX: Use dashboard_container
                 ft.replace(R.id.dashboard_container,
                         SamplingReplacementFragment.newInstance(loadedEvent.getEventId()));
                 ft.addToBackStack(null);
@@ -285,6 +287,7 @@ public class EventDetailsFragment extends Fragment {
 
     private void openFragment(Fragment fragment) {
         FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
+        // FIX: Use dashboard_container to avoid overlaps
         transaction.replace(R.id.dashboard_container, fragment);
         transaction.addToBackStack(null);
         transaction.commit();

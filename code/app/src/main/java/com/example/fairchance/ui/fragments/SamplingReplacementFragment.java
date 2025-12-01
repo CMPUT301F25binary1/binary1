@@ -326,7 +326,8 @@ public class SamplingReplacementFragment extends Fragment {
     }
 
     private void onDrawReplacementClicked(String entrantId) {
-        Toast.makeText(getContext(), "Replace logic not added yet", Toast.LENGTH_SHORT).show();
+        // [FIX] Now correctly calls the replacement logic instead of showing a placeholder toast
+        drawReplacementForCancelled(entrantId);
     }
 
     /**

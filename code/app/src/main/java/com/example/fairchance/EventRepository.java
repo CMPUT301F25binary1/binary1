@@ -117,9 +117,9 @@ public class EventRepository {
      * Corresponds to US 02.01.01.
      *
      * Also stores metadata used by the Admin Image browser:
-     *  - createdById
-     *  - createdByName
-     *  - createdAt
+     * - createdById
+     * - createdByName
+     * - createdAt
      * @param event    The Event object to be added.
      * @param callback Notifies of success or failure.
      *
@@ -235,8 +235,7 @@ public class EventRepository {
     }
 
     /**
-     * Gets the current number of users on a specific event's waiting list.
-     * Note: This can be expensive if the list is large.
+     * Gets the current number of users on a specific event's waiting list (One-time fetch).
      *
      * @param eventId  The event to check.
      * @param callback Returns the count of documents or an error.
@@ -251,6 +250,28 @@ public class EventRepository {
                     } else {
                         Log.e(TAG, "Error getting waitlist count: ", task.getException());
                         callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    /**
+     * Listens to the waiting list count in real-time.
+     * This ensures the UI updates immediately when a replacement is drawn.
+     *
+     * @param eventId  The event to listen to.
+     * @param callback Returns the live count.
+     * @return Registration object to remove listener.
+     */
+    public ListenerRegistration listenToWaitingListCount(String eventId, WaitlistCountCallback callback) {
+        return eventsRef.document(eventId).collection("waitingList")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error listening to waitlist count", error);
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+                    if (value != null) {
+                        callback.onSuccess(value.size());
                     }
                 });
     }
@@ -630,6 +651,8 @@ public class EventRepository {
      * Samples N entrants from events/{eventId}/waitingList into events/{eventId}/selected.
      * Skips users already in 'selected'. Also sets users/{uid}/eventHistory/{eventId}.status = "Selected".
      * If there are fewer available entrants than N, all remaining entrants are selected.
+     *
+     * UPDATED: Now removes the selected users from the 'waitingList' collection so the waitlist count updates.
      */
     public void sampleAttendees(String eventId, int count, SampleAttendeesCallback callback) {
         eventsRef.document(eventId).collection("selected").get()
@@ -663,7 +686,7 @@ public class EventRepository {
                                 for (int i = 0; i < take; i++) {
                                     String uid = pool.get(i);
 
-                                    // events/{eventId}/selected/{uid}
+                                    // 1. Add to events/{eventId}/selected/{uid}
                                     DocumentReference selRef = eventsRef.document(eventId)
                                             .collection("selected").document(uid);
                                     Map<String, Object> selData = new HashMap<>();
@@ -671,13 +694,19 @@ public class EventRepository {
                                     selData.put("sampledAt", now);
                                     batch.set(selRef, selData);
 
-                                    // users/{uid}/eventHistory/{eventId} -> Selected (merge)
+                                    // 2. Update users/{uid}/eventHistory/{eventId} -> Selected (merge)
                                     DocumentReference histRef = usersRef.document(uid)
                                             .collection("eventHistory").document(eventId);
                                     Map<String, Object> hist = new HashMap<>();
                                     hist.put("status", "Selected");
                                     hist.put("updatedAt", now);
                                     batch.set(histRef, hist, SetOptions.merge());
+
+                                    // 3. Remove from events/{eventId}/waitingList/{uid}
+                                    // This ensures the waiting list count goes down for real-time updates.
+                                    DocumentReference waitRef = eventsRef.document(eventId)
+                                            .collection("waitingList").document(uid);
+                                    batch.delete(waitRef);
                                 }
 
                                 batch.commit()
@@ -747,7 +776,29 @@ public class EventRepository {
         batch.commit()
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "User " + userId + " responded to invitation for " + eventId);
-                    callback.onSuccess();
+
+                    // AUTO-REPLACEMENT LOGIC:
+                    // If user declined (!accepted), try to draw 1 replacement from waitlist.
+                    if (!accepted) {
+                        sampleAttendees(eventId, 1, new SampleAttendeesCallback() {
+                            @Override
+                            public void onSuccess(int selectedCount) {
+                                Log.d(TAG, "Automatic replacement found: " + selectedCount + " user(s).");
+                                callback.onSuccess(); // Still report success to the UI
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                Log.w(TAG, "Failed to auto-replace entrant: " + message);
+                                // We still call onSuccess because the *user's* decline action was successful.
+                                // The system failure to find a replacement shouldn't block the UI.
+                                callback.onSuccess();
+                            }
+                        });
+                    } else {
+                        // User accepted; no replacement needed.
+                        callback.onSuccess();
+                    }
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to respond to invitation", e);
@@ -876,8 +927,8 @@ public class EventRepository {
     }
 
     public void sendCancelledNotifications(String eventId,
-                                                   String message,
-                                                   NotificationCallback callback) {
+                                           String message,
+                                           NotificationCallback callback) {
 
         Map<String, Object> data = new HashMap<>();
         data.put("eventId", eventId);
@@ -1087,9 +1138,4 @@ public class EventRepository {
     public void drawReplacement(String eventId, EventTaskCallback callback) {
         sampleAttendees(eventId, 1, callback);
     }
-
-
-    // TODO: We will add more methods here later, such as:
-    // - runLottery(String eventId, int count, ...)
-    // - getWaitingList(String eventId, ...)
 }

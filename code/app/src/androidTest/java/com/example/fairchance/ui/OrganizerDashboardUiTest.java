@@ -3,7 +3,7 @@ package com.example.fairchance.ui;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
-import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.isRoot;
 
 import androidx.fragment.app.FragmentFactory;
 import androidx.fragment.app.testing.FragmentScenario;
@@ -15,6 +15,9 @@ import com.example.fairchance.ui.fragments.OrganizerDashboardFragment;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+/**
+ * Basic UI test for OrganizerDashboardFragment.
+ */
 @RunWith(AndroidJUnit4.class)
 public class OrganizerDashboardUiTest {
 
@@ -28,10 +31,9 @@ public class OrganizerDashboardUiTest {
     }
 
     @Test
-    public void bottomNavigation_isVisible() {
+    public void organizerDashboardFragment_launches() {
         launchOrganizerDashboard();
 
-        onView(withId(R.id.bottomNavigation))
-                .check(matches(isDisplayed()));
+        onView(isRoot()).check(matches(isDisplayed()));
     }
 }

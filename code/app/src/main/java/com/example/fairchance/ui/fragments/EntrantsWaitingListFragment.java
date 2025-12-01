@@ -107,7 +107,8 @@ public class EntrantsWaitingListFragment extends Fragment {
             requireActivity()
                     .getSupportFragmentManager()
                     .beginTransaction()
-                    .replace(R.id.fragment_container, fragment)
+                    // FIX: Use dashboard_container
+                    .replace(R.id.dashboard_container, fragment)
                     .addToBackStack(null)
                     .commit();
         });

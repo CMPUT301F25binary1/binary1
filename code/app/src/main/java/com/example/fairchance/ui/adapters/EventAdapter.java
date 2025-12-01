@@ -192,7 +192,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                     FragmentTransaction transaction = ((AppCompatActivity) context)
                             .getSupportFragmentManager()
                             .beginTransaction();
-                    transaction.replace(R.id.fragment_container, fragment);
+                    // FIX: Use dashboard_container to ensure clean replacement (no overlap)
+                    transaction.replace(R.id.dashboard_container, fragment);
                     transaction.addToBackStack(null);
                     transaction.commit();
                 } else {

@@ -152,7 +152,8 @@ public class EventDetailsFragment extends Fragment {
             btnEditEvent.setOnClickListener(v1 -> {
                 if (eventId != null) {
                     FragmentTransaction ft = requireActivity().getSupportFragmentManager().beginTransaction();
-                    ft.replace(R.id.fragment_container, UpdateEventFragment.newInstance(eventId));
+                    // FIX: Use dashboard_container
+                    ft.replace(R.id.dashboard_container, UpdateEventFragment.newInstance(eventId));
                     ft.addToBackStack(null);
                     ft.commit();
                 }
@@ -223,7 +224,8 @@ public class EventDetailsFragment extends Fragment {
                         .getSupportFragmentManager()
                         .beginTransaction();
 
-                ft.replace(R.id.fragment_container,
+                // FIX: Use dashboard_container
+                ft.replace(R.id.dashboard_container,
                         SamplingReplacementFragment.newInstance(loadedEvent.getEventId()));
                 ft.addToBackStack(null);
                 ft.commit();
@@ -285,7 +287,8 @@ public class EventDetailsFragment extends Fragment {
 
     private void openFragment(Fragment fragment) {
         FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.fragment_container, fragment);
+        // FIX: Use dashboard_container to avoid overlaps
+        transaction.replace(R.id.dashboard_container, fragment);
         transaction.addToBackStack(null);
         transaction.commit();
     }

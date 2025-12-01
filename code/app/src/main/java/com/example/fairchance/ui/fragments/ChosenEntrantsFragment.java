@@ -1,5 +1,6 @@
 package com.example.fairchance.ui.fragments;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.fairchance.EventRepository;
 import com.example.fairchance.R;
 import com.example.fairchance.ui.adapters.SelectedParticipantAdapter;
 import com.google.android.gms.tasks.Task;
@@ -34,12 +36,14 @@ public class ChosenEntrantsFragment extends Fragment {
     private String eventId;
     private String eventName = "";
     private FirebaseFunctions functions;
+    private EventRepository repository;
 
     private RecyclerView rvChosenEntrants;
     private SelectedParticipantAdapter adapter;
     private final List<String> chosenIds = new ArrayList<>();
 
     public ChosenEntrantsFragment() {
+        // Required empty constructor
     }
 
     public static ChosenEntrantsFragment newInstance(String eventId, String eventName) {
@@ -69,27 +73,28 @@ public class ChosenEntrantsFragment extends Fragment {
             eventName = getArguments().getString("EVENT_NAME", "");
         }
 
-
         functions = FirebaseFunctions.getInstance();
+        repository = new EventRepository();
 
         rvChosenEntrants = view.findViewById(R.id.rvChosenEntrants);
         rvChosenEntrants.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // NEW: use updated adapter constructor
-        // eventName: "" (adapter will show "Name of Event")
-        // buttonText: "" and listener: null  -> button is hidden on this screen
+        // adapter config
         adapter = new SelectedParticipantAdapter(
                 chosenIds,
                 eventName,
-                "",                  // no button in ChosenEntrantsFragment
-                false,               // hide button
-                null                 // no listener
+                "",
+                false,
+                null
         );
 
         rvChosenEntrants.setAdapter(adapter);
 
         Button btnSendNotification = view.findViewById(R.id.btnSendNotification);
         btnSendNotification.setOnClickListener(v -> onSendNotificationsClicked());
+
+        Button btnCancelPending = view.findViewById(R.id.btnCancelPending);
+        btnCancelPending.setOnClickListener(v -> onCancelPendingClicked());
 
         loadChosenEntrants();
     }
@@ -168,5 +173,34 @@ public class ChosenEntrantsFragment extends Fragment {
                     "Failed to send notifications: " + e.getMessage(),
                     Toast.LENGTH_LONG).show();
         });
+    }
+
+    /**
+     * Shows confirmation dialog, then calls repository to cancel all pending entrants.
+     */
+    private void onCancelPendingClicked() {
+        if (eventId == null || eventId.isEmpty()) return;
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Cancel Pending Entrants")
+                .setMessage("Are you sure you want to cancel all entrants who have not yet signed up? This action moves them to the Cancelled list and cannot be undone.")
+                .setPositiveButton("Yes, Cancel All", (dialog, which) -> {
+                    repository.cancelPendingEntrants(eventId, new EventRepository.EventTaskCallback() {
+                        @Override
+                        public void onSuccess() {
+                            if (getContext() == null) return;
+                            Toast.makeText(getContext(), "All pending entrants cancelled.", Toast.LENGTH_SHORT).show();
+                            loadChosenEntrants(); // Refresh list
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            if (getContext() == null) return;
+                            Toast.makeText(getContext(), "Error: " + message, Toast.LENGTH_LONG).show();
+                        }
+                    });
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 }

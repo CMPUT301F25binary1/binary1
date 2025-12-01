@@ -7,36 +7,44 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.espresso.intent.Intents;
 import androidx.test.rule.ActivityTestRule;
 
+import com.google.firebase.auth.FirebaseAuth;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-
 @RunWith(AndroidJUnit4.class)
 public class SplashActivityTest {
 
+    // 1. Set 'launchActivity' (3rd param) to false so it doesn't start automatically
     @Rule
     public ActivityTestRule<SplashActivity> rule =
-            new ActivityTestRule<>(SplashActivity.class);
+            new ActivityTestRule<>(SplashActivity.class, true, false);
 
     @Before
     public void setUp() {
-        // Initialize Espresso Intents before the test
+        // Initialize Espresso Intents
         Intents.init();
+
+        // 2. Force sign-out to ensure the "Logged Out" path is taken
+        // This must run BEFORE the activity creates its AuthRepository
+        FirebaseAuth.getInstance().signOut();
     }
 
     @After
     public void tearDown() {
-        // Release Espresso Intents after the test
         Intents.release();
     }
 
     @Test
     public void testSplashRoutesToRoleSelectionWhenLoggedOut() throws InterruptedException {
-        // Wait long enough for SplashActivity to complete its delay (adjust if needed)
-        Thread.sleep(2500); // Use same duration as your splash delay in SplashActivity
+        // 3. Launch the activity manually now that clean state is ensured
+        rule.launchActivity(null);
+
+        // Wait for Splash delay (1.5s) + buffer
+        Thread.sleep(2500);
 
         // Verify that SplashActivity launched RoleSelectionActivity
         intended(hasComponent(RoleSelectionActivity.class.getName()));

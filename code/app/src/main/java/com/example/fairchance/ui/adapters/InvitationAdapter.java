@@ -110,7 +110,6 @@ public class InvitationAdapter extends RecyclerView.Adapter<InvitationAdapter.In
 
             btnAccept.setOnClickListener(v -> handleResponse(item, position, true));
 
-            // CHANGED: Show confirmation dialog instead of declining immediately
             btnDecline.setOnClickListener(v -> showDeclineConfirmationDialog(item, position));
         }
 
@@ -125,7 +124,6 @@ public class InvitationAdapter extends RecyclerView.Adapter<InvitationAdapter.In
             builder.setView(dialogView);
 
             AlertDialog dialog = builder.create();
-            // Set transparent background to respect the custom XML layout's background/margins
             if (dialog.getWindow() != null) {
                 dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             }
@@ -135,11 +133,9 @@ public class InvitationAdapter extends RecyclerView.Adapter<InvitationAdapter.In
             Button btnConfirm = dialogView.findViewById(R.id.btnConfirm);
             Button btnCancel = dialogView.findViewById(R.id.btnCancel);
 
-            // Customize text for declining
             title.setText("Decline Invitation");
             message.setText("Are you sure you want to decline this invitation? This action cannot be undone.");
 
-            // Set the confirm button to "Decline" and make it Red to indicate a destructive action
             btnConfirm.setText("Decline");
             btnConfirm.setBackgroundColor(Color.RED);
 

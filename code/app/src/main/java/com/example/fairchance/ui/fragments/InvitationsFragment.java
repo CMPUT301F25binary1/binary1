@@ -52,12 +52,10 @@ public class InvitationsFragment extends Fragment {
 
         eventRepository = new EventRepository();
 
-        // Find views
         invitationsRecyclerView = view.findViewById(R.id.invitations_recycler_view);
         progressBar = view.findViewById(R.id.progress_bar);
         emptyView = view.findViewById(R.id.empty_view);
 
-        // Setup RecyclerView
         invitationsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         invitationAdapter = new InvitationAdapter(getContext(), invitationList, eventRepository);
         invitationsRecyclerView.setAdapter(invitationAdapter);

@@ -103,7 +103,6 @@ public class FinalEntrantsFragment extends Fragment {
         );
         rvFinalEntrants.setAdapter(adapter);
 
-        // Start disabled – enabled only when we have entrants
         btnExportCsv.setEnabled(false);
 
         loadFinalEntrants();

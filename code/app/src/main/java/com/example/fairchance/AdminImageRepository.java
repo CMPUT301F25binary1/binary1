@@ -54,10 +54,6 @@ public class AdminImageRepository {
                         String eventId = doc.getId();
                         String eventName = doc.getString("name");
 
-                        // Uploader name priority:
-                        // 1) posterUploadedByName
-                        // 2) createdByName
-                        // 3) organizerName
                         String uploaderName = doc.getString("posterUploadedByName");
                         if (uploaderName == null) {
                             uploaderName = doc.getString("createdByName");
@@ -66,10 +62,6 @@ public class AdminImageRepository {
                             uploaderName = doc.getString("organizerName");
                         }
 
-                        // Upload time priority:
-                        // 1) posterUploadedAt
-                        // 2) createdAt
-                        // 3) timeCreated (if you use that field)
                         com.google.firebase.Timestamp uploadedAt =
                                 doc.getTimestamp("posterUploadedAt");
                         if (uploadedAt == null) {
@@ -79,7 +71,6 @@ public class AdminImageRepository {
                             uploadedAt = doc.getTimestamp("timeCreated");
                         }
 
-                        // All possible image fields
                         String posterUrl = doc.getString("posterImageUrl");
                         String imageUrl = doc.getString("imageUrl");
                         String bannerUrl = doc.getString("bannerUrl");
@@ -136,7 +127,6 @@ public class AdminImageRepository {
         ref.delete()
                 .addOnSuccessListener(aVoid -> {
 
-                    // Step 2: Remove image fields from event document
                     Map<String, Object> updates = new HashMap<>();
                     updates.put("posterImageUrl", null);
                     updates.put("imageUrl", null);
@@ -147,7 +137,6 @@ public class AdminImageRepository {
                             .document(item.getId())
                             .update(updates);
 
-                    // Step 3: Log the deletion
                     Map<String, Object> log = new HashMap<>();
                     log.put("eventId", item.getId());
                     log.put("eventName", item.getTitle());

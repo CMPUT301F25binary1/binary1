@@ -1,5 +1,8 @@
 package com.example.fairchance;
 
+/**
+ * Manages the status state machine for an invitation (Pending, Accepted, Declined).
+ */
 public class InvitationManager {
 
     public enum Status {

@@ -42,6 +42,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
+/**
+ * Fragment for organizers to create a new event.
+ * Handles input validation, poster upload, and saving to Firestore.
+ */
 public class
 CreateNewEventFragment extends Fragment {
 
@@ -90,7 +94,6 @@ CreateNewEventFragment extends Fragment {
 
         repo = new EventRepository();
 
-        // Bind
         ivEventPoster         = view.findViewById(R.id.ivEventPoster);
         etEventName           = view.findViewById(R.id.etEventName);
         etEventDescription    = view.findViewById(R.id.etEventDescription);
@@ -105,22 +108,17 @@ CreateNewEventFragment extends Fragment {
         etCategory            = view.findViewById(R.id.etCategory);
         etGuidelines          = view.findViewById(R.id.etGuidelines);
 
-        // [FIX] Explicitly uncheck the limit box by default (No Limit)
         cbWaitlistLimit.setChecked(false);
         waitlistLimit = null;
 
-        // Poster picker
         ivEventPoster.setOnClickListener(v -> pickImage.launch("image/*"));
 
-        // Registration date range picker (MaterialDatePicker)
         etRegistrationDates.setKeyListener(null); // make it non-typing, click-only
         etRegistrationDates.setOnClickListener(v -> showDateRangePicker());
 
-        // Registration start/end time picker
         etRegistrationTimes.setKeyListener(null);
         etRegistrationTimes.setOnClickListener(v -> showStartEndTimePickers());
 
-        // Waitlist limit dialog when toggled on
         cbWaitlistLimit.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 showWaitlistLimitDialog();
@@ -130,17 +128,14 @@ CreateNewEventFragment extends Fragment {
             }
         });
 
-        // QR – you can hook real QR after event is created (has ID)
         btnGenerateQRCode.setOnClickListener(v ->
                 Toast.makeText(requireContext(),
                         "QR will be generated on the event details screen after creation.",
                         Toast.LENGTH_SHORT).show());
 
-        // Event date picker
         etEventDate.setKeyListener(null);
         etEventDate.setOnClickListener(v -> showEventDatePicker());
 
-        // Create event
         btnCreateEvent.setOnClickListener(v -> onCreateEventClicked());
     }
 

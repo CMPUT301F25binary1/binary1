@@ -38,7 +38,7 @@ public class HistoryFragment extends Fragment {
     private EventHistoryAdapter historyAdapter;
     private List<EventHistoryItem> historyList = new ArrayList<>();
     private EventRepository eventRepository;
-    private ListenerRegistration eventHistoryRegistration; // FIX: Added field for listener registration
+    private ListenerRegistration eventHistoryRegistration;
 
     private ProgressBar progressBar;
     private TextView emptyView;
@@ -55,12 +55,10 @@ public class HistoryFragment extends Fragment {
 
         eventRepository = new EventRepository();
 
-        // Find views
         historyRecyclerView = view.findViewById(R.id.history_recycler_view);
         progressBar = view.findViewById(R.id.progress_bar);
         emptyView = view.findViewById(R.id.empty_view);
 
-        // Setup RecyclerView
         historyRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         historyAdapter = new EventHistoryAdapter(getContext(), historyList);
         historyRecyclerView.setAdapter(historyAdapter);
@@ -69,7 +67,7 @@ public class HistoryFragment extends Fragment {
     }
 
     /**
-     * FIX: Cleans up the real-time listener when the fragment's view is destroyed.
+     * Cleans up the real-time listener when the fragment's view is destroyed.
      * (Part of US 01.02.03 Criterion 3 cleanup)
      */
     @Override
@@ -88,7 +86,6 @@ public class HistoryFragment extends Fragment {
      */
     private void loadHistory() {
         showLoading(true);
-        // FIX: Replaced one-time call with real-time listener and stored registration
         eventHistoryRegistration = eventRepository.getEventHistory(new EventRepository.EventHistoryListCallback() {
             @Override
             public void onSuccess(List<EventHistoryItem> items) {

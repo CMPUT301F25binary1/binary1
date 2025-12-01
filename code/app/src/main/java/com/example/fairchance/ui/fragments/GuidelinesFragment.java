@@ -58,7 +58,6 @@ public class GuidelinesFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Find views
         Button backButton = view.findViewById(R.id.button2);
 
         // If specific guidelines were passed, we should display them.
@@ -70,7 +69,6 @@ public class GuidelinesFragment extends Fragment {
         // for "Event Specific Rules" and populate it here. 
         // For this immediate fix, I will focus on the logic.
 
-        // Implement the back navigation logic
         backButton.setOnClickListener(v -> {
             if (getParentFragmentManager().getBackStackEntryCount() > 0) {
                 getParentFragmentManager().popBackStack();

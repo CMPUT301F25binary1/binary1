@@ -23,6 +23,9 @@ import com.google.firebase.auth.FirebaseUser;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Fragment displaying a list of events created by the logged-in organizer.
+ */
 public class OngoingEventsFragment extends Fragment {
 
     private RecyclerView rvOngoingEvents;
@@ -50,7 +53,6 @@ public class OngoingEventsFragment extends Fragment {
 
         repository = new EventRepository();
 
-        // 🔹 Listen to Firestore for real-time updates
         String organizerId = null;
         if (com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null) {
             organizerId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();

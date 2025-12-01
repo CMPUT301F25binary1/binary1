@@ -29,6 +29,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Fragment for organizers to view entrants selected in the lottery.
+ * Allows sending notifications to chosen entrants.
+ */
 public class ChosenEntrantsFragment extends Fragment {
 
     private static final String ARG_EVENT_ID = "EVENT_ID";
@@ -79,7 +83,6 @@ public class ChosenEntrantsFragment extends Fragment {
         rvChosenEntrants = view.findViewById(R.id.rvChosenEntrants);
         rvChosenEntrants.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // adapter config
         adapter = new SelectedParticipantAdapter(
                 chosenIds,
                 eventName,

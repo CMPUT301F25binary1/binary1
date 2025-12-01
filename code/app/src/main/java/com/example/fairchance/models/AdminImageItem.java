@@ -3,25 +3,22 @@ package com.example.fairchance.models;
 import com.google.firebase.Timestamp;
 
 /**
- * Model for images shown in the admin image management screen.
+ * Represents a summary of an image (profile or event poster) for the Admin interface.
+ * Acts as a Data Transfer Object (DTO) to facilitate the listing and deletion of images
+ * stored in the application, decoupling the list view from the full heavy-weight models.
  */
 public class AdminImageItem {
 
-    private String id;             // event id or image id
-    private String imageUrl;       // storage url
-    private String title;          // event name / label
-    private String uploaderName;   // who uploaded it
-    private Timestamp uploadedAt;  // when it was uploaded
+    private String id;
+    private String imageUrl;
+    private String title;
+    private String uploaderName;
+    private Timestamp uploadedAt;
 
     public AdminImageItem() {
-        // Required empty constructor for Firestore/serialization
     }
 
-    public AdminImageItem(String id,
-                          String imageUrl,
-                          String title,
-                          String uploaderName,
-                          Timestamp uploadedAt) {
+    public AdminImageItem(String id, String imageUrl, String title, String uploaderName, Timestamp uploadedAt) {
         this.id = id;
         this.imageUrl = imageUrl;
         this.title = title;
@@ -33,36 +30,36 @@ public class AdminImageItem {
         return id;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getUploaderName() {
-        return uploaderName;
-    }
-
-    public Timestamp getUploadedAt() {
-        return uploadedAt;
-    }
-
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }
 
+    public String getUploaderName() {
+        return uploaderName;
+    }
+
     public void setUploaderName(String uploaderName) {
         this.uploaderName = uploaderName;
+    }
+
+    public Timestamp getUploadedAt() {
+        return uploadedAt;
     }
 
     public void setUploadedAt(Timestamp uploadedAt) {

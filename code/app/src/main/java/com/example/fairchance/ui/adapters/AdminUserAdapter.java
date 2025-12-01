@@ -17,8 +17,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class
-AdminUserAdapter extends RecyclerView.Adapter<AdminUserAdapter.UserViewHolder> {
+/**
+ * Adapter for the Admin interface to browse and filter user profiles.
+ * Supports searching by name, email, or role, enabling the Admin to find
+ * and remove profiles as per US 03.05.01 and US 03.02.01.
+ */
+public class AdminUserAdapter extends RecyclerView.Adapter<AdminUserAdapter.UserViewHolder> {
 
     public interface OnUserClickListener {
         void onUserClick(AdminUserItem user);

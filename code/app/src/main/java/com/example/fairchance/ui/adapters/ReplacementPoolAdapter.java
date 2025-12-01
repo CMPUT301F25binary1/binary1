@@ -14,7 +14,9 @@ import com.example.fairchance.R;
 import java.util.List;
 
 /**
- * Shows cancelled entrants in the Replacement Pool with a "Draw Replacement" button.
+ * Adapter for displaying cancelled entrants who constitute the "Replacement Pool".
+ * Enables Organizers to draw replacement applicants when a selected user declines or cancels,
+ * fulfilling the functionality required by US 02.05.03.
  */
 public class ReplacementPoolAdapter
         extends RecyclerView.Adapter<ReplacementPoolAdapter.ReplacementViewHolder> {

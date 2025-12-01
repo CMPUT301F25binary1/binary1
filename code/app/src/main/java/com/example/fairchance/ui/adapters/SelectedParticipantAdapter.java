@@ -15,10 +15,11 @@ import com.example.fairchance.R;
 import java.util.List;
 
 /**
- * Re-usable card for:
- *  - Selected participants on Sampling & Replacement screen
- *  - Replacement pool entries on Sampling & Replacement screen
- *  - Chosen entrants list (with button hidden if listener == null)
+ * A flexible, re-usable card adapter for managing lists of entrants in various states.
+ * It supports:
+ * - Selected participants on Sampling screens (Organizers notifying winners - US 02.05.01)
+ * - Replacement pool entries (Organizers drawing replacements - US 02.05.03)
+ * - Chosen entrants list (Organizers viewing final lists - US 02.06.01)
  */
 public class SelectedParticipantAdapter
         extends RecyclerView.Adapter<SelectedParticipantAdapter.ViewHolder> {
@@ -44,7 +45,6 @@ public class SelectedParticipantAdapter
         this.listener = listener;
     }
 
-    /** Allow parent fragment to update the event name after it loads. */
     public void setEventName(String eventName) {
         this.eventName = eventName;
         notifyDataSetChanged();
@@ -62,7 +62,6 @@ public class SelectedParticipantAdapter
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         String id = participantIds.get(position);
 
-        // Simple display:
         holder.tvParticipantName.setText("User ID: " + id);
 
         if (eventName != null && !eventName.isEmpty()) {
@@ -79,8 +78,6 @@ public class SelectedParticipantAdapter
             holder.btnNotifyEntrant.setOnClickListener(v ->
                     listener.onParticipantButtonClick(id));
         } else {
-            // Used e.g. on ChosenEntrants screen where there is
-            // only the big "Send Notifications" button.
             holder.btnNotifyEntrant.setVisibility(View.GONE);
             holder.btnNotifyEntrant.setOnClickListener(null);
         }

@@ -68,7 +68,6 @@ public class AdminNotificationFragment extends Fragment
 
         logRepository = new NotificationLogRepository();
 
-        // Optional back button at top of admin_notification.xml
         Button backButton = view.findViewById(R.id.button);
         if (backButton != null) {
             backButton.setOnClickListener(v ->

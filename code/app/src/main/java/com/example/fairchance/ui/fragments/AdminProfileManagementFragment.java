@@ -28,6 +28,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Fragment for administrators to list and search for user profiles (specifically organizers in this context).
+ * Used for managing user accounts.
+ */
 public class AdminProfileManagementFragment extends Fragment
         implements AdminUserAdapter.OnUserClickListener {
 
@@ -91,12 +95,10 @@ public class AdminProfileManagementFragment extends Fragment
                         String email = doc.getString("email");
                         String role = doc.getString("role");
 
-                        // Only show organizers
                         if (role == null || !role.equalsIgnoreCase("organizer")) {
                             continue;
                         }
 
-                        // Respect soft-deactivation flags
                         Boolean isActive = doc.getBoolean("isActive");
                         Boolean roleActive = doc.getBoolean("roleActive");
                         if (isActive != null && !isActive) {
@@ -106,7 +108,6 @@ public class AdminProfileManagementFragment extends Fragment
                             continue;
                         }
 
-                        // adjust the field name if your timestamp is different
                         com.google.firebase.Timestamp createdAt =
                                 doc.getTimestamp("timeCreated");
 
@@ -141,7 +142,6 @@ public class AdminProfileManagementFragment extends Fragment
 
     @Override
     public void onUserClick(AdminUserItem user) {
-        // Open a simple details fragment
         Fragment details = AdminUserDetailsFragment.newInstance(user.getId());
         FragmentTransaction ft = requireActivity()
                 .getSupportFragmentManager()

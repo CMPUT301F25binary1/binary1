@@ -21,6 +21,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
+/**
+ * Fragment displaying details of a specific user profile for admin review.
+ * Allows deletion of the user profile.
+ */
 public class AdminUserDetailsFragment extends Fragment {
 
     private static final String ARG_USER_ID = "user_id";

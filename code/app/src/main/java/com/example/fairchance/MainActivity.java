@@ -36,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     private AuthRepository authRepository;
     private BottomNavigationView bottomNav;
 
-    // FIX: Launcher for requesting notification permissions on Android 13+
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
@@ -55,16 +54,13 @@ public class MainActivity extends AppCompatActivity {
         authRepository = new AuthRepository();
         bottomNav = findViewById(R.id.bottom_navigation);
 
-        // FIX: Request Notification Permission immediately on startup
         askNotificationPermission();
 
-        // Fetch the user's role to determine which UI to show
         authRepository.getUserRole(new AuthRepository.RoleCallback() {
             @Override
             public void onRoleFetched(String role) {
                 switch (role) {
                     case "entrant":
-                        // If entrant, show the nav bar and set it up
                         bottomNav.setVisibility(View.VISIBLE);
                         setupEntrantNavigation();
 
@@ -73,21 +69,18 @@ public class MainActivity extends AppCompatActivity {
                             loadDashboardFragment(new InvitationsFragment());
                             bottomNav.setSelectedItemId(R.id.nav_invitations);
                         } else {
-                            // Load the default "Home" fragment only if no special navigation is requested
                             loadDashboardFragment(new EntrantHomeFragment());
                             bottomNav.setSelectedItemId(R.id.nav_home);
                         }
 
                         break;
                     case "organizer":
-                        // If organizer, hide nav bar and load their simple dashboard
                         bottomNav.setVisibility(View.VISIBLE);
                         setupOrganizerNavigation();
                         loadDashboardFragment(new OrganizerDashboardFragment());
                         bottomNav.setSelectedItemId(R.id.nav_home);
                         break;
                     case "admin":
-                        // If admin, hide nav bar and load their simple dashboard
                         bottomNav.setVisibility(View.GONE);
                         loadDashboardFragment(new AdminDashboardFragment());
                         break;
@@ -96,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
                         bottomNav.setVisibility(View.VISIBLE);
                         setupEntrantNavigation();
 
-                        // Default load
                         loadDashboardFragment(new EntrantHomeFragment());
                         bottomNav.setSelectedItemId(R.id.nav_home);
 

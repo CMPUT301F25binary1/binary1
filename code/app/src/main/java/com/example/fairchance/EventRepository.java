@@ -48,7 +48,6 @@ public class EventRepository {
     private final CollectionReference eventsRef;
     private final CollectionReference usersRef;
 
-    //region Callback Interfaces
     public interface EventTaskCallback {
         void onSuccess();
         void onError(String message);
@@ -98,8 +97,6 @@ public class EventRepository {
         void onSuccess(int sentCount, int failureCount);
         void onError(String message);
     }
-
-    //endregion
 
     /**
      * Initializes the repository with instances of FirebaseAuth and FirebaseFirestore

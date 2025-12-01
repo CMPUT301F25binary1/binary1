@@ -21,7 +21,6 @@ public class RoleSelectionActivity extends AppCompatActivity {
         CardView organizerCard = findViewById(R.id.cardOrganizer);
         CardView adminCard = findViewById(R.id.cardAdmin);
 
-        // Set listeners on the cards
         entrantCard.setOnClickListener(v -> startAuthActivity("entrant"));
         organizerCard.setOnClickListener(v -> startAuthActivity("organizer"));
         adminCard.setOnClickListener(v -> startAuthActivity("admin"));

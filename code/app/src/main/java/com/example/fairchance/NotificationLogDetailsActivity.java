@@ -14,6 +14,9 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Activity to display the full details of a specific notification log entry.
+ */
 public class NotificationLogDetailsActivity extends AppCompatActivity {
 
     private static final String EXTRA_SENDER_NAME = "extra_sender_name";

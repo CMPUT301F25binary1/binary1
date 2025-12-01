@@ -4,8 +4,10 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Represents a single notification that was sent by an organizer.
- * Stored in Firestore under the "notificationLogs" collection.
+ * Domain model representing a record of a sent notification.
+ * Maps to the "notificationLogs" collection in Firestore.
+ * Used for auditing purposes to track communication between organizers and entrants,
+ * including message content, recipients, and timestamps.
  */
 public class NotificationLog {
 
@@ -14,14 +16,14 @@ public class NotificationLog {
     private String senderName;
     private List<String> recipientIds;
     private long recipientCount;
-    private String messageType;    // e.g., "WAITLIST_SELECTED", "WAITLIST_CUSTOM"
+    private String messageType;
     private String messageBody;
     private String eventId;
     private String eventName;
     private Date timestamp;
 
-    // Firestore requires an empty constructor
-    public NotificationLog() { }
+    public NotificationLog() {
+    }
 
     public NotificationLog(String senderId,
                            String senderName,
@@ -43,8 +45,6 @@ public class NotificationLog {
             this.recipientCount = recipientIds.size();
         }
     }
-
-    // --- Getters & Setters ---
 
     public String getId() {
         return id;

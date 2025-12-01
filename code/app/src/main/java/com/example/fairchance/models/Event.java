@@ -5,9 +5,10 @@ import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
 /**
- * Model class for an Event.
- * This is a POJO (Plain Old Java Object) that maps directly to documents
- * in the "events" collection in Firestore.
+ * Domain model representing an Event.
+ * Maps directly to the "events" collection in Firestore.
+ * This class serves as the central entity for event logistics, including scheduling,
+ * capacity management, geolocation requirements, and poster imagery.
  */
 public class Event {
 
@@ -25,9 +26,9 @@ public class Event {
     private String guidelines;
     private String category;
     private String location;
-    @Exclude
-    private String organizerName;   // not stored in Firestore, just for UI
 
+    @Exclude
+    private String organizerName;
 
     @Exclude
     private String eventId;
@@ -35,15 +36,8 @@ public class Event {
     @ServerTimestamp
     private Date timeCreated;
 
-    /**
-     * A public, no-argument constructor is required by Firestore
-     * for deserialization.
-     */
     public Event() {
-        // Default constructor
     }
-
-    // --- Getters and Setters ---
 
     public String getOrganizerId() {
         return organizerId;
@@ -166,42 +160,19 @@ public class Event {
         this.organizerName = organizerName;
     }
 
-
-    /**
-     * Gets the event's unique Document ID.
-     * @Exclude ensures this is not saved as a field *inside* the Firestore document.
-     *
-     * @return The string Document ID.
-     */
     @Exclude
     public String getEventId() {
         return eventId;
     }
 
-    /**
-     * Sets the event's unique Document ID.
-     * This is typically called after fetching the document from Firestore.
-     *
-     * @param eventId The string Document ID.
-     */
     public void setEventId(String eventId) {
         this.eventId = eventId;
     }
 
-    /**
-     * Gets the server-side timestamp of when the event was created.
-     *
-     * @return The creation date.
-     */
     public Date getTimeCreated() {
         return timeCreated;
     }
 
-    /**
-     * Sets the server-side timestamp of when the event was created.
-     *
-     * @param timeCreated The creation date.
-     */
     public void setTimeCreated(Date timeCreated) {
         this.timeCreated = timeCreated;
     }

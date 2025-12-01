@@ -3,9 +3,10 @@ package com.example.fairchance.models;
 import java.util.Map;
 
 /**
- * Model class for a User.
- * This is a POJO (Plain Old Java Object) that maps directly to documents
- * in the "users" collection in Firestore.
+ * Domain model representing a registered user in the system.
+ * This POJO maps directly to documents in the "users" collection in Firestore.
+ * It encapsulates profile information, role-based access control data (entrant, organizer, admin),
+ * and notification settings.
  */
 public class User {
     private String name;
@@ -15,46 +16,30 @@ public class User {
     private Map<String, Boolean> notificationPreferences;
     private String fcmToken;
 
-    /**
-     * A public, no-argument constructor is required by Firestore
-     * for deserialization.
-     */
-    public User() {}
+    public User() {
+    }
 
-    /**
-     * Gets the user's full name.
-     * @return Full name string.
-     */
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
-    /**
-     * Gets the user's email address.
-     * @return Email string.
-     */
-    public String getEmail() { return email; }
+    public String getEmail() {
+        return email;
+    }
 
-    /**
-     * Gets the user's optional phone number.
-     * @return Phone number string.
-     */
-    public String getPhone() { return phone; }
+    public String getPhone() {
+        return phone;
+    }
 
-    /**
-     * Gets the user's role ("entrant", "organizer", "admin").
-     * @return Role string.
-     */
-    public String getRole() { return role; }
+    public String getRole() {
+        return role;
+    }
 
-    /**
-     * Gets the user's notification preferences.
-     * @return A Map where keys are notification types (e.g., "lotteryResults")
-     * and values are booleans.
-     */
-    public Map<String, Boolean> getNotificationPreferences() { return notificationPreferences; }
+    public Map<String, Boolean> getNotificationPreferences() {
+        return notificationPreferences;
+    }
 
-    /**
-     * Gets the user's unique Firebase Cloud Messaging (FCM) token for push notifications.
-     * @return FCM token string.
-     */
-    public String getFcmToken() { return fcmToken; }
+    public String getFcmToken() {
+        return fcmToken;
+    }
 }

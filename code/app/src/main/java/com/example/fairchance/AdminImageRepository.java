@@ -132,11 +132,11 @@ public class AdminImageRepository {
             return;
         }
 
-        // Step 1: Delete from Firebase Storage
+        
         ref.delete()
                 .addOnSuccessListener(aVoid -> {
 
-                    // Step 2: Remove image fields from event document
+                    
                     Map<String, Object> updates = new HashMap<>();
                     updates.put("posterImageUrl", null);
                     updates.put("imageUrl", null);
@@ -147,7 +147,7 @@ public class AdminImageRepository {
                             .document(item.getId())
                             .update(updates);
 
-                    // Step 3: Log the deletion
+                    
                     Map<String, Object> log = new HashMap<>();
                     log.put("eventId", item.getId());
                     log.put("eventName", item.getTitle());

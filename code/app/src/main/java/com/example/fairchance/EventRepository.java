@@ -26,6 +26,7 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.functions.FirebaseFunctions;
+import com.example.fairchance.models.NotificationLog;
 import com.google.firebase.functions.HttpsCallableResult;
 
 import java.util.ArrayList;
@@ -39,7 +40,8 @@ import java.util.Map;
  * event-related data. It handles all interactions with the 'events' collection,
  * as well as its sub-collections and related user history.
  */
-public class EventRepository {
+public class
+EventRepository {
 
     private static final String TAG = "EventRepository";
     private final FirebaseFirestore db;
@@ -47,6 +49,8 @@ public class EventRepository {
     private final FirebaseAuth auth;
     private final CollectionReference eventsRef;
     private final CollectionReference usersRef;
+    private final NotificationLogRepository notificationLogRepository;
+
 
     //region Callback Interfaces
     public interface EventTaskCallback {
@@ -110,7 +114,9 @@ public class EventRepository {
         this.auth = FirebaseAuth.getInstance();
         this.eventsRef = db.collection("events");
         this.usersRef = db.collection("users");
+        this.notificationLogRepository = new NotificationLogRepository();
     }
+
 
     /**
      * Creates a new event in the 'events' collection.
@@ -945,6 +951,11 @@ public class EventRepository {
                             failureCount = ((Number) f).intValue();
                         }
                     }
+                    logNotificationToFirestore(
+                            eventId,
+                            message,
+                            "WAITLIST_NOTIFICATION",
+                            "waitingList");
 
                     if (callback != null) {
                         callback.onSuccess(sentCount, failureCount);
@@ -984,6 +995,12 @@ public class EventRepository {
                             failureCount = ((Number) f).intValue();
                         }
                     }
+                    logNotificationToFirestore(
+                            eventId,
+                            message,
+                            "CANCELLATION_NOTIFICATION",
+                            "selectedEntrants"
+                    );
 
                     if (callback != null) {
                         callback.onSuccess(sentCount, failureCount);
@@ -1123,6 +1140,71 @@ public class EventRepository {
                     listener.onEventsChanged(result);
                 });
     }
+
+    private void logNotificationToFirestore(String eventId,
+                                            String message,
+                                            String messageType,
+                                            String recipientCollection) {
+        // recipientCollection will be "waitingList", "confirmedAttendees", etc.
+
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null) {
+            return; // don’t break flow if no user; just skip logging
+        }
+
+        final String senderId = currentUser.getUid();
+        final String senderName = (currentUser.getDisplayName() != null &&
+                !currentUser.getDisplayName().isEmpty())
+                ? currentUser.getDisplayName()
+                : currentUser.getEmail();
+
+        final DocumentReference eventDoc = eventsRef.document(eventId);
+
+        // 1) Get event to retrieve eventName
+        eventDoc.get()
+                .addOnSuccessListener(doc -> {
+                    String eventName = null;
+                    if (doc.exists()) {
+                        Event event = doc.toObject(Event.class);
+                        if (event != null) {
+                            eventName = event.getName();
+                        }
+                    }
+                    final String eventNameFinal = eventName;
+
+                    // 2) Get recipients from the specified subcollection
+                    eventDoc.collection(recipientCollection)
+                            .get()
+                            .addOnSuccessListener(snapshot -> {
+                                List<String> recipientIds = new ArrayList<>();
+                                for (QueryDocumentSnapshot d : snapshot) {
+                                    recipientIds.add(d.getId());
+                                }
+
+                                NotificationLog log = new NotificationLog(
+                                        senderId,
+                                        senderName,
+                                        recipientIds,
+                                        messageType,
+                                        message,
+                                        eventId,
+                                        eventNameFinal,
+                                        new Date()
+                                );
+                                log.setRecipientCount(recipientIds.size());
+
+                                // best-effort: don’t impact main flow if logging fails
+                                notificationLogRepository.logNotification(log, null);
+                            })
+                            .addOnFailureListener(e -> {
+                                // If we fail to fetch recipients, we can still log without them if you want.
+                                Log.e(TAG, "Failed to fetch recipients for log", e);
+                            });
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to fetch event for log", e));
+    }
+
+
 
     /**
      * Marks all events created by the given organizer as inactive.

@@ -61,8 +61,10 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case "organizer":
                         // If organizer, hide nav bar and load their simple dashboard
-                        bottomNav.setVisibility(View.GONE);
+                        bottomNav.setVisibility(View.VISIBLE);
+                        setupOrganizerNavigation();
                         loadDashboardFragment(new OrganizerDashboardFragment());
+                        bottomNav.setSelectedItemId(R.id.nav_home);
                         break;
                     case "admin":
                         // If admin, hide nav bar and load their simple dashboard
@@ -96,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
      * inflates its menu, and handles navigation item clicks.
      */
     private void setupEntrantNavigation() {
+        bottomNav.getMenu().clear();
         bottomNav.inflateMenu(R.menu.entrant_nav_menu);
 
         // [FIX] Removed default load/selection. Now handled in onCreate.
@@ -133,6 +136,29 @@ public class MainActivity extends AppCompatActivity {
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.dashboard_container, fragment);
         transaction.commit();
+    }
+
+    private void setupOrganizerNavigation() {
+        bottomNav.getMenu().clear();
+        bottomNav.inflateMenu(R.menu.organizer_bottom_nav);
+
+        bottomNav.setOnItemSelectedListener(item -> {
+            Fragment selectedFragment = null;
+            int itemId = item.getItemId();
+
+            if (itemId == R.id.nav_home) {
+                selectedFragment = new OrganizerDashboardFragment();
+            } else if (itemId == R.id.nav_profile) {
+                // Reuse the same profile fragment for organizers
+                selectedFragment = new ProfileFragment();
+            }
+
+            if (selectedFragment != null) {
+                loadDashboardFragment(selectedFragment);
+                return true;
+            }
+            return false;
+        });
     }
 
     /**

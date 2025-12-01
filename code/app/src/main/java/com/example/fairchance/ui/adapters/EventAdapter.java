@@ -206,6 +206,13 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             buttonDetails.setOnClickListener(openDetails);
             itemView.setOnClickListener(openDetails);
 
+            if (openOrganizerView) {
+                // Organizer view: hide the join button completely
+                buttonJoin.setVisibility(View.GONE);
+            } else {
+                buttonJoin.setVisibility(View.VISIBLE);
+            }
+
             repo.checkEventHistoryStatus(event.getEventId(), new EventRepository.EventHistoryCheckCallback() {
                 @Override
                 public void onSuccess(String status) {

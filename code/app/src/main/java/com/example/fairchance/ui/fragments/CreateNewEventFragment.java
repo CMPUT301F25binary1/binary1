@@ -37,6 +37,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.text.SimpleDateFormat;
+import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -49,6 +50,9 @@ public class CreateNewEventFragment extends Fragment {
     private TextInputEditText etRegistrationDates, etRegistrationTimes;
     private CheckBox cbGeolocation, cbWaitlistLimit;
     private Button btnGenerateQRCode, btnCreateEvent;
+    private TextInputEditText etEventDate, etCategory, etGuidelines;
+    private final Calendar eventDateCal = Calendar.getInstance();
+    private Date eventDate;
 
     // State
     private final Calendar regStartCal = Calendar.getInstance();
@@ -96,6 +100,9 @@ public class CreateNewEventFragment extends Fragment {
         cbWaitlistLimit       = view.findViewById(R.id.cbWaitlistLimit);
         btnGenerateQRCode     = view.findViewById(R.id.btnGenerateQRCode);
         btnCreateEvent        = view.findViewById(R.id.btnCreateEvent);
+        etEventDate           = view.findViewById(R.id.etEventDate);
+        etCategory            = view.findViewById(R.id.etCategory);
+        etGuidelines          = view.findViewById(R.id.etGuidelines);
 
         // Poster picker
         ivEventPoster.setOnClickListener(v -> pickImage.launch("image/*"));
@@ -119,6 +126,10 @@ public class CreateNewEventFragment extends Fragment {
                 Toast.makeText(requireContext(),
                         "QR will be generated on the event details screen after creation.",
                         Toast.LENGTH_SHORT).show());
+
+        // Event date picker
+        etEventDate.setKeyListener(null);
+        etEventDate.setOnClickListener(v -> showEventDatePicker());
 
         // Create event
         btnCreateEvent.setOnClickListener(v -> onCreateEventClicked());
@@ -179,6 +190,34 @@ public class CreateNewEventFragment extends Fragment {
         start.show(getParentFragmentManager(), "startTime");
     }
 
+    private void showEventDatePicker() {
+        MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Pick event date")
+                .build();
+
+        picker.addOnPositiveButtonClickListener(utcMillis -> {
+            // 1. Interpret the picker value in UTC
+            Calendar utcCal = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+            utcCal.setTimeInMillis(utcMillis);
+
+            // 2. Copy just the date fields into your local calendar
+            eventDateCal.clear();
+            eventDateCal.set(
+                    utcCal.get(Calendar.YEAR),
+                    utcCal.get(Calendar.MONTH),
+                    utcCal.get(Calendar.DAY_OF_MONTH),
+                    0, 0, 0
+            );
+            eventDateCal.set(Calendar.MILLISECOND, 0);
+
+            eventDate = eventDateCal.getTime();
+            etEventDate.setText(dateFmt.format(eventDate));   // yyyy-MM-dd
+        });
+
+        picker.show(getParentFragmentManager(), "eventDate");
+    }
+
+
     private void showWaitlistLimitDialog() {
         Context ctx = requireContext();
         NumberPicker picker = new NumberPicker(ctx);
@@ -200,17 +239,25 @@ public class CreateNewEventFragment extends Fragment {
     // ---------- Create Event flow ----------
 
     private void onCreateEventClicked() {
-        String name = s(etEventName);
-        String desc = s(etEventDescription);
+        String name         = s(etEventName);
+        String desc         = s(etEventDescription);
         String timeLocation = s(etEventTimeLocation);
+        String eventDateStr = s(etEventDate);
+        String category     = s(etCategory);
+        String guidelines   = s(etGuidelines);
         boolean geoRequired = cbGeolocation.isChecked();
 
+        // Basic validation
         if (TextUtils.isEmpty(name)) {
             etEventName.setError("Required");
             return;
         }
         if (TextUtils.isEmpty(desc)) {
             etEventDescription.setError("Required");
+            return;
+        }
+        if (TextUtils.isEmpty(eventDateStr)) {
+            etEventDate.setError("Required");
             return;
         }
         if (etRegistrationDates.getText() == null || etRegistrationTimes.getText() == null ||
@@ -220,8 +267,18 @@ public class CreateNewEventFragment extends Fragment {
             return;
         }
 
+        // Parse event date (YYYY-MM-DD)
+        Date parsedEventDate;
+        try {
+            parsedEventDate = dateFmt.parse(eventDateStr);   // dateFmt = new SimpleDateFormat("yyyy-MM-dd", ...)
+        } catch (ParseException e) {
+            etEventDate.setError("Use format YYYY-MM-DD");
+            return;
+        }
+
         registrationStart = regStartCal.getTime();
         registrationEnd   = regEndCal.getTime();
+
         if (!registrationEnd.after(registrationStart)) {
             Toast.makeText(requireContext(), "End must be after start.", Toast.LENGTH_SHORT).show();
             return;
@@ -233,11 +290,19 @@ public class CreateNewEventFragment extends Fragment {
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid() : "unknown");
         event.setName(name);
         event.setDescription(desc);
-        // You used a single field for "time & location" – store as location for now
         event.setLocation(timeLocation);
         event.setRegistrationStart(registrationStart);
         event.setRegistrationEnd(registrationEnd);
         event.setGeolocationRequired(geoRequired);
+
+        // New fields
+        event.setEventDate(parsedEventDate);
+        if (!TextUtils.isEmpty(category)) {
+            event.setCategory(category);
+        }
+        if (!TextUtils.isEmpty(guidelines)) {
+            event.setGuidelines(guidelines);
+        }
         if (cbWaitlistLimit.isChecked() && waitlistLimit != null) {
             event.setWaitingListLimit(waitlistLimit);
         }
@@ -249,6 +314,7 @@ public class CreateNewEventFragment extends Fragment {
             createEvent(event);
         }
     }
+
 
     private void uploadPosterThenCreate(Event event) {
         try {
@@ -305,6 +371,11 @@ public class CreateNewEventFragment extends Fragment {
         etEventTimeLocation.setText("");
         etRegistrationDates.setText("");
         etRegistrationTimes.setText("");
+        etEventDate.setText("");
+        etCategory.setText("");
+        etGuidelines.setText("");
+        eventDate = null;
+        eventDateCal.setTime(new Date());
         cbGeolocation.setChecked(true);
         cbWaitlistLimit.setChecked(false);
         waitlistLimit = null;

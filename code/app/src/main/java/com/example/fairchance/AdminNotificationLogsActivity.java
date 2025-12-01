@@ -1,7 +1,6 @@
 package com.example.fairchance;
+
 import android.view.View;
-
-
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.widget.Button;
@@ -23,6 +22,9 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Admin screen for viewing and filtering notification logs.
+ */
 public class AdminNotificationLogsActivity extends AppCompatActivity
         implements NotificationLogAdapter.OnLogClickListener {
 
@@ -38,6 +40,9 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
 
     private final DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM);
 
+    /**
+     * Sets up views, filters, and loads logs.
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +84,9 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
         loadLogs();
     }
 
+    /**
+     * Fetches all logs and applies current filters.
+     */
     private void loadLogs() {
         logRepository.fetchAllLogs(new NotificationLogRepository.LogListCallback() {
             @Override
@@ -90,13 +98,18 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
 
             @Override
             public void onError(String message) {
-                Toast.makeText(AdminNotificationLogsActivity.this,
+                Toast.makeText(
+                        AdminNotificationLogsActivity.this,
                         "Failed to load logs: " + message,
-                        Toast.LENGTH_LONG).show();
+                        Toast.LENGTH_LONG
+                ).show();
             }
         });
     }
 
+    /**
+     * Opens a date picker for start or end date.
+     */
     private void showDatePicker(boolean isStart) {
         final Calendar calendar = Calendar.getInstance();
 
@@ -123,6 +136,9 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
         dialog.show();
     }
 
+    /**
+     * Filters logs by date range and event query, then updates the list.
+     */
     private void applyFilters() {
         String eventQuery = etFilterEvent.getText() != null
                 ? etFilterEvent.getText().toString().trim().toLowerCase()
@@ -133,7 +149,6 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
         for (NotificationLog log : allLogs) {
             Date ts = log.getTimestamp();
 
-            // 1) Date filters
             if (startDateFilter != null && (ts == null || ts.before(startDateFilter))) {
                 continue;
             }
@@ -141,7 +156,6 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
                 continue;
             }
 
-            // 2) Event filter – match on BOTH event name and event ID (more forgiving)
             if (!eventQuery.isEmpty()) {
                 String eventName = log.getEventName() != null
                         ? log.getEventName().toLowerCase()
@@ -150,7 +164,6 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
                         ? log.getEventId().toLowerCase()
                         : "";
 
-                // If the query isn’t contained in either, skip this log
                 if (!eventName.contains(eventQuery) && !eventId.contains(eventQuery)) {
                     continue;
                 }
@@ -163,8 +176,9 @@ public class AdminNotificationLogsActivity extends AppCompatActivity
         tvEmptyState.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
-
-
+    /**
+     * Opens details for the clicked log.
+     */
     @Override
     public void onLogClick(NotificationLog log) {
         NotificationLogDetailsActivity.start(this, log);

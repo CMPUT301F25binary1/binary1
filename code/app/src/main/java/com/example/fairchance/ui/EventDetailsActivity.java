@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
-import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -35,13 +34,7 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 
 /**
- * This Activity displays the detailed information for a single event.
- * It is responsible for:
- * 1. Loading all event data (name, description, poster, etc.) from Firestore.
- * 2. Loading the current waitlist count for the event (now in Real-time).
- * 3. Checking the current user's status for this event (e.g., "Waiting", "Confirmed", or null).
- * 4. Providing the logic for the "Join Waitlist" / "Leave Waitlist" button, including Geolocation handling.
- * 5. Displaying the comprehensive guidelines logic.
+ * Shows full details for a single event and allows joining/leaving the waitlist.
  */
 public class EventDetailsActivity extends AppCompatActivity {
 
@@ -55,11 +48,12 @@ public class EventDetailsActivity extends AppCompatActivity {
     private ListenerRegistration waitlistListener;
     private FusedLocationProviderClient fusedLocationClient;
 
-    // UI Components
+    // UI
     private ImageView eventPosterImage;
     private ProgressBar progressBar;
     private LinearLayout eventDetailsContent;
-    private TextView tvEventName, tvEventDate, tvEventLocation, tvEventDescription, tvEventGuidelines, tvEventWaitlistCount;
+    private TextView tvEventName, tvEventDate, tvEventLocation, tvEventDescription,
+            tvEventGuidelines, tvEventWaitlistCount;
     private Button btnJoinWaitlist;
     private ProgressBar joinProgressBar;
     private TextView tvSeeFullGuidelines;
@@ -81,7 +75,6 @@ public class EventDetailsActivity extends AppCompatActivity {
             return;
         }
 
-        // Find Views
         eventPosterImage = findViewById(R.id.event_poster_image);
         progressBar = findViewById(R.id.event_details_progress);
         eventDetailsContent = findViewById(R.id.event_details_content);
@@ -98,7 +91,6 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         loadEventDetails();
 
-        // Set the main action button listener
         btnJoinWaitlist.setOnClickListener(v -> {
             if (currentEventStatus == null) {
                 initiateJoinProcess();
@@ -107,17 +99,13 @@ public class EventDetailsActivity extends AppCompatActivity {
             }
         });
 
-        // Set listener for "See full guidelines" link
         tvSeeFullGuidelines.setOnClickListener(v -> {
             if (guidelinesContainer != null) {
-                // Get the actual text from the current event object (default to empty if null)
                 String rules = (currentEvent != null && currentEvent.getGuidelines() != null)
                         ? currentEvent.getGuidelines()
                         : "No specific guidelines provided by the organizer.";
 
                 guidelinesContainer.setVisibility(View.VISIBLE);
-
-                // Use newInstance to pass the specific guidelines data
                 getSupportFragmentManager().beginTransaction()
                         .replace(R.id.guidelines_container, GuidelinesFragment.newInstance(rules))
                         .addToBackStack("guidelines")
@@ -125,12 +113,9 @@ public class EventDetailsActivity extends AppCompatActivity {
             }
         });
 
-        // Listen for back stack changes to hide the container when empty
         getSupportFragmentManager().addOnBackStackChangedListener(() -> {
-            if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
-                if (guidelinesContainer != null) {
-                    guidelinesContainer.setVisibility(View.GONE);
-                }
+            if (getSupportFragmentManager().getBackStackEntryCount() == 0 && guidelinesContainer != null) {
+                guidelinesContainer.setVisibility(View.GONE);
             }
         });
     }
@@ -144,9 +129,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Kicks off the data loading chain.
-     * 1. Fetches main Event data.
-     * 2. On success, fetches waitlist count and user status.
+     * Loads event, then waitlist count and user status.
      */
     private void loadEventDetails() {
         setLoading(true);
@@ -169,8 +152,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Fetches the total number of users on the waitlist for this event using a REAL-TIME listener.
-     * Updates the UI to show spots taken/left if a limit is set.
+     * Listens for real-time waitlist count updates.
      */
     private void loadWaitlistCount() {
         if (waitlistListener != null) {
@@ -181,12 +163,12 @@ public class EventDetailsActivity extends AppCompatActivity {
             @Override
             public void onSuccess(int count) {
                 if (currentEvent != null && currentEvent.getWaitingListLimit() > 0) {
-                    // Limit exists: Show "Taken / Limit (Left)"
                     long limit = currentEvent.getWaitingListLimit();
                     long left = Math.max(0, limit - count);
-                    tvEventWaitlistCount.setText("Waitlist: " + count + " / " + limit + " (" + left + " spots left)");
+                    tvEventWaitlistCount.setText(
+                            "Waitlist: " + count + " / " + limit + " (" + left + " spots left)"
+                    );
                 } else {
-                    // No limit: Show just the count
                     tvEventWaitlistCount.setText(count + " people on waitlist");
                 }
             }
@@ -200,8 +182,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Checks the current user's status for this specific event
-     * (e.g., "Waiting", "Confirmed", or null).
+     * Checks current user's status for this event.
      */
     private void checkUserStatus() {
         eventRepository.checkEventHistoryStatus(currentEventId, new EventRepository.EventHistoryCheckCallback() {
@@ -209,7 +190,7 @@ public class EventDetailsActivity extends AppCompatActivity {
             public void onSuccess(String status) {
                 currentEventStatus = status;
                 updateJoinButtonUI();
-                setLoading(false); // Page is fully loaded
+                setLoading(false);
             }
 
             @Override
@@ -221,8 +202,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Starts the process to join the waitlist.
-     * Checks if geolocation is required and branches accordingly.
+     * Starts join flow (with optional location).
      */
     private void initiateJoinProcess() {
         if (currentEvent == null) {
@@ -233,73 +213,77 @@ public class EventDetailsActivity extends AppCompatActivity {
         if (currentEvent.isGeolocationRequired()) {
             checkLocationPermissionAndJoin();
         } else {
-            // No location required, join normally
             performJoin(null, null);
         }
     }
 
-    /**
-     * Checks for location permissions. If granted, fetches location.
-     * If denied, requests them.
-     */
     private void checkLocationPermissionAndJoin() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            // Request permission
-            ActivityCompat.requestPermissions(this,
+            ActivityCompat.requestPermissions(
+                    this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    LOCATION_PERMISSION_REQUEST_CODE);
+                    LOCATION_PERMISSION_REQUEST_CODE
+            );
         } else {
-            // Permission already granted
             fetchLocation();
         }
     }
 
-    /**
-     * Fetches the last known location and then joins the waitlist.
-     */
     private void fetchLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
-        setButtonLoading(true); // Show loading while fetching location
+        setButtonLoading(true);
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, location -> {
                     if (location != null) {
                         performJoin(location.getLatitude(), location.getLongitude());
                     } else {
                         setButtonLoading(false);
-                        Toast.makeText(EventDetailsActivity.this, "Unable to verify location. Ensure GPS is on.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(
+                                EventDetailsActivity.this,
+                                "Unable to verify location. Ensure GPS is on.",
+                                Toast.LENGTH_LONG
+                        ).show();
                     }
                 })
                 .addOnFailureListener(e -> {
                     setButtonLoading(false);
                     Log.e(TAG, "Error fetching location", e);
-                    Toast.makeText(EventDetailsActivity.this, "Error fetching location: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(
+                            EventDetailsActivity.this,
+                            "Error fetching location: " + e.getMessage(),
+                            Toast.LENGTH_SHORT
+                    ).show();
                 });
     }
 
-    /**
-     * Handles the callback from the permission request.
-     */
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(
+            int requestCode,
+            @NonNull String[] permissions,
+            @NonNull int[] grantResults
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 fetchLocation();
             } else {
-                Toast.makeText(this, "Location permission is required to join this event.", Toast.LENGTH_LONG).show();
+                Toast.makeText(
+                        this,
+                        "Location permission is required to join this event.",
+                        Toast.LENGTH_LONG
+                ).show();
             }
         }
     }
 
     /**
-     * Performs the actual repository call to join the waiting list.
-     *
-     * @param lat Latitude (nullable)
-     * @param lng Longitude (nullable)
+     * Joins the waitlist, optionally with location.
      */
     private void performJoin(@Nullable Double lat, @Nullable Double lng) {
         setButtonLoading(true);
@@ -311,13 +295,16 @@ public class EventDetailsActivity extends AppCompatActivity {
                 currentEventStatus = "Waiting";
                 updateJoinButtonUI();
                 Toast.makeText(EventDetailsActivity.this, "Joined waitlist!", Toast.LENGTH_SHORT).show();
-                // Count updates automatically via listener
             }
 
             @Override
             public void onError(String message) {
                 setButtonLoading(false);
-                Toast.makeText(EventDetailsActivity.this, "Failed to join: " + message, Toast.LENGTH_SHORT).show();
+                Toast.makeText(
+                        EventDetailsActivity.this,
+                        "Failed to join: " + message,
+                        Toast.LENGTH_SHORT
+                ).show();
             }
         };
 
@@ -329,8 +316,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Called when the user clicks the "Leave Waitlist" button.
-     * Calls the repository to perform an atomic delete.
+     * Leaves the waitlist.
      */
     private void leaveWaitlist() {
         setButtonLoading(true);
@@ -341,21 +327,22 @@ public class EventDetailsActivity extends AppCompatActivity {
                 currentEventStatus = null;
                 updateJoinButtonUI();
                 Toast.makeText(EventDetailsActivity.this, "Left waitlist.", Toast.LENGTH_SHORT).show();
-                // Count updates automatically via listener
             }
 
             @Override
             public void onError(String message) {
                 setButtonLoading(false);
-                Toast.makeText(EventDetailsActivity.this, "Failed to leave: " + message, Toast.LENGTH_SHORT).show();
+                Toast.makeText(
+                        EventDetailsActivity.this,
+                        "Failed to leave: " + message,
+                        Toast.LENGTH_SHORT
+                ).show();
             }
         });
     }
 
     /**
-     * Populates the UI fields with data from the loaded Event object.
-     *
-     * @param event The loaded Event object.
+     * Fills event detail views.
      */
     private void populateUi(Event event) {
         tvEventName.setText(event.getName());
@@ -368,8 +355,8 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
 
         if (event.getEventDate() != null) {
-            // Fix for double year display (changed yyyY to yyyy)
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
+            SimpleDateFormat sdf =
+                    new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
             tvEventDate.setText(sdf.format(event.getEventDate()));
         } else {
             tvEventDate.setText("Date not set");
@@ -381,7 +368,6 @@ public class EventDetailsActivity extends AppCompatActivity {
             tvEventGuidelines.setText("No specific guidelines provided.");
         }
 
-        // Load poster image with Glide
         Glide.with(this)
                 .load(event.getPosterImageUrl())
                 .placeholder(R.drawable.fairchance_logo_with_words___transparent)
@@ -390,8 +376,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Updates the main action button based on the user's current status for this event.
-     * Hides or shows the button as needed.
+     * Updates main action button based on current status.
      */
     private void updateJoinButtonUI() {
         if ("Waiting".equals(currentEventStatus)) {
@@ -400,21 +385,17 @@ public class EventDetailsActivity extends AppCompatActivity {
             btnJoinWaitlist.setEnabled(true);
         } else if (currentEventStatus == null) {
             btnJoinWaitlist.setText("Join Waitlist");
-            btnJoinWaitlist.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.FCgreen)));
+            btnJoinWaitlist.setBackgroundTintList(
+                    ColorStateList.valueOf(ContextCompat.getColor(this, R.color.FCgreen))
+            );
             btnJoinWaitlist.setEnabled(true);
         } else {
-            // User is "Confirmed", "Selected", "Declined", etc.
             btnJoinWaitlist.setText("You are " + currentEventStatus);
             btnJoinWaitlist.setBackgroundTintList(ColorStateList.valueOf(Color.GRAY));
             btnJoinWaitlist.setEnabled(false);
         }
     }
 
-    /**
-     * Shows/hides the main page content and progress bar.
-     *
-     * @param isLoading True to show progress bar, false to show content.
-     */
     private void setLoading(boolean isLoading) {
         if (isLoading) {
             progressBar.setVisibility(View.VISIBLE);
@@ -425,11 +406,6 @@ public class EventDetailsActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Shows/hides the progress bar inside the main action button.
-     *
-     * @param isLoading True to show progress bar, false to hide it.
-     */
     private void setButtonLoading(boolean isLoading) {
         if (isLoading) {
             joinProgressBar.setVisibility(View.VISIBLE);
@@ -438,7 +414,7 @@ public class EventDetailsActivity extends AppCompatActivity {
         } else {
             joinProgressBar.setVisibility(View.GONE);
             btnJoinWaitlist.setEnabled(true);
-            // The text will be reset by updateJoinButtonUI()
+            // Text is set by updateJoinButtonUI()
         }
     }
 }

@@ -27,26 +27,44 @@ import com.example.fairchance.ui.fragments.OrganizerDashboardFragment;
 
 /**
  * The main container activity for the app after a user is logged in.
- * It's responsible for checking the user's role (Entrant, Organizer, or Admin)
- * and loading the appropriate dashboard fragment.
- * For Entrants, it also manages the BottomNavigationView.
+ * <p>
+ * Responsibilities:
+ * <ul>
+ *     <li>Fetch the user's role (Entrant, Organizer, Admin) via {@link AuthRepository}.</li>
+ *     <li>Load the appropriate dashboard fragment based on the role.</li>
+ *     <li>For Entrants and Organizers, manage the {@link BottomNavigationView}.</li>
+ *     <li>Request notification permission on Android 13+ when needed.</li>
+ * </ul>
  */
 public class MainActivity extends AppCompatActivity {
 
     private AuthRepository authRepository;
     private BottomNavigationView bottomNav;
 
-    // FIX: Launcher for requesting notification permissions on Android 13+
+
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
                     Log.d("MainActivity", "Notification permission granted");
                 } else {
                     Log.w("MainActivity", "Notification permission denied");
-                    Toast.makeText(this, "Notifications disabled. You may miss event invites.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(
+                            this,
+                            "Notifications disabled. You may miss event invites.",
+                            Toast.LENGTH_LONG
+                    ).show();
                 }
             });
 
+    /**
+     * Called when the activity is first created.
+     * <p>
+     * Initializes the {@link AuthRepository}, sets up the bottom navigation,
+     * requests notification permission when needed, and then fetches the user's
+     * role to determine which UI to display.
+     *
+     * @param savedInstanceState previously saved instance state, or {@code null}
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,39 +73,32 @@ public class MainActivity extends AppCompatActivity {
         authRepository = new AuthRepository();
         bottomNav = findViewById(R.id.bottom_navigation);
 
-        // FIX: Request Notification Permission immediately on startup
         askNotificationPermission();
 
-        // Fetch the user's role to determine which UI to show
         authRepository.getUserRole(new AuthRepository.RoleCallback() {
             @Override
             public void onRoleFetched(String role) {
                 switch (role) {
                     case "entrant":
-                        // If entrant, show the nav bar and set it up
                         bottomNav.setVisibility(View.VISIBLE);
                         setupEntrantNavigation();
 
-                        // Check for navigation intent from notification (US 01.04.01)
+                        // Special navigation target when launched from a notification
                         if (getIntent().hasExtra("NAV_TO_INVITATIONS")) {
                             loadDashboardFragment(new InvitationsFragment());
                             bottomNav.setSelectedItemId(R.id.nav_invitations);
                         } else {
-                            // Load the default "Home" fragment only if no special navigation is requested
                             loadDashboardFragment(new EntrantHomeFragment());
                             bottomNav.setSelectedItemId(R.id.nav_home);
                         }
-
                         break;
                     case "organizer":
-                        // If organizer, hide nav bar and load their simple dashboard
                         bottomNav.setVisibility(View.VISIBLE);
                         setupOrganizerNavigation();
                         loadDashboardFragment(new OrganizerDashboardFragment());
                         bottomNav.setSelectedItemId(R.id.nav_home);
                         break;
                     case "admin":
-                        // If admin, hide nav bar and load their simple dashboard
                         bottomNav.setVisibility(View.GONE);
                         loadDashboardFragment(new AdminDashboardFragment());
                         break;
@@ -95,18 +106,14 @@ public class MainActivity extends AppCompatActivity {
                         Log.e("MainActivity", "Unknown role, defaulting to entrant.");
                         bottomNav.setVisibility(View.VISIBLE);
                         setupEntrantNavigation();
-
-                        // Default load
                         loadDashboardFragment(new EntrantHomeFragment());
                         bottomNav.setSelectedItemId(R.id.nav_home);
-
                         break;
                 }
             }
 
             @Override
             public void onError(String message) {
-                // Log the error and log out
                 Log.e("MainActivity", "Error fetching role: " + message);
                 logout();
             }
@@ -114,7 +121,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Checks and requests POST_NOTIFICATIONS permission for Android 13+ (API 33).
+     * Checks and, if necessary, requests {@link Manifest.permission#POST_NOTIFICATIONS}
+     * on Android 13+ (API 33 and above).
+     * <p>
+     * On earlier Android versions, this method does nothing.
      */
     private void askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -126,14 +136,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Sets up the BottomNavigationView for the Entrant role,
-     * inflates its menu, and handles navigation item clicks.
+     * Configures the {@link BottomNavigationView} for the Entrant role:
+     * inflates the entrant menu, and sets up navigation between
+     * Home, Invitations, History, and Profile fragments.
      */
     private void setupEntrantNavigation() {
         bottomNav.getMenu().clear();
         bottomNav.inflateMenu(R.menu.entrant_nav_menu);
 
-        // Set the listener for navigation
         bottomNav.setOnItemSelectedListener(item -> {
             Fragment selectedFragment = null;
             int itemId = item.getItemId();
@@ -157,17 +167,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Helper method to replace the content of the 'dashboard_container' FrameLayout
-     * with a given Fragment.
-     *
-     * @param fragment The Fragment to display.
+     * Configures the {@link BottomNavigationView} for the Organizer role:
+     * inflates the organizer menu, and sets up navigation between
+     * the organizer dashboard and profile.
      */
-    private void loadDashboardFragment(Fragment fragment) {
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.dashboard_container, fragment);
-        transaction.commit();
-    }
-
     private void setupOrganizerNavigation() {
         bottomNav.getMenu().clear();
         bottomNav.inflateMenu(R.menu.organizer_bottom_nav);
@@ -179,7 +182,6 @@ public class MainActivity extends AppCompatActivity {
             if (itemId == R.id.nav_home) {
                 selectedFragment = new OrganizerDashboardFragment();
             } else if (itemId == R.id.nav_profile) {
-                // Reuse the same profile fragment for organizers
                 selectedFragment = new ProfileFragment();
             }
 
@@ -192,8 +194,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Helper method to log out the current user, clear the activity stack,
-     * and redirect to the RoleSelectionActivity.
+     * Replaces the content of {@code R.id.dashboard_container} with the given fragment.
+     *
+     * @param fragment the {@link Fragment} to display in the main dashboard area
+     */
+    private void loadDashboardFragment(Fragment fragment) {
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.dashboard_container, fragment);
+        transaction.commit();
+    }
+
+    /**
+     * Logs out the current user via {@link AuthRepository}, clears the activity stack,
+     * and navigates back to {@link RoleSelectionActivity}.
      */
     private void logout() {
         authRepository.signOut();

@@ -12,8 +12,10 @@ import com.example.fairchance.models.NotificationLog;
 
 import java.text.DateFormat;
 import java.util.Date;
-import java.util.List;
 
+/**
+ * Activity that shows details for a single notification log entry.
+ */
 public class NotificationLogDetailsActivity extends AppCompatActivity {
 
     private static final String EXTRA_SENDER_NAME = "extra_sender_name";
@@ -24,6 +26,9 @@ public class NotificationLogDetailsActivity extends AppCompatActivity {
     private static final String EXTRA_RECIPIENT_IDS = "extra_recipient_ids";
     private static final String EXTRA_TIMESTAMP = "extra_timestamp";
 
+    /**
+     * Launches this screen to display details for the given log.
+     */
     public static void start(Context context, NotificationLog log) {
         Intent intent = new Intent(context, NotificationLogDetailsActivity.class);
         intent.putExtra(EXTRA_SENDER_NAME, log.getSenderName());
@@ -31,10 +36,12 @@ public class NotificationLogDetailsActivity extends AppCompatActivity {
         intent.putExtra(EXTRA_MESSAGE_BODY, log.getMessageBody());
         intent.putExtra(EXTRA_EVENT_NAME, log.getEventName());
         intent.putExtra(EXTRA_RECIPIENT_COUNT, log.getRecipientCount());
-        intent.putStringArrayListExtra(EXTRA_RECIPIENT_IDS,
+        intent.putStringArrayListExtra(
+                EXTRA_RECIPIENT_IDS,
                 log.getRecipientIds() != null
                         ? new java.util.ArrayList<>(log.getRecipientIds())
-                        : new java.util.ArrayList<>());
+                        : new java.util.ArrayList<>()
+        );
         if (log.getTimestamp() != null) {
             intent.putExtra(EXTRA_TIMESTAMP, log.getTimestamp().getTime());
         }

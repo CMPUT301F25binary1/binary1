@@ -17,12 +17,14 @@ import com.example.fairchance.R;
 import com.example.fairchance.models.Event;
 import com.example.fairchance.ui.adapters.EventAdapter;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Shows all ongoing events created by the currently logged-in organizer.
+ * Uses a real-time Firestore listener so updates appear immediately.
+ */
 public class OngoingEventsFragment extends Fragment {
 
     private RecyclerView rvOngoingEvents;
@@ -39,18 +41,20 @@ public class OngoingEventsFragment extends Fragment {
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view,
+                              @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
         rvOngoingEvents = view.findViewById(R.id.rvOngoingEvents);
         rvOngoingEvents.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        // true = adapter is in "organizer mode" (shows admin/organizer controls)
         adapter = new EventAdapter(new ArrayList<>(), true);
         rvOngoingEvents.setAdapter(adapter);
 
         repository = new EventRepository();
 
-        // 🔹 Listen to Firestore for real-time updates
+        // Get the logged-in organizer ID
         String organizerId = null;
         if (com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() != null) {
             organizerId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -61,19 +65,28 @@ public class OngoingEventsFragment extends Fragment {
             return;
         }
 
-        registration = repository.getEventsForOrganizer(organizerId, new EventRepository.EventListCallback() {
-            @Override
-            public void onSuccess(List<Event> events) {
-                adapter.setEvents(events);
-            }
+        // Subscribe to real-time updates for this organizer's events
+        registration = repository.getEventsForOrganizer(
+                organizerId,
+                new EventRepository.EventListCallback() {
+                    @Override
+                    public void onSuccess(List<Event> events) {
+                        adapter.setEvents(events);
+                    }
 
-            @Override
-            public void onError(String message) {
-                Toast.makeText(getContext(), "Error loading events: " + message, Toast.LENGTH_SHORT).show();
-            }
-        });
+                    @Override
+                    public void onError(String message) {
+                        Toast.makeText(getContext(),
+                                "Error loading events: " + message,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
     }
 
+    /**
+     * Remove Firestore listener to avoid memory leaks.
+     */
     @Override
     public void onDestroyView() {
         super.onDestroyView();

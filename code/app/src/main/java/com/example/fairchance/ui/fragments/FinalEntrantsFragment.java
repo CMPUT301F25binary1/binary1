@@ -56,6 +56,9 @@ public class FinalEntrantsFragment extends Fragment {
         // Required empty public constructor
     }
 
+    /**
+     * Factory method for creating a FinalEntrantsFragment tied to a specific event.
+     */
     public static FinalEntrantsFragment newInstance(String eventId, String eventName) {
         FinalEntrantsFragment fragment = new FinalEntrantsFragment();
         Bundle args = new Bundle();
@@ -68,6 +71,7 @@ public class FinalEntrantsFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Single Firestore instance for this fragment
         db = FirebaseFirestore.getInstance();
     }
 
@@ -84,6 +88,7 @@ public class FinalEntrantsFragment extends Fragment {
                               @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Retrieve event arguments
         if (getArguments() != null) {
             eventId = getArguments().getString(ARG_EVENT_ID);
             eventName = getArguments().getString(ARG_EVENT_NAME, "");
@@ -94,6 +99,7 @@ public class FinalEntrantsFragment extends Fragment {
 
         rvFinalEntrants.setLayoutManager(new LinearLayoutManager(getContext()));
 
+        // Simple list showing user IDs + event name, no per-row button
         adapter = new SelectedParticipantAdapter(
                 finalIds,
                 eventName,
@@ -103,7 +109,7 @@ public class FinalEntrantsFragment extends Fragment {
         );
         rvFinalEntrants.setAdapter(adapter);
 
-        // Start disabled – enabled only when we have entrants
+        // Start disabled – only enabled once we know there are entrants
         btnExportCsv.setEnabled(false);
 
         loadFinalEntrants();
@@ -131,6 +137,7 @@ public class FinalEntrantsFragment extends Fragment {
                 .addOnSuccessListener(snapshot -> {
                     finalIds.clear();
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        // Doc ID is userId
                         finalIds.add(doc.getId());
                     }
                     adapter.setEventName(eventName);
@@ -167,6 +174,7 @@ public class FinalEntrantsFragment extends Fragment {
             return;
         }
 
+        // Reload confirmedAttendees to get the latest data before export
         db.collection("events")
                 .document(eventId)
                 .collection("confirmedAttendees")
@@ -179,6 +187,9 @@ public class FinalEntrantsFragment extends Fragment {
                 ).show());
     }
 
+    /**
+     * Builds CSV entries from confirmedAttendees and corresponding user documents.
+     */
     private void buildCsvFromConfirmedAttendees(QuerySnapshot snapshot) {
         if (snapshot.isEmpty()) {
             Toast.makeText(
@@ -207,6 +218,7 @@ public class FinalEntrantsFragment extends Fragment {
             userTasks.add(t);
         }
 
+        // Wait until all user docs are loaded, then build CSV
         Tasks.whenAllSuccess(userTasks)
                 .addOnSuccessListener(results -> {
                     try {
@@ -259,7 +271,7 @@ public class FinalEntrantsFragment extends Fragment {
                 enrolledAt = df.format(ts.toDate());
             }
 
-            // CSV row (very simple escaping; fine for 301 use)
+            // CSV row (basic escaping is fine for this use case)
             sb.append(escapeCsv(name)).append(",")
                     .append(escapeCsv(email)).append(",")
                     .append(escapeCsv(enrolledAt)).append(",")
@@ -274,6 +286,7 @@ public class FinalEntrantsFragment extends Fragment {
      * final_entrants_<eventId>.csv
      */
     private File saveCsvToFile(String csv) throws IOException {
+        // App-specific external directory (not visible to other apps without sharing)
         File dir = requireContext().getExternalFilesDir(null);
         if (dir == null) {
             throw new IOException("No external files directory available");
@@ -290,7 +303,7 @@ public class FinalEntrantsFragment extends Fragment {
     }
 
     /**
-     * Gets a human-readable name from the user document.
+     * Gets a human-readable name from the user document, with multiple fallbacks.
      */
     private String extractDisplayName(@Nullable DocumentSnapshot userDoc,
                                       String fallbackUid) {

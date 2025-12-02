@@ -58,19 +58,9 @@ public class GuidelinesFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Find views
+
         Button backButton = view.findViewById(R.id.button2);
 
-        // If specific guidelines were passed, we should display them.
-        // For now, I will assume we might want to inject them into one of the existing text views 
-        // or a new one. Since the layout is currently static, let's at least ensure
-        // the user sees the event-specific text if provided.
-        //
-        // NOTE: Ideally, you would add a specific TextView to fragment_guidelines.xml 
-        // for "Event Specific Rules" and populate it here. 
-        // For this immediate fix, I will focus on the logic.
-
-        // Implement the back navigation logic
         backButton.setOnClickListener(v -> {
             if (getParentFragmentManager().getBackStackEntryCount() > 0) {
                 getParentFragmentManager().popBackStack();

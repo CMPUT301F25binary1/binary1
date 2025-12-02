@@ -13,9 +13,11 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.fairchance.R;
-import com.example.fairchance.ui.AuthActivity;
 import com.google.firebase.auth.FirebaseAuth;
 
+/**
+ * Dashboard for organizers: create events, view current events, access tools, or log out.
+ */
 public class OrganizerDashboardFragment extends Fragment {
 
     @Nullable
@@ -31,28 +33,23 @@ public class OrganizerDashboardFragment extends Fragment {
         Button btnLottery = view.findViewById(R.id.btnLottery);
         Button btnLogout = view.findViewById(R.id.btnLogout);
 
-        // Open create new event screen
         btnCreateEvent.setOnClickListener(v ->
                 openFragment(new CreateNewEventFragment())
         );
 
-        // Open ongoing events screen
         btnCurrentEvents.setOnClickListener(v ->
                 openFragment(new OngoingEventsFragment())
         );
 
-        // (Optional) Lottery click – keep or wire later
         btnLottery.setOnClickListener(v -> {
-            // TODO: Open your lottery screen here if you have one
+            // TODO: link to lottery feature
         });
 
-
-        // Logout: sign out and go back to AuthActivity (login/role selection)
         btnLogout.setOnClickListener(v -> {
             FirebaseAuth.getInstance().signOut();
 
-            Intent intent = new Intent(requireContext(), com.example.fairchance.ui.RoleSelectionActivity.class);
-            // Clear back stack so back button doesn't return to dashboard
+            Intent intent = new Intent(requireContext(),
+                    com.example.fairchance.ui.RoleSelectionActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
 

@@ -57,7 +57,6 @@ public class ProfileFragment extends Fragment {
 
         authRepository = new AuthRepository();
 
-        // Find all the views from the layout
         etName = view.findViewById(R.id.etName);
         etEmail = view.findViewById(R.id.etEmail);
         etPhoneNumber = view.findViewById(R.id.etPhoneNumber);
@@ -73,7 +72,6 @@ public class ProfileFragment extends Fragment {
         etRole.setEnabled(false);
         loadUserProfile();
 
-        // Set up button listeners
         btnLogout.setOnClickListener(v -> logout());
         btnSaveChanges.setOnClickListener(v -> saveChanges());
         btnDeleteProfile.setOnClickListener(v -> confirmDeleteProfile());
@@ -155,7 +153,7 @@ public class ProfileFragment extends Fragment {
             return;
         }
 
-        // Build the notification preferences map
+
         Map<String, Object> notificationPrefs = new HashMap<>();
         boolean lotteryResultsEnabled = switchLotteryResults.isChecked();
         boolean organizerUpdatesEnabled = switchOrganizerUpdates.isChecked();
@@ -163,17 +161,16 @@ public class ProfileFragment extends Fragment {
         notificationPrefs.put("lotteryResults", lotteryResultsEnabled);
         notificationPrefs.put("organizerUpdates", organizerUpdatesEnabled);
 
-        // FIX: Determine overall opt-out status (US 01.04.03 Criterion 2)
-        // Notifications are globally enabled if AT LEAST ONE switch is ON.
+
         boolean notificationsGloballyEnabled = lotteryResultsEnabled || organizerUpdatesEnabled;
 
 
         setLoading(true);
-        // Step 1: Update basic profile details and preferences
+
         authRepository.updateUserProfile(name, email, phone, notificationPrefs, new AuthRepository.TaskCallback() {
             @Override
             public void onSuccess() {
-                // Step 2: Update FCM token based on preference (opt-out mechanism)
+
                 authRepository.updateNotificationStatus(notificationsGloballyEnabled, new AuthRepository.TaskCallback() {
                     @Override
                     public void onSuccess() {

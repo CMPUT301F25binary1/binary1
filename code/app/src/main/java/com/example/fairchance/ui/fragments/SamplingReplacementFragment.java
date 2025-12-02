@@ -47,12 +47,12 @@ public class SamplingReplacementFragment extends Fragment {
     private TextInputEditText etSampleNumber;
     private Button btnSampleAttendees;
 
-    // Selected participants (top list)
+
     private RecyclerView rvSelectedParticipants;
     private SelectedParticipantAdapter selectedAdapter;
     private final List<String> selectedIds = new ArrayList<>();
 
-    // Replacement pool (cancelled entrants, bottom list)
+
     private RecyclerView rvReplacementPool;
     private SelectedParticipantAdapter replacementAdapter;
     private final List<String> replacementIds = new ArrayList<>();
@@ -96,7 +96,7 @@ public class SamplingReplacementFragment extends Fragment {
         btnSampleAttendees = view.findViewById(R.id.btnSampleAttendees);
         tvSummary = view.findViewById(R.id.tvSummary);
 
-        // Selected participants list (top, "Notify Entrant")
+
         rvSelectedParticipants = view.findViewById(R.id.rvSelectedParticipants);
         rvSelectedParticipants.setLayoutManager(new LinearLayoutManager(getContext()));
         selectedAdapter = new SelectedParticipantAdapter(
@@ -108,7 +108,7 @@ public class SamplingReplacementFragment extends Fragment {
         );
         rvSelectedParticipants.setAdapter(selectedAdapter);
 
-        // Replacement pool list (bottom, "Draw Replacement")
+
         rvReplacementPool = view.findViewById(R.id.rvReplacementPool);
         rvReplacementPool.setLayoutManager(new LinearLayoutManager(getContext()));
         replacementAdapter = new SelectedParticipantAdapter(

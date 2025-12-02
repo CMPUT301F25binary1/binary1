@@ -55,12 +55,12 @@ public class HistoryFragment extends Fragment {
 
         eventRepository = new EventRepository();
 
-        // Find views
+
         historyRecyclerView = view.findViewById(R.id.history_recycler_view);
         progressBar = view.findViewById(R.id.progress_bar);
         emptyView = view.findViewById(R.id.empty_view);
 
-        // Setup RecyclerView
+
         historyRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         historyAdapter = new EventHistoryAdapter(getContext(), historyList);
         historyRecyclerView.setAdapter(historyAdapter);
@@ -68,10 +68,7 @@ public class HistoryFragment extends Fragment {
         loadHistory();
     }
 
-    /**
-     * FIX: Cleans up the real-time listener when the fragment's view is destroyed.
-     * (Part of US 01.02.03 Criterion 3 cleanup)
-     */
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();

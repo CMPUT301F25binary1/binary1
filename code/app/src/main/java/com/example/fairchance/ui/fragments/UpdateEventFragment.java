@@ -126,10 +126,10 @@ public class UpdateEventFragment extends Fragment {
         updates.put("location", String.valueOf(etTimeLoc.getText()).trim());
         updates.put("geolocationRequired", cbGeo.isChecked());
 
-        // Update fields first
+
         repo.updateEventFields(eventId, updates, new EventRepository.EventTaskCallback() {
             @Override public void onSuccess() {
-                // Then upload poster if a new one was chosen
+
                 if (pickedImage != null) {
                     repo.uploadPosterAndUpdate(eventId, pickedImage, new EventRepository.EventTaskCallback() {
                         @Override public void onSuccess() {

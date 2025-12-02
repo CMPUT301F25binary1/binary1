@@ -53,14 +53,14 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
 
     private ListenerRegistration waitingListListener;
 
-    // Cached snapshot of waitingList docs so we can re-render when map becomes ready
+
     private List<DocumentSnapshot> cachedWaitingListDocs = new ArrayList<>();
 
     private final SimpleDateFormat timeFormat =
             new SimpleDateFormat("MMM dd, yyyy • HH:mm", Locale.getDefault());
 
     public WaitingListMapFragment() {
-        // Required empty public constructor
+
     }
 
     public static WaitingListMapFragment newInstance(String eventId, String eventName) {
@@ -103,7 +103,7 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
         googleMap = map;
         googleMap.getUiSettings().setZoomControlsEnabled(true);
 
-        // If we already have data loaded, render it now
+
         if (!cachedWaitingListDocs.isEmpty()) {
             renderFromWaitingListDocs(cachedWaitingListDocs);
         }
@@ -150,7 +150,7 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
         mapView.onLowMemory();
     }
 
-    // --- Firestore listening ---
+
 
     private void startListeningToWaitingList() {
         if (eventId == null || eventId.isEmpty()) {
@@ -244,7 +244,7 @@ public class WaitingListMapFragment extends Fragment implements OnMapReadyCallba
             tvNoLocationList.setText(sb.toString().trim());
         }
 
-        // Adjust camera if we have any locations
+
         if (hasAnyLocation) {
             try {
                 LatLngBounds bounds = boundsBuilder.build();

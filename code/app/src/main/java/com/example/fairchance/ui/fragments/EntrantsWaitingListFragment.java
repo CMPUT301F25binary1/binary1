@@ -24,6 +24,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Displays the waiting list for an event.
+ * Allows the organizer to:
+ *  - View all waiting entrants
+ *  - Send custom notifications to all waiting entrants
+ *  - View their map locations (another fragment handles the map)
+ */
 public class EntrantsWaitingListFragment extends Fragment {
 
     private static final String ARG_EVENT_ID = "EVENT_ID";
@@ -41,8 +48,11 @@ public class EntrantsWaitingListFragment extends Fragment {
 
     private EventRepository repository;
 
-    public EntrantsWaitingListFragment() { }
+    public EntrantsWaitingListFragment() {}
 
+    /**
+     * Creates a new instance of this fragment with event ID + name.
+     */
     public static EntrantsWaitingListFragment newInstance(String eventId, String eventName) {
         EntrantsWaitingListFragment fragment = new EntrantsWaitingListFragment();
         Bundle args = new Bundle();
@@ -65,6 +75,7 @@ public class EntrantsWaitingListFragment extends Fragment {
                               @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Retrieve arguments
         if (getArguments() != null) {
             eventId = getArguments().getString(ARG_EVENT_ID);
             eventName = getArguments().getString(ARG_EVENT_NAME, "");
@@ -72,26 +83,29 @@ public class EntrantsWaitingListFragment extends Fragment {
 
         repository = new EventRepository();
 
+        // UI setup
         rvWaitingList = view.findViewById(R.id.rvWaitingList);
         btnSendNotification = view.findViewById(R.id.btnSendNotification);
         btnViewWaitingListMap = view.findViewById(R.id.btnViewWaitingListMap);
 
         rvWaitingList.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Reuse SelectedParticipantAdapter, with no per-entrant button
+        // Adapter shows a list of entrant IDs with NO action button
         adapter = new SelectedParticipantAdapter(
                 waitingIds,
                 eventName,
-                "",          // button text (unused)
-                false,       // showButton flag – adapter hides it when listener == null
-                null         // listener == null → hide button
+                "",
+                false,
+                null
         );
         rvWaitingList.setAdapter(adapter);
 
         loadWaitingList();
 
+        // Sends a custom message to all waiting entrants
         btnSendNotification.setOnClickListener(v -> showWaitingNotificationDialog());
 
+        // Opens the map + list fragment
         btnViewWaitingListMap.setOnClickListener(v -> {
             if (eventId == null || eventId.isEmpty()) {
                 Toast.makeText(getContext(),
@@ -100,23 +114,23 @@ public class EntrantsWaitingListFragment extends Fragment {
                 return;
             }
 
-            // Open full-screen fragment with map + no-location list
             WaitingListMapFragment fragment =
                     WaitingListMapFragment.newInstance(eventId, eventName);
 
+            // Replace container with the map screen
             requireActivity()
                     .getSupportFragmentManager()
                     .beginTransaction()
-                    // FIX: Use dashboard_container
                     .replace(R.id.dashboard_container, fragment)
                     .addToBackStack(null)
                     .commit();
         });
-
     }
 
     /**
-     * Loads all entrants from events/{eventId}/waitingList and shows their IDs.
+     * Loads the waiting list from Firestore:
+     * events/{eventId}/waitingList
+     * Each document ID = userId of an entrant.
      */
     private void loadWaitingList() {
         if (eventId == null || eventId.isEmpty()) {
@@ -133,11 +147,12 @@ public class EntrantsWaitingListFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(snapshot -> {
                     waitingIds.clear();
+
                     for (DocumentSnapshot doc : snapshot.getDocuments()) {
-                        // waitingList doc ID is the userId
                         waitingIds.add(doc.getId());
                     }
-                    adapter.setEventName(eventName);  // in case it was empty earlier
+
+                    adapter.setEventName(eventName);
                     adapter.notifyDataSetChanged();
 
                     if (waitingIds.isEmpty()) {
@@ -146,16 +161,18 @@ public class EntrantsWaitingListFragment extends Fragment {
                                 Toast.LENGTH_SHORT).show();
                     }
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(getContext(),
-                            "Failed to load waiting list: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
+                .addOnFailureListener(e ->
+                        Toast.makeText(
+                                getContext(),
+                                "Failed to load waiting list: " + e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show()
+                );
     }
 
     /**
-     * Shows dialog_send_notif_waiting so the organizer can type a custom message,
-     * then calls EventRepository.sendWaitingListNotifications.
+     * Shows a dialog where the organizer types a custom message,
+     * then sends it to all waiting entrants through EventRepository.
      */
     private void showWaitingNotificationDialog() {
         if (eventId == null || eventId.isEmpty()) {

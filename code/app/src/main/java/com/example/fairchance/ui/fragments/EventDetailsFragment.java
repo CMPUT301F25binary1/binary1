@@ -31,20 +31,32 @@ import com.journeyapps.barcodescanner.BarcodeEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
+/**
+ * Shows full details for a single event.
+ * <p>
+ * Organizer capabilities:
+ * - View QR code for entrants to scan
+ * - See registration window and details
+ * - Open waiting/chosen/cancelled/final entrants lists
+ * - Open sampling/replacement screen
+ * - Update poster and edit event (if not admin)
+ * <p>
+ * Admins see the event details but not organizer actions.
+ */
 public class EventDetailsFragment extends Fragment {
 
     private TextView tvEventName, tvEventDescription, tvEventTimeLocation, tvRegistrationDates, tvRegistrationTimes;
     private ImageView ivEventPoster, ivQRCode;
     private Button btnWaitingList, btnChosen, btnCancelled, btnFinal;
 
-    // Optional views for the two user stories
+    // Optional views for geolocation + editing
     private TextView tvGeolocationRequiredLabel, tvGeolocationRequiredValue;
     private Button btnUpdatePoster, btnEditEvent;
 
-    // Sampling & Replacement button
+    // Sampling & Replacement control
     private Button btnSamplingReplacement;
 
-    // Group that wraps all organizer-only actions (anything below the QR)
+    // Wraps all organizer-only actions (buttons below the QR)
     private Group groupOrganizerActions;
 
     private String eventId;
@@ -52,7 +64,9 @@ public class EventDetailsFragment extends Fragment {
     private Event loadedEvent;
     private AuthRepository authRepository;
 
-    // Image picker for Update Poster
+    /**
+     * Image picker used when updating the event poster.
+     */
     private final ActivityResultLauncher<String> pickImage =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 if (uri != null && loadedEvent != null) {
@@ -77,6 +91,11 @@ public class EventDetailsFragment extends Fragment {
 
     public EventDetailsFragment() { }
 
+    /**
+     * Factory method to create a details fragment for a given event ID.
+     *
+     * @param eventId ID of the event to display
+     */
     public static EventDetailsFragment newInstance(String eventId) {
         EventDetailsFragment fragment = new EventDetailsFragment();
         Bundle args = new Bundle();
@@ -100,6 +119,7 @@ public class EventDetailsFragment extends Fragment {
         repository = new EventRepository();
         authRepository = new AuthRepository();
 
+        // Bind views
         ivEventPoster = view.findViewById(R.id.ivEventPoster);
         ivQRCode = view.findViewById(R.id.ivQRCode);
         tvEventName = view.findViewById(R.id.tvEventName);
@@ -114,33 +134,31 @@ public class EventDetailsFragment extends Fragment {
         btnFinal = view.findViewById(R.id.btnFinalEntrants);
         btnSamplingReplacement = view.findViewById(R.id.btnSamplingReplacement);
 
-        // Organizer-only group (everything below the QR code)
         groupOrganizerActions = view.findViewById(R.id.groupOrganizerActions);
 
-        // Optional new views if added in layout
         tvGeolocationRequiredLabel = view.findViewById(R.id.tvGeolocationRequiredLabel);
         tvGeolocationRequiredValue = view.findViewById(R.id.tvGeolocationRequiredValue);
         btnUpdatePoster = view.findViewById(R.id.btnUpdatePoster);
         btnEditEvent = view.findViewById(R.id.btnEditEvent);
 
-        // === ROLE CHECK: hide organizer actions for admins ===
+        // Hide organizer-only actions for admins (admins are read-only here)
         if (groupOrganizerActions != null) {
             authRepository.getUserRole(new AuthRepository.RoleCallback() {
                 @Override
                 public void onRoleFetched(String role) {
                     if ("admin".equalsIgnoreCase(role)) {
-                        // Admins are read-only: hide update/edit + entrants + sampling buttons
                         groupOrganizerActions.setVisibility(View.GONE);
                     }
                 }
 
                 @Override
                 public void onError(String message) {
-                    // If role lookup fails, do nothing – organizers keep full access.
+                    // If role lookup fails, default is organizer behavior (no further action).
                 }
             });
         }
 
+        // Update poster from gallery
         if (btnUpdatePoster != null) {
             btnUpdatePoster.setOnClickListener(v -> {
                 if (loadedEvent == null) return;
@@ -148,11 +166,11 @@ public class EventDetailsFragment extends Fragment {
             });
         }
 
+        // Edit event details
         if (btnEditEvent != null) {
             btnEditEvent.setOnClickListener(v1 -> {
                 if (eventId != null) {
                     FragmentTransaction ft = requireActivity().getSupportFragmentManager().beginTransaction();
-                    // FIX: Use dashboard_container
                     ft.replace(R.id.dashboard_container, UpdateEventFragment.newInstance(eventId));
                     ft.addToBackStack(null);
                     ft.commit();
@@ -160,11 +178,13 @@ public class EventDetailsFragment extends Fragment {
             });
         }
 
+        // Load event if passed in arguments
         if (getArguments() != null) {
             eventId = getArguments().getString("EVENT_ID");
             loadEventDetails(eventId);
         }
 
+        // Open waiting list
         btnWaitingList.setOnClickListener(v -> {
             if (eventId != null && !eventId.isEmpty() && loadedEvent != null) {
                 openFragment(EntrantsWaitingListFragment.newInstance(
@@ -178,6 +198,7 @@ public class EventDetailsFragment extends Fragment {
             }
         });
 
+        // Open chosen entrants list
         btnChosen.setOnClickListener(v -> {
             if (eventId != null && !eventId.isEmpty() && loadedEvent != null) {
                 openFragment(ChosenEntrantsFragment.newInstance(eventId, loadedEvent.getName()));
@@ -188,6 +209,7 @@ public class EventDetailsFragment extends Fragment {
             }
         });
 
+        // Open cancelled entrants list
         btnCancelled.setOnClickListener(v -> {
             if (eventId != null && !eventId.isEmpty()) {
                 openFragment(CancelledEntrantsFragment.newInstance(eventId));
@@ -198,6 +220,7 @@ public class EventDetailsFragment extends Fragment {
             }
         });
 
+        // Open final entrants list
         btnFinal.setOnClickListener(v -> {
             if (eventId != null && !eventId.isEmpty()) {
                 String name = (loadedEvent != null && loadedEvent.getName() != null)
@@ -213,6 +236,7 @@ public class EventDetailsFragment extends Fragment {
             }
         });
 
+        // Open sampling/replacement flow
         if (btnSamplingReplacement != null) {
             btnSamplingReplacement.setOnClickListener(v -> {
                 if (loadedEvent == null) {
@@ -224,7 +248,6 @@ public class EventDetailsFragment extends Fragment {
                         .getSupportFragmentManager()
                         .beginTransaction();
 
-                // FIX: Use dashboard_container
                 ft.replace(R.id.dashboard_container,
                         SamplingReplacementFragment.newInstance(loadedEvent.getEventId()));
                 ft.addToBackStack(null);
@@ -233,6 +256,11 @@ public class EventDetailsFragment extends Fragment {
         }
     }
 
+    /**
+     * Fetches event details from the repository and populates the UI.
+     *
+     * @param eventId the event ID to load
+     */
     private void loadEventDetails(String eventId) {
         repository.getEvent(eventId, new EventRepository.EventCallback() {
             @Override
@@ -248,6 +276,10 @@ public class EventDetailsFragment extends Fragment {
         });
     }
 
+    /**
+     * Binds event data onto the screen:
+     * name, description, location, registration window, poster, geolocation flag, and QR code.
+     */
     private void populateUI(Event event) {
         tvEventName.setText(event.getName());
         tvEventDescription.setText(event.getDescription());
@@ -265,15 +297,18 @@ public class EventDetailsFragment extends Fragment {
                             sdfTime.format(event.getRegistrationEnd()));
         }
 
+        // Load poster image (if URL is null, Glide will just show placeholder)
         Glide.with(requireContext())
                 .load(event.getPosterImageUrl())
                 .placeholder(R.drawable.fairchance_logo_with_words___transparent)
                 .into(ivEventPoster);
 
+        // Show whether geolocation is required for this event (if view exists)
         if (tvGeolocationRequiredValue != null) {
             tvGeolocationRequiredValue.setText(event.isGeolocationRequired() ? "Yes" : "No");
         }
 
+        // Generate QR code encoding the event ID
         try {
             BitMatrix matrix = new MultiFormatWriter()
                     .encode(event.getEventId(), BarcodeFormat.QR_CODE, 400, 400);
@@ -285,9 +320,12 @@ public class EventDetailsFragment extends Fragment {
         }
     }
 
+    /**
+     * Helper to replace the dashboard container with another fragment
+     * and push the transaction onto the back stack.
+     */
     private void openFragment(Fragment fragment) {
         FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
-        // FIX: Use dashboard_container to avoid overlaps
         transaction.replace(R.id.dashboard_container, fragment);
         transaction.addToBackStack(null);
         transaction.commit();

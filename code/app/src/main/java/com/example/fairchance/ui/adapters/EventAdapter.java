@@ -39,6 +39,14 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * The primary adapter for displaying Event cards in the main feed.
+ * This complex adapter handles:
+ * 1. Rendering event details for both Entrants and Organizers.
+ * 2. Filtering by search text, category, and date (US 01.01.04).
+ * 3. Managing the "Join/Leave Waiting List" button state based on user status (US 01.01.01, US 01.01.02).
+ * 4. Handling Geolocation requirements for joining specific events (US 02.02.03).
+ */
 public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> implements Filterable {
 
     private List<Event> eventList;

@@ -19,12 +19,16 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Adapter for the Admin Image browser.
+ * Enables Administrators to view uploaded images (profiles, posters) and delete them
+ * if they violate policy, as required by US 03.06.01 and US 03.03.01.
+ */
 public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.ImageViewHolder> {
 
     private List<AdminImageItem> images = new ArrayList<>();
     private final OnImageActionListener listener;
 
-    /** Callback to the fragment */
     public interface OnImageActionListener {
         void onPreview(AdminImageItem item);
         void onRemoveClicked(AdminImageItem item);
@@ -34,7 +38,6 @@ public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.Im
         this.listener = listener;
     }
 
-    /** Replace entire list */
     public void submitList(List<AdminImageItem> newList) {
         this.images = newList != null ? newList : new ArrayList<>();
         notifyDataSetChanged();
@@ -74,8 +77,6 @@ public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.Im
                 .load(item.getImageUrl())
                 .into(holder.ivPoster);
 
-
-        // Tap card or image -> preview
         View.OnClickListener previewClick = v -> {
             if (listener != null) {
                 listener.onPreview(item);
@@ -84,7 +85,6 @@ public class AdminImageAdapter extends RecyclerView.Adapter<AdminImageAdapter.Im
         holder.itemView.setOnClickListener(previewClick);
         holder.ivPoster.setOnClickListener(previewClick);
 
-        // Delete button
         holder.btnDelete.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onRemoveClicked(item);

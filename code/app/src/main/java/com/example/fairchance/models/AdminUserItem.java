@@ -3,20 +3,22 @@ package com.example.fairchance.models;
 import com.google.firebase.Timestamp;
 
 /**
- * Lightweight model for admin user list.
+ * Represents a lightweight user summary for the Admin User Management list.
+ * This DTO optimizes list rendering by containing only the essential fields needed
+ * for identification and administrative actions (like deletion).
  */
 public class AdminUserItem {
 
-    private String id;            // Firestore doc id
+    private String id;
     private String name;
     private String email;
     private String role;
-    private Timestamp createdAt;  // registration date
+    private Timestamp createdAt;
 
-    public AdminUserItem() { }
+    public AdminUserItem() {
+    }
 
-    public AdminUserItem(String id, String name, String email,
-                         String role, Timestamp createdAt) {
+    public AdminUserItem(String id, String name, String email, String role, Timestamp createdAt) {
         this.id = id;
         this.name = name;
         this.email = email;

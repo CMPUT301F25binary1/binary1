@@ -63,7 +63,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:hint="Enter name of event" />
+                 />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -83,7 +83,7 @@
                 android:layout_height="wrap_content"
                 android:inputType="textMultiLine"
                 android:minLines="3"
-                android:hint="Enter a brief description of the event" />
+                 />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -102,7 +102,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:hint="Enter event time and location" />
+                 />
 
         </com.google.android.material.textfield.TextInputLayout>
         <com.google.android.material.textfield.TextInputLayout
@@ -120,7 +120,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="date"
-                android:hint="Select date event will be held" />
+                 />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -139,7 +139,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:hint="e.g., Sports, Workshop, Social" />
+                 />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -159,7 +159,7 @@
                 android:layout_height="wrap_content"
                 android:inputType="textMultiLine"
                 android:minLines="3"
-                android:hint="List any rules or instructions for entrants" />
+                 />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -179,7 +179,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="date"
-                android:hint="Enter dates in YYYY-MM-DD format" />
+                />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -198,7 +198,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="time"
-                android:hint="Enter registration times" />
+                 />
 
         </com.google.android.material.textfield.TextInputLayout>
 

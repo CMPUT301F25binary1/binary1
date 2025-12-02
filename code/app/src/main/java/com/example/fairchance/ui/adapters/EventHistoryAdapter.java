@@ -18,21 +18,15 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * A RecyclerView.Adapter for displaying a list of EventHistoryItem objects.
- * This adapter is used in the HistoryFragment to show the user all events
- * they have interacted with and their final status (e.g., Confirmed, Not selected).
+ * Adapter for displaying the user's interaction history with events.
+ * Fulfills US 01.02.03 by allowing Entrants to view past events they registered for,
+ * whether they were selected, waiting, or declined.
  */
 public class EventHistoryAdapter extends RecyclerView.Adapter<EventHistoryAdapter.HistoryViewHolder> {
 
     private List<EventHistoryItem> historyList;
     private Context context;
 
-    /**
-     * Constructs a new EventHistoryAdapter.
-     *
-     * @param context     The context of the calling fragment.
-     * @param historyList The list of EventHistoryItem objects to display.
-     */
     public EventHistoryAdapter(Context context, List<EventHistoryItem> historyList) {
         this.context = context;
         this.historyList = historyList;
@@ -56,17 +50,9 @@ public class EventHistoryAdapter extends RecyclerView.Adapter<EventHistoryAdapte
         return historyList.size();
     }
 
-    /**
-     * ViewHolder class for an individual event history card.
-     */
     class HistoryViewHolder extends RecyclerView.ViewHolder {
         private TextView tvEventTitle, tvEventDateTime, tvStatus;
 
-        /**
-         * Constructs a new ViewHolder.
-         *
-         * @param itemView The root view of the item_history_card layout.
-         */
         HistoryViewHolder(View itemView) {
             super(itemView);
             tvEventTitle = itemView.findViewById(R.id.tvEventTitle);
@@ -74,11 +60,6 @@ public class EventHistoryAdapter extends RecyclerView.Adapter<EventHistoryAdapte
             tvStatus = itemView.findViewById(R.id.tvStatus);
         }
 
-        /**
-         * Binds an EventHistoryItem object to the views in the ViewHolder.
-         *
-         * @param item The EventHistoryItem to display.
-         */
         void bind(EventHistoryItem item) {
             tvEventTitle.setText(item.getEventName());
             tvStatus.setText(item.getStatus());

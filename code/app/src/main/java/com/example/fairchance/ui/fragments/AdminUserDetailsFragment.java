@@ -21,10 +21,20 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
+/**
+ * Displays detailed information about a specific user.
+ * Provides the functionality for Administrators to remove a user profile (US 03.02.01).
+ */
 public class AdminUserDetailsFragment extends Fragment {
 
     private static final String ARG_USER_ID = "user_id";
 
+    /**
+     * Factory method to create a new instance of this fragment with a specific user ID.
+     *
+     * @param userId The ID of the user to display.
+     * @return A new instance of AdminUserDetailsFragment.
+     */
     public static AdminUserDetailsFragment newInstance(String userId) {
         AdminUserDetailsFragment frag = new AdminUserDetailsFragment();
         Bundle b = new Bundle();
@@ -45,6 +55,14 @@ public class AdminUserDetailsFragment extends Fragment {
 
     private String userId;
 
+    /**
+     * Inflates the user details layout.
+     *
+     * @param inflater           The LayoutInflater object.
+     * @param container          The parent view.
+     * @param savedInstanceState Previous state bundle.
+     * @return The inflated view.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -53,6 +71,12 @@ public class AdminUserDetailsFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_admin_user_details, container, false);
     }
 
+    /**
+     * Binds UI references and initiates loading of user details.
+     *
+     * @param view               The View returned by onCreateView.
+     * @param savedInstanceState Previous state bundle.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -78,6 +102,11 @@ public class AdminUserDetailsFragment extends Fragment {
         loadUser(userId);
     }
 
+    /**
+     * Fetches the user document from Firestore.
+     *
+     * @param id The ID of the user to load.
+     */
     private void loadUser(String id) {
         progressBar.setVisibility(View.VISIBLE);
         db.collection("users").document(id)
@@ -91,6 +120,11 @@ public class AdminUserDetailsFragment extends Fragment {
                 });
     }
 
+    /**
+     * Populates the UI fields with data from the user document.
+     *
+     * @param doc The Firestore document snapshot.
+     */
     private void bindUser(DocumentSnapshot doc) {
         progressBar.setVisibility(View.GONE);
 
@@ -118,6 +152,9 @@ public class AdminUserDetailsFragment extends Fragment {
         }
     }
 
+    /**
+     * Displays a confirmation dialog before executing the profile removal.
+     */
     private void confirmRemoveUser() {
         if (userId == null) return;
 
@@ -129,6 +166,9 @@ public class AdminUserDetailsFragment extends Fragment {
                 .show();
     }
 
+    /**
+     * Executes the actual removal logic via the AuthRepository.
+     */
     private void performRemoval() {
         progressBar.setVisibility(View.VISIBLE);
         btnRemoveUser.setEnabled(false);

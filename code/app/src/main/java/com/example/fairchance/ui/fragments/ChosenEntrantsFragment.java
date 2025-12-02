@@ -29,6 +29,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Organizer view for managing entrants who have been selected (chosen) via the lottery.
+ * Implements US 02.06.01 (View chosen entrants).
+ * Implements US 02.07.02 (Send notifications to chosen entrants).
+ */
 public class ChosenEntrantsFragment extends Fragment {
 
     private static final String ARG_EVENT_ID = "EVENT_ID";
@@ -42,10 +47,19 @@ public class ChosenEntrantsFragment extends Fragment {
     private SelectedParticipantAdapter adapter;
     private final List<String> chosenIds = new ArrayList<>();
 
+    /**
+     * Required empty public constructor.
+     */
     public ChosenEntrantsFragment() {
-        // Required empty constructor
     }
 
+    /**
+     * Creates a new instance of the fragment.
+     *
+     * @param eventId   The ID of the event.
+     * @param eventName The name of the event.
+     * @return New fragment instance.
+     */
     public static ChosenEntrantsFragment newInstance(String eventId, String eventName) {
         ChosenEntrantsFragment f = new ChosenEntrantsFragment();
         Bundle args = new Bundle();
@@ -55,6 +69,14 @@ public class ChosenEntrantsFragment extends Fragment {
         return f;
     }
 
+    /**
+     * Inflates the chosen entrants list layout.
+     *
+     * @param inflater           The LayoutInflater.
+     * @param container          The parent view.
+     * @param savedInstanceState Previous state.
+     * @return The inflated view.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -63,6 +85,12 @@ public class ChosenEntrantsFragment extends Fragment {
         return inflater.inflate(R.layout.chosen_entrants_list, container, false);
     }
 
+    /**
+     * Initializes the view components and adapter, and loads the list of entrants.
+     *
+     * @param view               The created view.
+     * @param savedInstanceState Previous state.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -79,7 +107,6 @@ public class ChosenEntrantsFragment extends Fragment {
         rvChosenEntrants = view.findViewById(R.id.rvChosenEntrants);
         rvChosenEntrants.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // adapter config
         adapter = new SelectedParticipantAdapter(
                 chosenIds,
                 eventName,
@@ -99,6 +126,9 @@ public class ChosenEntrantsFragment extends Fragment {
         loadChosenEntrants();
     }
 
+    /**
+     * Fetches the 'selected' sub-collection for the event.
+     */
     private void loadChosenEntrants() {
         if (eventId == null || eventId.isEmpty()) return;
 
@@ -116,6 +146,11 @@ public class ChosenEntrantsFragment extends Fragment {
                 });
     }
 
+    /**
+     * Updates the adapter with the list of user IDs retrieved from Firestore.
+     *
+     * @param snap The query snapshot containing entrant documents.
+     */
     private void onChosenLoaded(QuerySnapshot snap) {
         chosenIds.clear();
         for (DocumentSnapshot doc : snap.getDocuments()) {
@@ -126,6 +161,9 @@ public class ChosenEntrantsFragment extends Fragment {
         }
     }
 
+    /**
+     * Triggers a Cloud Function to send "You Won!" notifications to all selected entrants.
+     */
     private void onSendNotificationsClicked() {
         if (eventId == null || eventId.isEmpty()) {
             Toast.makeText(getContext(),
@@ -176,7 +214,7 @@ public class ChosenEntrantsFragment extends Fragment {
     }
 
     /**
-     * Shows confirmation dialog, then calls repository to cancel all pending entrants.
+     * Shows a confirmation dialog, then calls repository to cancel all pending entrants.
      */
     private void onCancelPendingClicked() {
         if (eventId == null || eventId.isEmpty()) return;
@@ -190,7 +228,7 @@ public class ChosenEntrantsFragment extends Fragment {
                         public void onSuccess() {
                             if (getContext() == null) return;
                             Toast.makeText(getContext(), "All pending entrants cancelled.", Toast.LENGTH_SHORT).show();
-                            loadChosenEntrants(); // Refresh list
+                            loadChosenEntrants();
                         }
 
                         @Override

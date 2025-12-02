@@ -29,6 +29,11 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Manages the "Browse Images" functionality for Administrators.
+ * Implements US 03.06.01 by displaying uploaded images.
+ * Implements US 03.03.01 by allowing the removal of inappropriate images.
+ */
 public class AdminImageManagementFragment extends Fragment
         implements AdminImageAdapter.OnImageActionListener {
 
@@ -40,6 +45,14 @@ public class AdminImageManagementFragment extends Fragment
     private AdminImageAdapter adapter;
     private AdminImageRepository repository;
 
+    /**
+     * Inflates the image management layout.
+     *
+     * @param inflater           The LayoutInflater object.
+     * @param container          The parent view.
+     * @param savedInstanceState Previous state bundle.
+     * @return The inflated view.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -48,6 +61,12 @@ public class AdminImageManagementFragment extends Fragment
         return inflater.inflate(R.layout.fragment_admin_image_management, container, false);
     }
 
+    /**
+     * Sets up the grid layout manager and initiates image fetching.
+     *
+     * @param view               The View returned by onCreateView.
+     * @param savedInstanceState Previous state bundle.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -72,6 +91,9 @@ public class AdminImageManagementFragment extends Fragment
         loadImages();
     }
 
+    /**
+     * Calls the repository to fetch all image references.
+     */
     private void loadImages() {
         setLoading(true);
         repository.fetchAllImages(new AdminImageRepository.ImageListCallback() {
@@ -100,13 +122,21 @@ public class AdminImageManagementFragment extends Fragment
         });
     }
 
-    // === Callbacks from adapter ===
-
+    /**
+     * Adapter callback: Handles the user tapping an image to preview it.
+     *
+     * @param item The image item clicked.
+     */
     @Override
     public void onPreview(AdminImageItem item) {
         showPreviewDialog(item);
     }
 
+    /**
+     * Adapter callback: Handles the user tapping the delete/trash icon.
+     *
+     * @param item The image item to remove.
+     */
     @Override
     public void onRemoveClicked(AdminImageItem item) {
         new AlertDialog.Builder(requireContext())
@@ -117,8 +147,11 @@ public class AdminImageManagementFragment extends Fragment
                 .show();
     }
 
-    // === Moderation actions ===
-
+    /**
+     * Executes the deletion of the image from storage and Firestore.
+     *
+     * @param item The image item to delete.
+     */
     private void deleteImage(AdminImageItem item) {
         setLoading(true);
 
@@ -144,6 +177,11 @@ public class AdminImageManagementFragment extends Fragment
         });
     }
 
+    /**
+     * Displays a larger preview of the image along with metadata and action buttons.
+     *
+     * @param item The image item to preview.
+     */
     private void showPreviewDialog(AdminImageItem item) {
         View dialogView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_admin_image_preview, null, false);
@@ -182,7 +220,6 @@ public class AdminImageManagementFragment extends Fragment
                 .create();
 
         btnRetain.setOnClickListener(v -> {
-            // Retain = do nothing, just dismiss
             Toast.makeText(requireContext(), "Image retained.", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
@@ -195,6 +232,11 @@ public class AdminImageManagementFragment extends Fragment
         dialog.show();
     }
 
+    /**
+     * Toggles UI states during async operations.
+     *
+     * @param loading True to show progress bar.
+     */
     private void setLoading(boolean loading) {
         progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
         recyclerView.setEnabled(!loading);

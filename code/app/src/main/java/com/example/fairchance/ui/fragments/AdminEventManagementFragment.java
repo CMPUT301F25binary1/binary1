@@ -28,6 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Manages the "Browse Events" functionality for Administrators.
+ * Implements US 03.04.01 by displaying all events in the system.
+ * Allows the admin to filter events and remove them via the adapter (US 03.01.01).
+ */
 public class AdminEventManagementFragment extends Fragment {
 
     private RecyclerView recyclerView;
@@ -43,6 +48,14 @@ public class AdminEventManagementFragment extends Fragment {
     private final SimpleDateFormat dateFormat =
             new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
+    /**
+     * Inflates the event management layout.
+     *
+     * @param inflater           The LayoutInflater object.
+     * @param container          The parent view.
+     * @param savedInstanceState Previous state bundle.
+     * @return The inflated view.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -51,6 +64,12 @@ public class AdminEventManagementFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_admin_event_management, container, false);
     }
 
+    /**
+     * Initializes the RecyclerView, search filtering logic, and data listeners.
+     *
+     * @param view               The View returned by onCreateView.
+     * @param savedInstanceState Previous state bundle.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -65,7 +84,6 @@ public class AdminEventManagementFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
-        // Search / filter
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -77,6 +95,9 @@ public class AdminEventManagementFragment extends Fragment {
         startListeningForEvents();
     }
 
+    /**
+     * Sets up a real-time listener on the events collection to keep the admin list up to date.
+     */
     private void startListeningForEvents() {
         setLoading(true);
         eventsRegistration = repo.listenToAllEvents(new EventRepository.AdminEventsListener() {
@@ -101,6 +122,12 @@ public class AdminEventManagementFragment extends Fragment {
         });
     }
 
+    /**
+     * Filters the local list of events based on the search query entered by the admin.
+     * Matches against event name, organizer ID, or date.
+     *
+     * @param query The search string.
+     */
     private void applyFilter(String query) {
         List<Event> filtered = new ArrayList<>();
         String q = query == null ? "" : query.trim().toLowerCase(Locale.getDefault());
@@ -133,16 +160,30 @@ public class AdminEventManagementFragment extends Fragment {
         adapter.setEvents(filtered);
     }
 
+    /**
+     * Null-safe helper to normalize strings for search comparison.
+     *
+     * @param s The input string.
+     * @return A lowercase, non-null string.
+     */
     private String safe(String s) {
         return s == null ? "" : s.toLowerCase(Locale.getDefault());
     }
 
+    /**
+     * Toggles the loading indicator visibility.
+     *
+     * @param loading True if data is loading.
+     */
     private void setLoading(boolean loading) {
         if (progressBar != null) {
             progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
         }
     }
 
+    /**
+     * Removes the Firestore listener when the fragment is destroyed to prevent leaks.
+     */
     @Override
     public void onDestroyView() {
         super.onDestroyView();

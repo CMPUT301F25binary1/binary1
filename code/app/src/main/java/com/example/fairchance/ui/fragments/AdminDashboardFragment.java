@@ -21,6 +21,11 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
+/**
+ * The main entry point for the Administrator actor.
+ * This fragment provides a dashboard overview of system statistics (events, users, images)
+ * and navigation to specific administrative functions defined in US 03.xx.xx.
+ */
 public class AdminDashboardFragment extends Fragment {
 
     private TextView tvActiveEventsCount;
@@ -35,6 +40,14 @@ public class AdminDashboardFragment extends Fragment {
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+    /**
+     * Inflates the admin dashboard layout.
+     *
+     * @param inflater           The LayoutInflater object that can be used to inflate any views in the fragment.
+     * @param container          If non-null, this is the parent view that the fragment's UI should be attached to.
+     * @param savedInstanceState If non-null, this fragment is being re-constructed from a previous saved state.
+     * @return The View for the fragment's UI.
+     */
     @Nullable
     @Override
     public View onCreateView(
@@ -42,10 +55,16 @@ public class AdminDashboardFragment extends Fragment {
             @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState
     ) {
-        // IMPORTANT: this must match your layout file name
         return inflater.inflate(R.layout.admin_main_dashboard, container, false);
     }
 
+    /**
+     * Initializes the dashboard UI components, sets up navigation click listeners for
+     * the management subsystems, and begins listening for live statistic updates.
+     *
+     * @param root               The View returned by onCreateView.
+     * @param savedInstanceState If non-null, this fragment is being re-constructed from a previous saved state.
+     */
     @Override
     public void onViewCreated(
             @NonNull View root,
@@ -66,7 +85,6 @@ public class AdminDashboardFragment extends Fragment {
 
         Button btnLogout = root.findViewById(R.id.btnLogout);
 
-        // ---- Navigation cards ----
         if (cardProfile != null) {
             cardProfile.setOnClickListener(v ->
                     openFragment(new AdminProfileManagementFragment()));
@@ -92,13 +110,10 @@ public class AdminDashboardFragment extends Fragment {
                     openFragment(new AdminOrganizerManagementFragment()));
         }
 
-        // ---- Logout button (safe if it's missing from layout) ----
         if (btnLogout != null) {
             btnLogout.setOnClickListener(v -> {
-                // Sign out current user
                 new AuthRepository().signOut();
 
-                // Go back to role selection (entrant / organizer / admin screen)
                 Intent intent = new Intent(requireContext(), RoleSelectionActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
@@ -107,12 +122,14 @@ public class AdminDashboardFragment extends Fragment {
             });
         }
 
-        // Start Firestore listeners for the tiles
         startDashboardListeners();
     }
 
+    /**
+     * Attaches Firestore listeners to the 'events' and 'users' collections to provide
+     * real-time counts of active entities on the dashboard tiles.
+     */
     private void startDashboardListeners() {
-        // EVENTS (counts all events where isActive == null or true)
         eventsListener = db.collection("events")
                 .addSnapshotListener((value, error) -> {
                     if (error != null) return;
@@ -131,7 +148,6 @@ public class AdminDashboardFragment extends Fragment {
                     }
                 });
 
-        // USER PROFILES
         usersListener = db.collection("users")
                 .addSnapshotListener((value, error) -> {
                     if (error != null) return;
@@ -142,7 +158,6 @@ public class AdminDashboardFragment extends Fragment {
                     }
                 });
 
-        // UPLOADED IMAGES
         imagesListener = db.collection("events")
                 .addSnapshotListener((value, error) -> {
                     if (error != null) return;
@@ -162,7 +177,6 @@ public class AdminDashboardFragment extends Fragment {
                     }
                 });
 
-        // ORGANIZERS
         organizersListener = db.collection("users")
                 .whereEqualTo("role", "organizer")
                 .addSnapshotListener((value, error) -> {
@@ -176,6 +190,11 @@ public class AdminDashboardFragment extends Fragment {
                 });
     }
 
+    /**
+     * Helper method to navigate to a sub-fragment within the Admin interface.
+     *
+     * @param fragment The destination fragment to replace the current view with.
+     */
     private void openFragment(Fragment fragment) {
         FragmentTransaction ft = requireActivity()
                 .getSupportFragmentManager()
@@ -185,6 +204,9 @@ public class AdminDashboardFragment extends Fragment {
         ft.commit();
     }
 
+    /**
+     * Cleans up Firestore listeners when the view is destroyed to prevent memory leaks.
+     */
     @Override
     public void onDestroyView() {
         super.onDestroyView();

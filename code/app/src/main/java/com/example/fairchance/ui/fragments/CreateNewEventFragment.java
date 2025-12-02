@@ -42,10 +42,20 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class
-CreateNewEventFragment extends Fragment {
+/**
+ * Fragment responsible for the creation of new events by an Organizer.
+ * This class handles the input of all event details including name, description,
+ * poster image, date/time scheduling, and geolocation requirements.
+ *
+ * Implements User Stories:
+ * - US 02.01.01 (Create event, generate QR code logic)
+ * - US 02.01.04 (Set registration period)
+ * - US 02.02.03 (Enable/disable geolocation requirement)
+ * - US 02.03.01 (Optionally limit waiting list)
+ * - US 02.04.01 (Upload event poster)
+ */
+public class CreateNewEventFragment extends Fragment {
 
-    // Views (IDs match your XML)
     private ImageView ivEventPoster;
     private TextInputEditText etEventName, etEventDescription, etEventTimeLocation;
     private TextInputEditText etRegistrationDates, etRegistrationTimes;
@@ -55,7 +65,6 @@ CreateNewEventFragment extends Fragment {
     private final Calendar eventDateCal = Calendar.getInstance();
     private Date eventDate;
 
-    // State
     private final Calendar regStartCal = Calendar.getInstance();
     private final Calendar regEndCal   = Calendar.getInstance();
     private Date registrationStart, registrationEnd;
@@ -76,6 +85,14 @@ CreateNewEventFragment extends Fragment {
                 }
             });
 
+    /**
+     * Inflates the layout for the Create New Event screen.
+     *
+     * @param inflater           The LayoutInflater object that can be used to inflate any views in the fragment.
+     * @param container          If non-null, this is the parent view that the fragment's UI should be attached to.
+     * @param savedInstanceState If non-null, this fragment is being re-constructed from a previous saved state.
+     * @return Return the View for the fragment's UI.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -84,13 +101,19 @@ CreateNewEventFragment extends Fragment {
         return inflater.inflate(R.layout.create_new_event, container, false);
     }
 
+    /**
+     * Initializes the view components, sets up event listeners for date pickers,
+     * toggles (geolocation, waiting list limit), and the image picker.
+     *
+     * @param view               The View returned by onCreateView.
+     * @param savedInstanceState If non-null, this fragment is being re-constructed from a previous saved state.
+     */
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
         repo = new EventRepository();
 
-        // Bind
         ivEventPoster         = view.findViewById(R.id.ivEventPoster);
         etEventName           = view.findViewById(R.id.etEventName);
         etEventDescription    = view.findViewById(R.id.etEventDescription);
@@ -105,47 +128,40 @@ CreateNewEventFragment extends Fragment {
         etCategory            = view.findViewById(R.id.etCategory);
         etGuidelines          = view.findViewById(R.id.etGuidelines);
 
-        // [FIX] Explicitly uncheck the limit box by default (No Limit)
         cbWaitlistLimit.setChecked(false);
         waitlistLimit = null;
 
-        // Poster picker
         ivEventPoster.setOnClickListener(v -> pickImage.launch("image/*"));
 
-        // Registration date range picker (MaterialDatePicker)
-        etRegistrationDates.setKeyListener(null); // make it non-typing, click-only
+        etRegistrationDates.setKeyListener(null);
         etRegistrationDates.setOnClickListener(v -> showDateRangePicker());
 
-        // Registration start/end time picker
         etRegistrationTimes.setKeyListener(null);
         etRegistrationTimes.setOnClickListener(v -> showStartEndTimePickers());
 
-        // Waitlist limit dialog when toggled on
         cbWaitlistLimit.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 showWaitlistLimitDialog();
             } else {
-                // If unchecked, remove limit (null means infinite/default 0 logic)
                 waitlistLimit = null;
             }
         });
 
-        // QR – you can hook real QR after event is created (has ID)
         btnGenerateQRCode.setOnClickListener(v ->
                 Toast.makeText(requireContext(),
                         "QR will be generated on the event details screen after creation.",
                         Toast.LENGTH_SHORT).show());
 
-        // Event date picker
         etEventDate.setKeyListener(null);
         etEventDate.setOnClickListener(v -> showEventDatePicker());
 
-        // Create event
         btnCreateEvent.setOnClickListener(v -> onCreateEventClicked());
     }
 
-    // ---------- UI helpers ----------
-
+    /**
+     * Displays a MaterialDatePicker range picker for selecting the registration start and end dates.
+     * Updates the UI with the selected range formatted as strings.
+     */
     private void showDateRangePicker() {
         MaterialDatePicker<Long> startPicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("Pick registration START date")
@@ -158,7 +174,6 @@ CreateNewEventFragment extends Fragment {
                     .build();
             endPicker.addOnPositiveButtonClickListener(endUtc -> {
                 regEndCal.setTimeInMillis(endUtc);
-                // Display in the field
                 String display = dateFmt.format(regStartCal.getTime()) + " → " + dateFmt.format(regEndCal.getTime());
                 etRegistrationDates.setText(display);
             });
@@ -168,8 +183,11 @@ CreateNewEventFragment extends Fragment {
         startPicker.show(getParentFragmentManager(), "startDate");
     }
 
+    /**
+     * Displays MaterialTimePickers for selecting the start and end times of the registration period.
+     * Updates the Calendar objects and the UI text field.
+     */
     private void showStartEndTimePickers() {
-        // START time
         MaterialTimePicker start = new MaterialTimePicker.Builder()
                 .setTitleText("Pick registration START time")
                 .setTimeFormat(TimeFormat.CLOCK_24H)
@@ -180,7 +198,7 @@ CreateNewEventFragment extends Fragment {
             regStartCal.set(Calendar.HOUR_OF_DAY, start.getHour());
             regStartCal.set(Calendar.MINUTE, start.getMinute());
             regStartCal.set(Calendar.SECOND, 0);
-            // END time
+
             MaterialTimePicker end = new MaterialTimePicker.Builder()
                     .setTitleText("Pick registration END time")
                     .setTimeFormat(TimeFormat.CLOCK_24H)
@@ -199,17 +217,19 @@ CreateNewEventFragment extends Fragment {
         start.show(getParentFragmentManager(), "startTime");
     }
 
+    /**
+     * Displays a date picker for selecting the specific date the actual event takes place.
+     * Handles timezone conversion to ensure the correct date is stored.
+     */
     private void showEventDatePicker() {
         MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("Pick event date")
                 .build();
 
         picker.addOnPositiveButtonClickListener(utcMillis -> {
-            // 1. Interpret the picker value in UTC
             Calendar utcCal = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
             utcCal.setTimeInMillis(utcMillis);
 
-            // 2. Copy just the date fields into your local calendar
             eventDateCal.clear();
             eventDateCal.set(
                     utcCal.get(Calendar.YEAR),
@@ -220,13 +240,16 @@ CreateNewEventFragment extends Fragment {
             eventDateCal.set(Calendar.MILLISECOND, 0);
 
             eventDate = eventDateCal.getTime();
-            etEventDate.setText(dateFmt.format(eventDate));   // yyyy-MM-dd
+            etEventDate.setText(dateFmt.format(eventDate));
         });
 
         picker.show(getParentFragmentManager(), "eventDate");
     }
 
-
+    /**
+     * Shows a dialog with a number picker to set a hard limit on the waiting list size.
+     * If cancelled, the limit feature is disabled.
+     */
     private void showWaitlistLimitDialog() {
         Context ctx = requireContext();
         NumberPicker picker = new NumberPicker(ctx);
@@ -239,15 +262,17 @@ CreateNewEventFragment extends Fragment {
                 .setView(picker)
                 .setPositiveButton("Set", (d, w) -> waitlistLimit = (long) picker.getValue())
                 .setNegativeButton("Cancel", (d, w) -> {
-                    // If they cancel, uncheck the box (meaning "No Limit")
                     cbWaitlistLimit.setChecked(false);
                     waitlistLimit = null;
                 })
                 .show();
     }
 
-    // ---------- Create Event flow ----------
-
+    /**
+     * Handles the "Create Event" button click.
+     * Validates all form inputs, parses dates, constructs the Event object,
+     * and initiates the poster upload (if applicable) or direct event creation.
+     */
     private void onCreateEventClicked() {
         String name         = s(etEventName);
         String desc         = s(etEventDescription);
@@ -257,7 +282,6 @@ CreateNewEventFragment extends Fragment {
         String guidelines   = s(etGuidelines);
         boolean geoRequired = cbGeolocation.isChecked();
 
-        // Basic validation
         if (TextUtils.isEmpty(name)) {
             etEventName.setError("Required");
             return;
@@ -277,10 +301,9 @@ CreateNewEventFragment extends Fragment {
             return;
         }
 
-        // Parse event date (YYYY-MM-DD)
         Date parsedEventDate;
         try {
-            parsedEventDate = dateFmt.parse(eventDateStr);   // dateFmt = new SimpleDateFormat("yyyy-MM-dd", ...)
+            parsedEventDate = dateFmt.parse(eventDateStr);
         } catch (ParseException e) {
             etEventDate.setError("Use format YYYY-MM-DD");
             return;
@@ -294,7 +317,6 @@ CreateNewEventFragment extends Fragment {
             return;
         }
 
-        // Build Event model
         Event event = new Event();
         event.setOrganizerId(FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid() : "unknown");
@@ -305,7 +327,6 @@ CreateNewEventFragment extends Fragment {
         event.setRegistrationEnd(registrationEnd);
         event.setGeolocationRequired(geoRequired);
 
-        // New fields
         event.setEventDate(parsedEventDate);
         if (!TextUtils.isEmpty(category)) {
             event.setCategory(category);
@@ -314,13 +335,10 @@ CreateNewEventFragment extends Fragment {
             event.setGuidelines(guidelines);
         }
 
-        // Only set limit if checkbox is checked AND value is present.
-        // Otherwise, it defaults to 0 (No Limit).
         if (cbWaitlistLimit.isChecked() && waitlistLimit != null) {
             event.setWaitingListLimit(waitlistLimit);
         }
 
-        // If poster selected, upload first; otherwise create immediately
         if (posterUri != null) {
             uploadPosterThenCreate(event);
         } else {
@@ -328,7 +346,13 @@ CreateNewEventFragment extends Fragment {
         }
     }
 
-
+    /**
+     * Uploads the selected poster image to Firebase Storage.
+     * On success, retrieves the download URL, sets it on the Event object,
+     * and proceeds to save the event to Firestore.
+     *
+     * @param event The Event object with metadata populated.
+     */
     private void uploadPosterThenCreate(Event event) {
         try {
             String ext = getExtFromUri(posterUri);
@@ -359,13 +383,18 @@ CreateNewEventFragment extends Fragment {
         }
     }
 
+    /**
+     * Saves the Event object to the Firestore repository.
+     * Disables the create button to prevent double submissions.
+     *
+     * @param event The fully populated Event object.
+     */
     private void createEvent(Event event) {
         btnCreateEvent.setEnabled(false);
         repo.createEvent(event, new EventRepository.EventTaskCallback() {
             @Override public void onSuccess() {
                 btnCreateEvent.setEnabled(true);
                 Toast.makeText(requireContext(), "Event created!", Toast.LENGTH_SHORT).show();
-                // Optional: clear form
                 clearForm();
             }
             @Override public void onError(String message) {
@@ -375,6 +404,9 @@ CreateNewEventFragment extends Fragment {
         });
     }
 
+    /**
+     * Resets the UI form to its default state after a successful event creation.
+     */
     private void clearForm() {
         posterUri = null;
         uploadedPosterUrl = null;
@@ -390,19 +422,28 @@ CreateNewEventFragment extends Fragment {
         eventDate = null;
         eventDateCal.setTime(new Date());
         cbGeolocation.setChecked(true);
-        // Reset limit checkbox to unchecked (No limit)
         cbWaitlistLimit.setChecked(false);
         waitlistLimit = null;
         regStartCal.setTime(new Date());
         regEndCal.setTime(new Date());
     }
 
-    // ---------- Utils ----------
-
+    /**
+     * Helper to retrieve the text string from a TextInputEditText safely.
+     *
+     * @param et The EditText to read.
+     * @return The trimmed string content or an empty string if null.
+     */
     private static String s(TextInputEditText et) {
         return et.getText() == null ? "" : et.getText().toString().trim();
     }
 
+    /**
+     * Helper to determine the file extension from a generic URI (content or file).
+     *
+     * @param uri The URI of the selected file.
+     * @return The file extension string (e.g., "jpg", "png") or null.
+     */
     private String getExtFromUri(Uri uri) {
         try {
             ContentResolver cr = requireContext().getContentResolver();
@@ -416,6 +457,12 @@ CreateNewEventFragment extends Fragment {
         }
     }
 
+    /**
+     * Helper to query the display name of a file from a content URI.
+     *
+     * @param uri The content URI.
+     * @return The display name or "file" if not found.
+     */
     private String queryDisplayName(Uri uri) {
         try (android.database.Cursor c = requireContext().getContentResolver()
                 .query(uri, null, null, null, null)) {

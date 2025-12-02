@@ -26,10 +26,21 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
+/**
+ * Displays details for a specific Organizer.
+ * Implements US 03.07.01 by providing the functionality to remove an organizer
+ * who violates app policy.
+ */
 public class AdminOrganizerDetailsFragment extends Fragment {
 
     private static final String ARG_ORGANIZER_ID = "organizer_id";
 
+    /**
+     * Factory method to create an instance with the organizer ID.
+     *
+     * @param organizerId The ID of the organizer.
+     * @return New fragment instance.
+     */
     public static AdminOrganizerDetailsFragment newInstance(String organizerId) {
         AdminOrganizerDetailsFragment frag = new AdminOrganizerDetailsFragment();
         Bundle b = new Bundle();
@@ -50,6 +61,14 @@ public class AdminOrganizerDetailsFragment extends Fragment {
     private AuthRepository authRepository;
     private EventRepository eventRepository;
 
+    /**
+     * Inflates the organizer details layout.
+     *
+     * @param inflater           The LayoutInflater.
+     * @param container          The parent view.
+     * @param savedInstanceState Previous state.
+     * @return The inflated view.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -58,6 +77,12 @@ public class AdminOrganizerDetailsFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_admin_organizer_details, container, false);
     }
 
+    /**
+     * Binds UI components and triggers data loading.
+     *
+     * @param view               The created view.
+     * @param savedInstanceState Previous state.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -70,11 +95,9 @@ public class AdminOrganizerDetailsFragment extends Fragment {
             return;
         }
 
-        // Init repositories
         authRepository = new AuthRepository();
         eventRepository = new EventRepository();
 
-        // UI
         tvName = view.findViewById(R.id.tvDetailName);
         tvEmail = view.findViewById(R.id.tvDetailEmail);
         tvPhone = view.findViewById(R.id.tvDetailPhone);
@@ -95,6 +118,9 @@ public class AdminOrganizerDetailsFragment extends Fragment {
         loadOrganizer();
     }
 
+    /**
+     * Loads the organizer's profile data from Firestore.
+     */
     private void loadOrganizer() {
         progressBar.setVisibility(View.VISIBLE);
         db.collection("users")
@@ -109,6 +135,11 @@ public class AdminOrganizerDetailsFragment extends Fragment {
                 });
     }
 
+    /**
+     * Populates the view with organizer data.
+     *
+     * @param doc The Firestore document.
+     */
     private void bindOrganizer(DocumentSnapshot doc) {
         progressBar.setVisibility(View.GONE);
 
@@ -136,6 +167,9 @@ public class AdminOrganizerDetailsFragment extends Fragment {
         }
     }
 
+    /**
+     * Shows a confirmation dialog requesting a reason for removal.
+     */
     private void confirmRemoveOrganizer() {
 
         final EditText input = new EditText(requireContext());
@@ -156,6 +190,12 @@ public class AdminOrganizerDetailsFragment extends Fragment {
                 .show();
     }
 
+    /**
+     * Performs the deactivation of the organizer and cascades the deactivation
+     * to all events owned by them.
+     *
+     * @param reason The administrative reason for removal.
+     */
     private void performRemoval(String reason) {
         progressBar.setVisibility(View.VISIBLE);
 
@@ -163,12 +203,10 @@ public class AdminOrganizerDetailsFragment extends Fragment {
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : "unknown";
 
-        // 1) Deactivate organizer
         authRepository.deactivateOrganizer(organizerId, reason, new AuthRepository.TaskCallback() {
             @Override
             public void onSuccess() {
 
-                // 2) Deactivate organizer events
                 eventRepository.deactivateEventsByOrganizer(
                         organizerId,
                         adminId,

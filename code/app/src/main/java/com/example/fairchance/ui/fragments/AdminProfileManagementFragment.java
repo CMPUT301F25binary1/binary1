@@ -13,7 +13,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -28,6 +27,11 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Manages the "Browse Profiles" functionality for Administrators.
+ * Implements US 03.05.01 by displaying a searchable list of users.
+ * Acts as the navigation hub for US 03.02.01 (Remove Profiles).
+ */
 public class AdminProfileManagementFragment extends Fragment
         implements AdminUserAdapter.OnUserClickListener {
 
@@ -39,6 +43,14 @@ public class AdminProfileManagementFragment extends Fragment
     private AdminUserAdapter adapter;
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+    /**
+     * Inflates the layout for profile management.
+     *
+     * @param inflater           The LayoutInflater object.
+     * @param container          The parent view.
+     * @param savedInstanceState Previous state bundle.
+     * @return The inflated view.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -47,6 +59,12 @@ public class AdminProfileManagementFragment extends Fragment
         return inflater.inflate(R.layout.fragment_admin_profile_management, container, false);
     }
 
+    /**
+     * Sets up the RecyclerView, Search bar text watcher, and initiates the data load.
+     *
+     * @param view               The View returned by onCreateView.
+     * @param savedInstanceState Previous state bundle.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -78,6 +96,10 @@ public class AdminProfileManagementFragment extends Fragment
         loadUsers();
     }
 
+    /**
+     * Fetches the list of all users from Firestore.
+     * filters data locally to exclude deactivated accounts, and updates the adapter.
+     */
     private void loadUsers() {
         setLoading(true);
         db.collection("users")
@@ -91,12 +113,10 @@ public class AdminProfileManagementFragment extends Fragment
                         String email = doc.getString("email");
                         String role = doc.getString("role");
 
-                        // Only show organizers
                         if (role == null || !role.equalsIgnoreCase("organizer")) {
                             continue;
                         }
 
-                        // Respect soft-deactivation flags
                         Boolean isActive = doc.getBoolean("isActive");
                         Boolean roleActive = doc.getBoolean("roleActive");
                         if (isActive != null && !isActive) {
@@ -106,7 +126,6 @@ public class AdminProfileManagementFragment extends Fragment
                             continue;
                         }
 
-                        // adjust the field name if your timestamp is different
                         com.google.firebase.Timestamp createdAt =
                                 doc.getTimestamp("timeCreated");
 
@@ -133,15 +152,24 @@ public class AdminProfileManagementFragment extends Fragment
                 });
     }
 
-
+    /**
+     * Toggles the visibility of the progress bar and recyclerview during data fetching.
+     *
+     * @param loading True to show the progress bar, false to show the list.
+     */
     private void setLoading(boolean loading) {
         progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
         rvUsers.setEnabled(!loading);
     }
 
+    /**
+     * Callback method triggered when an admin clicks on a user item in the list.
+     * Navigates to the details fragment for potential removal actions.
+     *
+     * @param user The user DTO clicked.
+     */
     @Override
     public void onUserClick(AdminUserItem user) {
-        // Open a simple details fragment
         Fragment details = AdminUserDetailsFragment.newInstance(user.getId());
         FragmentTransaction ft = requireActivity()
                 .getSupportFragmentManager()

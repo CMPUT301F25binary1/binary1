@@ -25,6 +25,10 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Organizer view for listing entrants who have cancelled or declined an invitation.
+ * Implements US 02.06.02 (View cancelled entrants) and supports sending notifications to them (US 02.07.03).
+ */
 public class CancelledEntrantsFragment extends Fragment {
 
     private static final String ARG_EVENT_ID = "EVENT_ID";
@@ -36,10 +40,18 @@ public class CancelledEntrantsFragment extends Fragment {
     private SelectedParticipantAdapter adapter;
     private final List<String> cancelledIds = new ArrayList<>();
 
+    /**
+     * Required empty public constructor for Fragment instantiation.
+     */
     public CancelledEntrantsFragment() {
-        // Required empty constructor
     }
 
+    /**
+     * Creates a new instance of the fragment for a specific event.
+     *
+     * @param eventId The unique ID of the event.
+     * @return New CancelledEntrantsFragment instance.
+     */
     public static CancelledEntrantsFragment newInstance(String eventId) {
         CancelledEntrantsFragment fragment = new CancelledEntrantsFragment();
         Bundle args = new Bundle();
@@ -48,6 +60,14 @@ public class CancelledEntrantsFragment extends Fragment {
         return fragment;
     }
 
+    /**
+     * Inflates the cancelled entrants list layout.
+     *
+     * @param inflater           The LayoutInflater object.
+     * @param container          The parent view.
+     * @param savedInstanceState Previous state bundle.
+     * @return The inflated view.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -56,6 +76,12 @@ public class CancelledEntrantsFragment extends Fragment {
         return inflater.inflate(R.layout.cancelled_entrants_list, container, false);
     }
 
+    /**
+     * Initializes the RecyclerView adapter and triggers data loading.
+     *
+     * @param view               The View returned by onCreateView.
+     * @param savedInstanceState Previous state bundle.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -66,13 +92,12 @@ public class CancelledEntrantsFragment extends Fragment {
         rvCancelledEntrants = view.findViewById(R.id.rvCancelledEntrants);
         rvCancelledEntrants.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // Re-use SelectedParticipantAdapter with no per-row button
         adapter = new SelectedParticipantAdapter(
                 cancelledIds,
-                "",          // event name not needed here
-                "",          // button text unused when listener == null
+                "",
+                "",
                 false,
-                null         // listener == null → button hidden
+                null
         );
         rvCancelledEntrants.setAdapter(adapter);
 
@@ -83,12 +108,10 @@ public class CancelledEntrantsFragment extends Fragment {
         if (eventId == null || eventId.isEmpty()) {
             Toast.makeText(getContext(), "Missing event id.", Toast.LENGTH_SHORT).show();
         } else {
-            loadEventMeta();          // NEW – loads event name
-            loadCancelledEntrants();  // already there
+            loadEventMeta();
+            loadCancelledEntrants();
         }
 
-        // Make sure your layout has a Button with this id:
-        // @+id/btnNotifyCancelledEntrants
         Button btnNotify = view.findViewById(R.id.btnNotifyCancelledEntrants);
         if (btnNotify != null) {
             btnNotify.setOnClickListener(v -> {
@@ -101,11 +124,13 @@ public class CancelledEntrantsFragment extends Fragment {
         }
     }
 
+    /**
+     * Loads event metadata (like name) to display in the UI title or adapter.
+     */
     private void loadEventMeta() {
         repository.getEvent(eventId, new EventRepository.EventCallback() {
             @Override
             public void onSuccess(Event event) {
-                // Set list title to include event name (optional)
                 View root = getView();
                 if (root != null) {
                     android.widget.TextView title = root.findViewById(R.id.tvCancelledEntrantsTitle);
@@ -114,7 +139,6 @@ public class CancelledEntrantsFragment extends Fragment {
                     }
                 }
 
-                // Tell the adapter so each card shows the event name
                 if (event.getName() != null) {
                     adapter.setEventName(event.getName());
                 }
@@ -129,6 +153,9 @@ public class CancelledEntrantsFragment extends Fragment {
         });
     }
 
+    /**
+     * Fetches the list of user IDs from the 'cancelled' sub-collection in Firestore.
+     */
     private void loadCancelledEntrants() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("events")
@@ -138,7 +165,6 @@ public class CancelledEntrantsFragment extends Fragment {
                 .addOnSuccessListener(snapshot -> {
                     cancelledIds.clear();
                     for (QueryDocumentSnapshot doc : snapshot) {
-                        // doc ID is the userId
                         cancelledIds.add(doc.getId());
                     }
                     adapter.notifyDataSetChanged();
@@ -152,6 +178,10 @@ public class CancelledEntrantsFragment extends Fragment {
                 );
     }
 
+    /**
+     * Displays a dialog allowing the organizer to compose and send a notification
+     * to all cancelled entrants.
+     */
     private void showSendNotificationDialog() {
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_send_notif_cancelled, null, false);

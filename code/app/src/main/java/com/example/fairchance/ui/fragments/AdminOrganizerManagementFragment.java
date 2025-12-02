@@ -27,6 +27,15 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Fragment allowing Administrators to browse and manage Organizer profiles.
+ * Displays a list of users with the "organizer" role and provides search functionality.
+ * Clicking a user allows the admin to view details and potentially remove them.
+ *
+ * Implements User Stories:
+ * - US 03.05.01 (Browse profiles)
+ * - US 03.07.01 (Remove organizers that violate policy)
+ */
 public class AdminOrganizerManagementFragment extends Fragment
         implements AdminUserAdapter.OnUserClickListener {
 
@@ -38,6 +47,14 @@ public class AdminOrganizerManagementFragment extends Fragment
     private AdminUserAdapter adapter;
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+    /**
+     * Inflates the layout for the Admin Organizer Management screen.
+     *
+     * @param inflater           The LayoutInflater object.
+     * @param container          The parent view.
+     * @param savedInstanceState Saved state bundle.
+     * @return The View for the fragment's UI.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -46,6 +63,12 @@ public class AdminOrganizerManagementFragment extends Fragment
         return inflater.inflate(R.layout.fragment_admin_organizer_management, container, false);
     }
 
+    /**
+     * Initializes the RecyclerView, Search functionality, and loads the initial list of organizers.
+     *
+     * @param view               The View returned by onCreateView.
+     * @param savedInstanceState Saved state bundle.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -77,6 +100,10 @@ public class AdminOrganizerManagementFragment extends Fragment
         loadOrganizers();
     }
 
+    /**
+     * Fetches all users from Firestore, filters for those with the 'organizer' role,
+     * and updates the RecyclerView adapter.
+     */
     private void loadOrganizers() {
         setLoading(true);
         db.collection("users")
@@ -90,12 +117,10 @@ public class AdminOrganizerManagementFragment extends Fragment
                         String email = doc.getString("email");
                         String role = doc.getString("role");
 
-                        // Only organizers
                         if (role == null || !role.equalsIgnoreCase("organizer")) {
                             continue;
                         }
 
-                        // Optional: respect soft deactivate flags
                         Boolean isActive = doc.getBoolean("isActive");
                         Boolean roleActive = doc.getBoolean("roleActive");
                         if (isActive != null && !isActive) continue;
@@ -127,11 +152,22 @@ public class AdminOrganizerManagementFragment extends Fragment
                 });
     }
 
+    /**
+     * Toggles the loading indicator visibility.
+     *
+     * @param loading True to show the progress bar, False to hide it.
+     */
     private void setLoading(boolean loading) {
         progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
         rvUsers.setEnabled(!loading);
     }
 
+    /**
+     * Callback method triggered when an organizer item in the list is clicked.
+     * Navigates to the AdminOrganizerDetailsFragment.
+     *
+     * @param user The AdminUserItem that was clicked.
+     */
     @Override
     public void onUserClick(AdminUserItem user) {
         Fragment details = AdminOrganizerDetailsFragment.newInstance(user.getId());

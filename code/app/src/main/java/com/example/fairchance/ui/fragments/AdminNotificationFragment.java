@@ -30,8 +30,11 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Fragment that shows the admin Notification Logs screen.
- * Uses layout: R.layout.admin_notification
+ * Fragment that displays the administrative log of all notifications sent within the system.
+ * Allows the Admin to filter logs by date range and event name to audit communication.
+ *
+ * Implements User Story:
+ * - US 03.08.01 (Review logs of all notifications sent to entrants)
  */
 public class AdminNotificationFragment extends Fragment
         implements NotificationLogAdapter.OnLogClickListener {
@@ -49,10 +52,21 @@ public class AdminNotificationFragment extends Fragment
     private final DateFormat dateFormat =
             DateFormat.getDateInstance(DateFormat.MEDIUM);
 
+    /**
+     * Required empty public constructor for Fragment instantiation.
+     */
     public AdminNotificationFragment() {
         // Required empty public constructor
     }
 
+    /**
+     * Inflates the layout for the Admin Notification Log screen.
+     *
+     * @param inflater           The LayoutInflater object.
+     * @param container          The parent view.
+     * @param savedInstanceState Saved state bundle.
+     * @return The View for the fragment's UI.
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -61,6 +75,13 @@ public class AdminNotificationFragment extends Fragment
         return inflater.inflate(R.layout.admin_notification, container, false);
     }
 
+    /**
+     * Initializes the RecyclerView, sets up date pickers and text filters,
+     * and fetches the notification logs from the repository.
+     *
+     * @param view               The View returned by onCreateView.
+     * @param savedInstanceState Saved state bundle.
+     */
     @Override
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
@@ -68,7 +89,6 @@ public class AdminNotificationFragment extends Fragment
 
         logRepository = new NotificationLogRepository();
 
-        // Optional back button at top of admin_notification.xml
         Button backButton = view.findViewById(R.id.button);
         if (backButton != null) {
             backButton.setOnClickListener(v ->
@@ -104,6 +124,10 @@ public class AdminNotificationFragment extends Fragment
         loadLogs();
     }
 
+    /**
+     * Fetches all notification logs from the repository asynchronously.
+     * On success, populates the local list and applies any existing filters.
+     */
     private void loadLogs() {
         logRepository.fetchAllLogs(new NotificationLogRepository.LogListCallback() {
             @Override
@@ -124,6 +148,11 @@ public class AdminNotificationFragment extends Fragment
         });
     }
 
+    /**
+     * Shows a DatePickerDialog to select a start or end date filter.
+     *
+     * @param isStart True if picking the start date, False for the end date.
+     */
     private void showDatePicker(boolean isStart) {
         final Calendar calendar = Calendar.getInstance();
 
@@ -150,6 +179,10 @@ public class AdminNotificationFragment extends Fragment
         dialog.show();
     }
 
+    /**
+     * Filters the local list of logs based on the selected date range and event name query.
+     * Updates the adapter with the filtered results.
+     */
     private void applyFilters() {
         String eventQuery = etFilterEvent.getText() != null
                 ? etFilterEvent.getText().toString().trim().toLowerCase()
@@ -181,9 +214,14 @@ public class AdminNotificationFragment extends Fragment
         tvEmptyState.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
+    /**
+     * Callback method when a notification log item is clicked.
+     * Opens the detailed view of that log entry.
+     *
+     * @param log The NotificationLog item that was clicked.
+     */
     @Override
     public void onLogClick(NotificationLog log) {
-        // Open the details Activity
         NotificationLogDetailsActivity.start(requireContext(), log);
     }
 }
